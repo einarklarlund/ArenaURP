@@ -1,0 +1,15 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a78a51215eb6401fa69ba3a1f1d8b55, type: 3}
+  m_Name: Wall Hallways
+  m_EditorClassIdentifier: 
+  HallwayWallPrefab: {fileID: 7852877999369603518, guid: 695fe6871a1a14732b9a65231f572235, type: 3}

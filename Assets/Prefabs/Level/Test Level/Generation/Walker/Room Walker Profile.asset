@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d54d015a667fd4b5d984f790ee42b4b3, type: 3}
+  m_Name: Room Walker Profile
+  m_EditorClassIdentifier: 
+  InitialActions: []
+  AvailableActions:
+  - {fileID: 11400000, guid: 4995c9e6ab9b5443fb5ae8dfc791f726, type: 2}
+  - {fileID: 11400000, guid: f5bf3f3b9acf14f8c86e9afbb8597361, type: 2}
+  - {fileID: 11400000, guid: cd7566da1fda148508e65a21d08e68a8, type: 2}
+  - {fileID: 11400000, guid: e9261af3ec9f942cda69c5eb1e3499df, type: 2}
+  - {fileID: 11400000, guid: a9b8fb042b9d04b7586eaf226b413632, type: 2}

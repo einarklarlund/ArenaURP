@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e48aa84fee164c17b846bcbdb9d79dc, type: 3}
+  m_Name: Room Library Entry 1
+  m_EditorClassIdentifier: 
+  RoomPrefab: {fileID: 8325816731951307673, guid: 90f58c22bc1e34112b3cf76d898f2d96, type: 3}
+  CellSize: 3
+  FloorOffsets: []
+  CalculatedSize: {x: 0, y: 0}
+  Markers: []

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ecd75f7ac28d41d2921e0443bb6feac, type: 3}
+  m_Name: Map Prefabs
+  m_EditorClassIdentifier: 
+  FloorPrefabs:
+  - {fileID: 5593563965758232172, guid: 6c488678f1df7435293baf74c68748a5, type: 3}
+  - {fileID: 5593563965758232172, guid: 86fc72a889048417db79c321e6cdb0e3, type: 3}
+  - {fileID: 5593563965758232172, guid: a17d20f41dbb74c4fa7ec34f1e5713d4, type: 3}
+  - {fileID: 5593563965758232172, guid: 16298f9e071f74fdcbdea65d20792ffb, type: 3}
+  - {fileID: 5593563965758232172, guid: dd224ed4373564afb80f7325a1370b6f, type: 3}
+  - {fileID: 5593563965758232172, guid: 48949b0bff73e49e298e016463bc070c, type: 3}
+  WallPrefabs:
+  - {fileID: 3654503419301319268, guid: e428a479e6af84bd980366013df56d8d, type: 3}
+  - {fileID: 3654503419301319268, guid: 3ac3a488966f74ea7a1688fb96a17c25, type: 3}
+  - {fileID: 3654503419301319268, guid: 2b97bbd9a03d64a86b8a52b5a541ca0d, type: 3}
+  - {fileID: 3654503419301319268, guid: 8652cca815573448a891e5adfed326d5, type: 3}
+  - {fileID: 3654503419301319268, guid: ecab87d1404e84ddfa321821e4652595, type: 3}
+  - {fileID: 3654503419301319268, guid: 9c001fd8baf664c378c1fc2926d6035b, type: 3}
+  - {fileID: 3654503419301319268, guid: 9756a1e6b85914797af08a9919ed0b3e, type: 3}
+  - {fileID: 3654503419301319268, guid: d69e22f4383484d719006263f0fdc0e4, type: 3}
+  - {fileID: 3654503419301319268, guid: f17164d038dff4a148bba971600dd5a9, type: 3}
+  - {fileID: 3654503419301319268, guid: ae1b3518a38d34d1e821ad58536e97ee, type: 3}
+  HallwayPrefabs:
+  - {fileID: 5593563965758232172, guid: d37687893b8bc460dba46c3e60844e3c, type: 3}
+  EmptyPrefab: []
