@@ -1,0 +1,40 @@
+name: Build and Deploy WebGL
+
+on:
+  push:
+    branches:
+      - main  # Trigger on every push to the main branch
+
+jobs:
+  build:
+    name: Build for WebGL ✨
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout the code (including LFS files)
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      # 2. Cache the Library folder to speed up future builds
+      - name: Cache Library
+        uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-WebGL
+          restore-keys: Library-
+
+      # 3. Build the Unity Project
+      - name: Unity Builder
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          targetPlatform: WebGL
+
+      # 4. Deploy the 'build/WebGL/WebGL' folder to the 'gh-pages' branch
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/WebGL/WebGL
