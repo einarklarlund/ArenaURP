@@ -10,13 +10,25 @@ jobs:
     name: Build for WebGL ✨
     runs-on: ubuntu-latest
     steps:
-      # 1. Checkout the code (including LFS files)
+    # --- Reclaim disk space ---
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # This frees up ~15-20GB by removing Android, .NET, and Haskell
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-file: true
+
+      # Checkout the code (including LFS files)
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           lfs: true
 
-      # 2. Cache the Library folder to speed up future builds
+      # Cache the Library folder to speed up future builds
       - name: Cache Library
         uses: actions/cache@v3
         with:
@@ -24,7 +36,7 @@ jobs:
           key: Library-WebGL
           restore-keys: Library-
 
-      # 3. Build the Unity Project
+      # Build the Unity Project
       - name: Unity Builder
         uses: game-ci/unity-builder@v4
         env:
@@ -32,7 +44,7 @@ jobs:
         with:
           targetPlatform: WebGL
 
-      # 4. Deploy the 'build/WebGL/WebGL' folder to the 'gh-pages' branch
+      # Deploy the 'build/WebGL/WebGL' folder to the 'gh-pages' branch
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
