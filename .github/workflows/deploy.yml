@@ -5,6 +5,11 @@ on:
     branches:
       - main  # Trigger on every push to the main branch
 
+permissions:
+  contents: write    # Allows pushing to the gh-pages branch
+  pages: write       # Allows interacting with GitHub Pages settings
+  id-token: write    # Required for some deployment security checks
+
 jobs:
   build:
     name: Build for WebGL ✨
