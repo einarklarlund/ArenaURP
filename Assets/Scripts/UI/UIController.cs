@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using FishNet;
 using FishNet.Object.Synchronizing;
+using FishNet.Transporting;
 using UnityEngine;
 
 /// <summary>
@@ -31,6 +33,8 @@ public sealed class UIController : MonoBehaviour
         NetworkPlayer.LocalInstance.ControlledPawn.OnChange += OnLocalPawnChanged;
         NetworkPlayer.LocalInstance.RespawnTimeEnd.OnChange += OnRespawnTimeEndChanged;
         DeathmatchManager.Instance.OnGameModeEnded += OnGameModeEnded;
+
+        InstanceFinder.ClientManager.OnClientConnectionState += OnClientConnectionStateChanged;
 
         // Manually trigger the first update to sync UI with current state
         OnCountdownChanged(0, MatchFlowManager.Instance.CountdownTime.Value, false);
@@ -68,6 +72,12 @@ public sealed class UIController : MonoBehaviour
     }
 
     // --- Named Event Handlers ---
+
+    private void OnClientConnectionStateChanged(ClientConnectionStateArgs args)
+    {
+        bool started = args.ConnectionState == LocalConnectionState.Started;
+        NetworkUIEvents.OnClientConnectionChanged?.Invoke(started);
+    }
 
     private void OnCountdownChanged(int prev, int next, bool asServer)
     {

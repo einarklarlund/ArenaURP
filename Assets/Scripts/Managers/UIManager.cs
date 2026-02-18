@@ -14,11 +14,17 @@ public sealed class UIManager : MonoBehaviour
     [SerializeField] private List<View> views;
     [SerializeField] private Camera menuCamera;
 
+    private void Start()
+    {
+        Show<MainMenuView>();
+    }
+
     private void OnEnable()
     {
         NetworkUIEvents.OnMatchStateChanged += HandleMatchStateChanged;
         NetworkUIEvents.OnLocalPawnSpawned += HandleLocalSpawn;
         NetworkUIEvents.OnLocalDeath += HandleLocalDeath;
+        NetworkUIEvents.OnClientConnectionChanged += HandleClientConnectionChanged;
     }
 
     private void OnDisable()
@@ -26,6 +32,12 @@ public sealed class UIManager : MonoBehaviour
         NetworkUIEvents.OnMatchStateChanged -= HandleMatchStateChanged;
         NetworkUIEvents.OnLocalPawnSpawned -= HandleLocalSpawn;
         NetworkUIEvents.OnLocalDeath -= HandleLocalDeath;
+    }
+
+    private void HandleClientConnectionChanged(bool connected)
+    {
+        if(!connected)
+            Show<MainMenuView>();
     }
 
     private void HandleMatchStateChanged(MatchState state)

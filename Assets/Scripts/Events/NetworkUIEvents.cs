@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 public static class NetworkUIEvents
 {
+    // Network connection events
+    public static Action<bool> OnClientConnectionChanged;
+
     // High-level match events
     public static Action<int> OnCountdownChanged;
     public static Action<MatchState> OnMatchStateChanged;
