@@ -287,7 +287,7 @@ MonoBehaviour:
   _dontDestroyOnLoad: 1
   _objectPool: {fileID: 0}
   _persistence: 1
-  _logging: {fileID: 0}
+  _logging: {fileID: 11400000, guid: 627cfb37b592b4495b7f51750534d430, type: 2}
   _spawnablePrefabs: {fileID: 11400000, guid: 13088baeba6a449cdac43d2e5fc2cfcb, type: 2}
 --- !u!114 &431599979
 MonoBehaviour:
@@ -1120,28 +1120,8 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 8148123850570212594, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 7095200600591537239}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
---- !u!1 &7095200600591537234 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 8148123850570212594, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
-  m_PrefabInstance: {fileID: 7095200600591537233}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &7095200600591537239
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7095200600591537234}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7de051710a072413892d94828281d90e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DontDestroyOnLoad
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
