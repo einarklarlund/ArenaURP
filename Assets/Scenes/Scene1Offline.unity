@@ -320,9 +320,9 @@ MonoBehaviour:
   - url: stun:stun.stunprotocol.org:3478
     username: 
     credential: 
-  operationTimeoutDurationMilliseconds: 2500
-  candidateCollectDurationMilliseconds: 2000
-  signalTimeoutDurationMilliseconds: 8000
+  operationTimeoutDurationMilliseconds: 25000
+  candidateCollectDurationMilliseconds: 20000
+  signalTimeoutDurationMilliseconds: 80000
 --- !u!4 &431599981
 Transform:
   m_ObjectHideFlags: 0

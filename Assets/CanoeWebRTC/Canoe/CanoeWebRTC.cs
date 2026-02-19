@@ -499,16 +499,10 @@ namespace FishNet.Transporting.CanoeWebRTC
         // this has 0 callbacks both on webgl and on standalones maybe add
         public static async Task HandleAnswerFromClient(int connectionID, OfferAnswer answer)
         {
-
-            Debug.Log("<color=cyan>[Signal]</color> 4");
-
             if (_server.GetLocalConnectionState() != LocalConnectionState.Started)
             {
-                Debug.Log($"<color=#FFA500>[Server]</color> Local connection state was {_server.GetLocalConnectionState()}, could not start connection to client.");
                 return;
             }
-
-            Debug.Log($"<color=#FFA500>[Server]</color> 5");
 
             if (remoteCancellationTokenSources.ContainsKey(connectionID))
             {
@@ -520,15 +514,9 @@ namespace FishNet.Transporting.CanoeWebRTC
                 }
             }
             
-            Debug.Log($"<color=#FFA500>[Server]</color> 6");
-
             StopSignalTimeout(connectionID);
 
-            Debug.Log($"<color=#FFA500>[Server]</color> 7");
-
             var timeoutTask = Task.Delay(_operationTimeoutDurationMilliseconds);
-
-            Debug.Log($"<color=#FFA500>[Server]</color> 8");
 
 #if !UNITY_WEBGL || UNITY_EDITOR
             Connection connection = _server.connections[connectionID];
@@ -550,9 +538,7 @@ namespace FishNet.Transporting.CanoeWebRTC
 
 #else
 
-    Debug.Log($"<color=#FFA500>[Server]</color> 9");
     WebGLServerSocket.HandleResponse(connectionID, answer);
-    Debug.Log($"<color=#FFA500>[Server]</color> 20");
     return; // No async operation to await in WebGL case
 
 #endif

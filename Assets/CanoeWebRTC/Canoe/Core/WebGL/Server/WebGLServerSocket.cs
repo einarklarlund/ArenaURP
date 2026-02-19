@@ -305,11 +305,9 @@ namespace FishNet.Transporting.CanoeWebRTC.Server
 
         public static void HandleResponse(int connectionID, OfferAnswer answer)
         {
-            Debug.Log($"<color=#FFA500>[Server]</color> 10");
             InstanceFinder.NetworkManager.Log("<color=#FFA500>[Server]</color> Handling Response");
             var jsonString = JsonUtility.ToJson(answer);
             WebGLWebRTC._HandleAnswerToOffer(connectionID, jsonString);
-            Debug.Log($"<color=#FFA500>[Server]</color> 19");
         }
 
         //maybe add a callback for when handling response fails?

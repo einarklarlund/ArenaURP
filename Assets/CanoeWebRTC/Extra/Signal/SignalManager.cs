@@ -148,10 +148,6 @@ public class SignalManager : MonoBehaviour
     //client has sent us their response! (answer to our offer)
     public async void HandleResponse(int connectionID, OfferAnswer offerAnswer)
     {
-        Debug.Log($"<color=#FFA500>[Server]</color> 3");
-        Debug.Log("Awaiting the handle response functionality.. the server response is:");
-        Debug.Log(offerAnswer.sdp);
-        Debug.Log(offerAnswer.candidates);
         await CanoeWebRTC.HandleAnswerFromClient(connectionID, offerAnswer);
     }
 
@@ -369,14 +365,10 @@ public class SignalManager : MonoBehaviour
 
                 int connID = BitConverter.ToInt32(data.Array, data.Offset + 1);
 
-                Debug.Log($"<color=#FFA500>[Server]</color> 1");
-
                 byte[] sendAnswer_remainingData = data.Array
                     .Skip(data.Offset + 5)
                     .Take(data.Count - 5)
                     .ToArray();
-
-                Debug.Log($"<color=#FFA500>[Server]</color> 2");
 
                 HandleResponse(connID, OfferAnswer.Deserialize(sendAnswer_remainingData));
 
