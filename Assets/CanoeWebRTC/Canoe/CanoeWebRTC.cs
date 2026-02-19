@@ -504,24 +504,31 @@ namespace FishNet.Transporting.CanoeWebRTC
 
             if (_server.GetLocalConnectionState() != LocalConnectionState.Started)
             {
-                InstanceFinder.NetworkManager.Log($"<color=#FFA500>[Server]</color> Local connection state was {_server.GetLocalConnectionState()}, could not start connection to client.");
+                Debug.Log($"<color=#FFA500>[Server]</color> Local connection state was {_server.GetLocalConnectionState()}, could not start connection to client.");
                 return;
             }
+
+            Debug.Log($"<color=#FFA500>[Server]</color> 5");
 
             if (remoteCancellationTokenSources.ContainsKey(connectionID))
             {
                 if (remoteCancellationTokenSources[connectionID].IsCancellationRequested)
                 {
-                    InstanceFinder.NetworkManager.Log($"<color=#FFA500>[Server]</color> Ignoring answer from client due to timeout.");
+                    Debug.Log($"<color=#FFA500>[Server]</color> Ignoring answer from client due to timeout.");
                     StopSignalTimeout(connectionID); //make sure it gets removed - maybe ignore and allow to go through even past timeout since this only gets called if its been completed already
                     return;
                 }
             }
+            
+            Debug.Log($"<color=#FFA500>[Server]</color> 6");
 
             StopSignalTimeout(connectionID);
 
+            Debug.Log($"<color=#FFA500>[Server]</color> 7");
+
             var timeoutTask = Task.Delay(_operationTimeoutDurationMilliseconds);
 
+            Debug.Log($"<color=#FFA500>[Server]</color> 8");
 
             Task operationTask;
 
