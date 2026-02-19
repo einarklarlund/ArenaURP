@@ -368,12 +368,12 @@ function CreateClientConnection() {
 
    newConn.peerConnection.oniceconnectionstatechange = function () {
       const state = newConn.peerConnection.iceConnectionState;
-      //console.log(`ICE Connection State changed to: ${state}`);
+      console.log(`ICE Connection State changed to: ${state}`);
    };
 
    newConn.peerConnection.onconnectionstatechange = function () {
       const state = newConn.peerConnection.connectionState;
-      //console.log(`Peer Connection State changed to: ${state}`);
+      console.log(`Peer Connection State changed to: ${state}`);
       
       if(state == 'disconnected' || state == 'failed' || state == 'closed'){
          //RemoteChannelsClosed_Client();
