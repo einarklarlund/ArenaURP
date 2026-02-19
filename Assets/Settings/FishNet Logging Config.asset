@@ -17,5 +17,5 @@ MonoBehaviour:
   _addTimestamps: 1
   _enableTimestampsInEditor: 0
   _developmentLogging: 3
-  _guiLogging: 2
+  _guiLogging: 3
   _headlessLogging: 1

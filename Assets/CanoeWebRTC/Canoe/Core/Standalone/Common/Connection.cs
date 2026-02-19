@@ -183,7 +183,7 @@ namespace FishNet.Transporting.CanoeWebRTC
                 {
                     if (candidate.Protocol == RTCIceProtocol.Udp)
                     {
-                        InstanceFinder.NetworkManager.Log($"{debugHeader} New local ICE candidate: {candidate.Candidate}");
+                        Debug.Log($"{debugHeader} New local ICE candidate: {candidate.Candidate}");
 
                         iceCandidates.Add(candidate);
                     }
