@@ -321,7 +321,7 @@ MonoBehaviour:
     username: 
     credential: 
   operationTimeoutDurationMilliseconds: 25000
-  candidateCollectDurationMilliseconds: 20000
+  candidateCollectDurationMilliseconds: 2000
   signalTimeoutDurationMilliseconds: 80000
 --- !u!4 &431599981
 Transform:
