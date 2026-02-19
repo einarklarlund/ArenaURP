@@ -734,12 +734,18 @@ function CreateOffer(connectionID) {
 
 //only done on server when receiving an answer from the client we sent an offer to
 function HandleAnswer(connectionID, answerJSON) {
+   
+   console.log("10");
    var answerJSONHandled = UTF8ToString(answerJSON);
+   console.log("11");
    var answerData = JSON.parse(answerJSONHandled);
+   console.log("12");
 
    var answerSdp = answerData.sdp;
+   console.log("13");
 
    var iceCandidatesArray = answerData.candidates;
+   console.log("14");
 
    
 
@@ -747,10 +753,13 @@ function HandleAnswer(connectionID, answerJSON) {
        type: 'answer',
        sdp: answerSdp
    });
+   console.log("15");
 
    RemoteConnections[connectionID].peerConnection.setRemoteDescription(answer).then(function () {
 
+   console.log("16");
          iceCandidatesArray.forEach(function (candidate) {
+            console.log("17");
 
             //can likely just set to 0 instead of checking
             var iceCandidate = new RTCIceCandidate({ 
@@ -758,6 +767,7 @@ function HandleAnswer(connectionID, answerJSON) {
                sdpMid: candidate.sdpMid !== null && candidate.sdpMid !== undefined ? candidate.sdpMid : "0",
                sdpMLineIndex: candidate.sdpMLineIndex !== null && candidate.sdpMLineIndex !== undefined ? candidate.sdpMLineIndex : 0
             });
+            console.log("18");
 
             RemoteConnections[connectionID].peerConnection.addIceCandidate(iceCandidate).catch(function (error) {
                   console.error('Failed to add ICE candidate:', error);

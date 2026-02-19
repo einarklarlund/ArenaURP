@@ -530,11 +530,9 @@ namespace FishNet.Transporting.CanoeWebRTC
 
             Debug.Log($"<color=#FFA500>[Server]</color> 8");
 
-            Task operationTask;
-
 #if !UNITY_WEBGL || UNITY_EDITOR
             Connection connection = _server.connections[connectionID];
-            operationTask = ServerReceiveAnswerAsync(connection, answer);
+            Task operationTask = ServerReceiveAnswerAsync(connection, answer);
 
             var completedTask = await Task.WhenAny(operationTask, timeoutTask);
             if (completedTask == operationTask)
@@ -552,7 +550,7 @@ namespace FishNet.Transporting.CanoeWebRTC
 
 #else
 
-    InstanceFinder.NetworkManager.Log($"<color=#FFA500>[Server]</color> Local connection state was {_server.GetLocalConnectionState()}, could not start!");
+    Debug.Log($"<color=#FFA500>[Server]</color> 9");
     WebGLServerSocket.HandleResponse(connectionID, answer);
     return; // No async operation to await in WebGL case
 
