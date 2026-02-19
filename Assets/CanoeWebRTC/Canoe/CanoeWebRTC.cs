@@ -502,6 +502,7 @@ namespace FishNet.Transporting.CanoeWebRTC
 
             if (_server.GetLocalConnectionState() != LocalConnectionState.Started)
             {
+                InstanceFinder.NetworkManager.Log($"<color=#FFA500>[Server]</color> Local connection state was {_server.GetLocalConnectionState()}, could not start connection to client.");
                 return;
             }
 
@@ -509,6 +510,7 @@ namespace FishNet.Transporting.CanoeWebRTC
             {
                 if (remoteCancellationTokenSources[connectionID].IsCancellationRequested)
                 {
+                    InstanceFinder.NetworkManager.Log($"<color=#FFA500>[Server]</color> Ignoring answer from client due to timeout.");
                     StopSignalTimeout(connectionID); //make sure it gets removed - maybe ignore and allow to go through even past timeout since this only gets called if its been completed already
                     return;
                 }
@@ -541,6 +543,7 @@ namespace FishNet.Transporting.CanoeWebRTC
 
 #else
 
+    InstanceFinder.NetworkManager.Log($"<color=#FFA500>[Server]</color> Local connection state was {_server.GetLocalConnectionState()}, could not start!");
     WebGLServerSocket.HandleResponse(connectionID, answer);
     return; // No async operation to await in WebGL case
 
