@@ -500,6 +500,8 @@ namespace FishNet.Transporting.CanoeWebRTC
         public static async Task HandleAnswerFromClient(int connectionID, OfferAnswer answer)
         {
 
+            Debug.Log("<color=cyan>[Signal]</color> 4");
+
             if (_server.GetLocalConnectionState() != LocalConnectionState.Started)
             {
                 InstanceFinder.NetworkManager.Log($"<color=#FFA500>[Server]</color> Local connection state was {_server.GetLocalConnectionState()}, could not start connection to client.");
