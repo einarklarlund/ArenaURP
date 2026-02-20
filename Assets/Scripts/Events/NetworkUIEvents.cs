@@ -4,6 +4,7 @@ public static class NetworkUIEvents
 {
     // Network connection events
     public static Action<bool> OnClientConnectionChanged;
+    public static Action<string> OnCurrentRoomChanged;
 
     // High-level match events
     public static Action<int> OnCountdownChanged;
