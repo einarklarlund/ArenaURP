@@ -2,6 +2,7 @@ using System.Linq;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public struct WeaponSlot
 {
@@ -11,7 +12,6 @@ public struct WeaponSlot
 
 public class PawnInventory : NetworkBehaviour
 {
-    [SerializeField] private WeaponDataProcessor weaponEngine;
     [SerializeField] private WeaponData defaultWeapon;
 
     public readonly SyncList<WeaponSlot> Slots = new() { new(), new() };
@@ -28,6 +28,31 @@ public class PawnInventory : NetworkBehaviour
             WeaponID = WeaponDatabase.Instance.GetID(defaultWeapon),
             IsOccupied = true,
         };
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        if (!IsOwner) return;
+
+        InputManager.PawnControls.Next.started += HandleSwap;
+    }
+
+    private void OnDestroy()
+    {
+        InputManager.PawnControls.Next.started -= HandleSwap;
+    }
+
+    private void HandleSwap(InputAction.CallbackContext context)
+    {
+        RequestSwap();
+    }
+
+
+    [ServerRpc]
+    private void RequestSwap()
+    {
+        ServerSwap();
     }
 
     public bool CanEquip(int index) => index >= 0 && index < Slots.Count;

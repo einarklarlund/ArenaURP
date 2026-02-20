@@ -11,10 +11,14 @@ using UnityEngine.UI;
 /// </summary>
 public sealed class MainMenuView : View
 {
+    [Header("Controls")]
     [SerializeField] private GameObject controlsParent;
     [SerializeField] private Button hostButton;
     [SerializeField] private TMP_InputField roomCodeInputField;
     [SerializeField] private Button connectButton;
+    [SerializeField] private Button settingsButton;
+
+    [Header("Waiting screen")]
     [SerializeField] private GameObject waitScreen;
     [SerializeField] private TMP_Text waitText;
 
@@ -33,6 +37,8 @@ public sealed class MainMenuView : View
             SetWaitScreenActive(true);
             RoomManager.JoinRoom(roomCodeInputField.text);
         });
+
+        settingsButton.onClick.AddListener(() => LocalUIEvents.OnSettingsOpened?.Invoke());
     }
 
     private void SetWaitScreenActive(bool active)

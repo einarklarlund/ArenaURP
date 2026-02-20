@@ -5,12 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// The primary In-Game HUD (Heads-Up Display) shown during active gameplay.
-/// Responsibilities:
-/// - Acts as the visual interface for the player's real-time survival data.
-/// - Reacts to health updates relayed through the NetworkUIEvents bus to update the UI efficiently.
-/// - Completely decoupled from the Player and Pawn classes, relying solely on event-driven signals.
-/// - Only remains active and visible while the local player is actively controlling a Pawn.
+/// The primary In-Game HUD shown during active gameplay.
 /// </summary>
 public sealed class MainView : View
 {
@@ -26,23 +21,14 @@ public sealed class MainView : View
     [SerializeField] private TMP_Text explosiveText;
 
     private Dictionary<AmmoType, TMP_Text> ammoTexts;
-    // [SerializeField] Slider fireSlider;
+    private static readonly WaitForSeconds waitForSeconds0_2 = new(0.2f);
 
     public override void Show()
     {
         base.Show();
         Cursor.lockState = CursorLockMode.Locked;
         damageImage.gameObject.SetActive(false);
-    }
 
-    public override void Hide()
-    {
-        StopAllCoroutines();
-        base.Hide();
-    }
-
-    private void Start()
-    {
         NetworkUIEvents.OnLocalHealthChanged += HandleHealthUpdate;
         NetworkUIEvents.OnWeaponInventoryChanged += HandleWeaponInventoryChange;
         NetworkUIEvents.OnAmmoPoolChanged += HandleAmmoPoolChanged;
@@ -58,6 +44,20 @@ public sealed class MainView : View
         };
     }
 
+    public override void Hide()
+    {
+        StopAllCoroutines();
+
+        NetworkUIEvents.OnLocalHealthChanged -= HandleHealthUpdate;
+        NetworkUIEvents.OnWeaponInventoryChanged -= HandleWeaponInventoryChange;
+        NetworkUIEvents.OnAmmoPoolChanged -= HandleAmmoPoolChanged;
+        // This makes it so that a player can be damaged while the main view isn't shown and
+        // their health isn't updated. I'll have to fix it later.
+        NetworkUIEvents.OnLocalDamageTaken -= HandleDamageTaken;
+
+        base.Hide();
+    }
+
     private void HandleHealthUpdate(int health)
     {
         healthText.text = health.ToString();
@@ -71,7 +71,7 @@ public sealed class MainView : View
     private IEnumerator DisplayDamage()
     {
         damageImage.gameObject.SetActive(true);
-        yield return new WaitForSeconds(0.2f);
+        yield return waitForSeconds0_2;
         damageImage.gameObject.SetActive(false);
     }
 

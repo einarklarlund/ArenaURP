@@ -1,6 +1,4 @@
-using FishNet.Managing.Timing;
 using FishNet.Object;
-using FishNet.Object.Synchronizing;
 using UnityEngine;
 
 /// <summary>
@@ -11,35 +9,26 @@ using UnityEngine;
 /// - Applies final movement to the CharacterController during the physics (FixedUpdate) step.
 /// - Operates independently of the Camera, allowing for headless/server-side validation.
 /// </summary>
-public sealed class PawnMovementHandler : NetworkBehaviour
+public sealed class MovementInputHandler : NetworkBehaviour
 {
 
-    [SerializeField]
-    private CharacterController controller;
-    [SerializeField]
-    private Pawn pawn;
+    [SerializeField] private CharacterController controller;
+    [SerializeField] private Pawn pawn;
+    [SerializeField] private PawnMovementInput input;
 
     [Header("Ground Movement")]
-    [SerializeField]
-    private float initialMaxSpeedXZ = 10f;
-    [SerializeField]
-    private float speedUpTime = 0.3f;
-    [SerializeField]
-    private float slowDownTime = 0.2f;
+    [SerializeField] private float initialMaxSpeedXZ = 10f;
+    [SerializeField] private float speedUpTime = 0.3f;
+    [SerializeField] private float slowDownTime = 0.2f;
 
     [Header("Jumping")]
-    [SerializeField]
-    private float marioJumpTime = 0.2f;
-    [SerializeField]
-    private float jumpHeight = 3f;
-    [SerializeField]
-    private float jumpBufferWindow = 0.2f;
+    [SerializeField] private float marioJumpTime = 0.2f;
+    [SerializeField] private float jumpHeight = 3f;
+    [SerializeField] private float jumpBufferWindow = 0.2f;
 
     [Header("On Hit Effects")]
-    [SerializeField]
-    private float speedOnHit = 10f;
-    [SerializeField]
-    private float minimumAngleOnHit = 60f;
+    [SerializeField] private float speedOnHit = 10f;
+    [SerializeField] private float minimumAngleOnHit = 60f;
 
     // stateful variables
     private float maxSpeedXZ;
@@ -57,6 +46,13 @@ public sealed class PawnMovementHandler : NetworkBehaviour
         if(!IsOwner) return;
 
         pawn.OnDamageTaken += OnDamageTaken;
+    }
+
+    private void OnDestroy()
+    {
+        if(!IsOwner) return;
+
+        pawn.OnDamageTaken -= OnDamageTaken;
     }
 
     void OnDamageTaken(DamageInfo damageInfo)
@@ -96,8 +92,8 @@ public sealed class PawnMovementHandler : NetworkBehaviour
         Vector3 finalVelocityXZ;
 
         // Read input
-        float horizontalInput = pawn.Input.Data.Horizontal;
-        float verticalInput = pawn.Input.Data.Vertical;
+        float horizontalInput = input.Data.Move.x;
+        float verticalInput = input.Data.Move.y;
         Vector3 inputDirection = new
         (
             horizontalInput,
@@ -140,7 +136,7 @@ public sealed class PawnMovementHandler : NetworkBehaviour
     float GetYVelocity()
     {
         // Record the time at which the jump button was pressed
-        if (pawn.Input.Data.Jump)
+        if (input.Data.Jump)
         {
             jumpPressedAt = Time.time;
         }

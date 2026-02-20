@@ -14,6 +14,9 @@ public sealed class UIManager : MonoBehaviour
     [SerializeField] private List<View> views;
     [SerializeField] private Camera menuCamera;
 
+    private View previousView;
+    private View currentView;
+
     private void Start()
     {
         Show<MainMenuView>();
@@ -25,6 +28,9 @@ public sealed class UIManager : MonoBehaviour
         NetworkUIEvents.OnLocalPawnSpawned += HandleLocalSpawn;
         NetworkUIEvents.OnLocalDeath += HandleLocalDeath;
         NetworkUIEvents.OnClientConnectionChanged += HandleClientConnectionChanged;
+
+        LocalUIEvents.OnSettingsOpened += Show<SettingsView>;
+        LocalUIEvents.OnSettingsClosed += ShowPreviousView;
     }
 
     private void OnDisable()
@@ -32,6 +38,9 @@ public sealed class UIManager : MonoBehaviour
         NetworkUIEvents.OnMatchStateChanged -= HandleMatchStateChanged;
         NetworkUIEvents.OnLocalPawnSpawned -= HandleLocalSpawn;
         NetworkUIEvents.OnLocalDeath -= HandleLocalDeath;
+
+        LocalUIEvents.OnSettingsOpened -= Show<SettingsView>;
+        LocalUIEvents.OnSettingsClosed -= ShowPreviousView;
     }
 
     private void HandleClientConnectionChanged(bool connected)
@@ -49,9 +58,6 @@ public sealed class UIManager : MonoBehaviour
                 break;
             case MatchState.PregameCountdown:
                 Show<PregameCountdownView>();
-                break;
-            case MatchState.During:
-                Show<MainView>();
                 break;
             case MatchState.PostgameCountdown:
                 Show<PostgameCountdownView>();
@@ -73,12 +79,23 @@ public sealed class UIManager : MonoBehaviour
     {
         bool isMenuCameraActive = typeof(T) != typeof(MainView);
         menuCamera.gameObject.SetActive(isMenuCameraActive);
+        previousView = currentView;
         foreach(var view in views)
         {
             if (view is T)
+            {
+                currentView = view;
                 view.Show();
+            }
             else
                 view.Hide();
         }
+    }
+
+    private void ShowPreviousView()
+    {
+        currentView.Hide();
+        previousView.Show();
+        (previousView, currentView) = (currentView, previousView);
     }
 }

@@ -1,29 +1,62 @@
+using System;
 using System.Collections;
 using FishNet;
 using FishNet.Object;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
-public class WeaponDataProcessor : NetworkBehaviour
+public class PawnWeaponHandler : NetworkBehaviour
 {
+    [SerializeField] private PawnInventory inventory;
     [SerializeField] private Transform firePoint;
     [SerializeField] private PawnAmmo pawnAmmo;
 
     private float lastFireTime;
     private bool isFiringSequence;
 
-    public void TryFireAuto(WeaponData currentWeapon)
+    public override void OnStartClient()
     {
+        base.OnStartClient();
+        if (!IsOwner) return;
+
+        InputManager.PawnControls.Attack.performed += HandleAttackPerformed;
+    }
+
+    private void OnDestroy()
+    {
+        if (!IsOwner) return;
+
+        InputManager.PawnControls.Attack.performed -= HandleAttackPerformed;
+    }
+
+    private void HandleAttackPerformed(InputAction.CallbackContext context)
+    {
+        TryFireSemiAuto();
+    }
+
+    private void Update()
+    {
+        if (InputManager.PawnControls.Attack.IsPressed())
+        {
+            TryFireAuto();
+        }
+    }
+
+    private void TryFireAuto()
+    {
+        var currentWeapon = inventory.CurrentWeaponData;
         if (currentWeapon.FireMode == FireMode.Automatic)
             TryFire(currentWeapon);
     }
     
-    public void TryFireSemiAuto(WeaponData currentWeapon)
+    private void TryFireSemiAuto()
     {
+        var currentWeapon = inventory.CurrentWeaponData;
         if (currentWeapon.FireMode == FireMode.SemiAuto)
             TryFire(currentWeapon);
     }
     
-    public void TryFire(WeaponData currentWeapon)
+    private void TryFire(WeaponData currentWeapon)
     {
         if (!CanFireClient(currentWeapon)) return;
         

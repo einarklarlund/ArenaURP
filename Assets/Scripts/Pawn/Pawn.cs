@@ -16,7 +16,6 @@ using UnityEngine;
 public class Pawn : NetworkBehaviour, IDamageable
 {
     [Header("References")] // Components on the pawn that other game components
-    public PawnInput Input;
     public PawnInventory Inventory;
     public PawnAmmo Ammo;
     

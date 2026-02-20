@@ -7,17 +7,16 @@ using UnityEngine;
 /// <summary>
 /// The reactive bridge between Network SyncVars and the local UI.
 /// Responsibilities:
-/// - Monitors MatchManager and Player SyncVars for changes.
+/// - Monitors manager and player SyncVars for changes.
 /// - Translates complex network data into simple, decoupled signals via NetworkUIEvents.
-/// - Ensures the UI stays in sync with the server state immediately upon initialization.
 /// </summary>
-public sealed class UIController : MonoBehaviour
+public sealed class NetworkUIController : MonoBehaviour
 {
     private bool _isSubscribed = false;
 
     private void Update()
     {
-        // Guard: Wait until both managers and the local player are ready
+        // Wait until managers and the local player are ready
         if (!_isSubscribed && NetworkPlayer.LocalInstance != null && MatchFlowManager.Instance != null && DeathmatchManager.Instance != null)
         {
             InitializeSubscriptions();
@@ -28,13 +27,15 @@ public sealed class UIController : MonoBehaviour
     {
         _isSubscribed = true;
 
+        InstanceFinder.ClientManager.OnClientConnectionState += OnClientConnectionStateChanged;
+
         MatchFlowManager.Instance.CountdownTime.OnChange += OnCountdownChanged;
         MatchFlowManager.Instance.State.OnChange += OnMatchStateChanged;
+        
+        DeathmatchManager.Instance.OnGameModeEnded += OnGameModeEnded;
+        
         NetworkPlayer.LocalInstance.ControlledPawn.OnChange += OnLocalPawnChanged;
         NetworkPlayer.LocalInstance.RespawnTimeEnd.OnChange += OnRespawnTimeEndChanged;
-        DeathmatchManager.Instance.OnGameModeEnded += OnGameModeEnded;
-
-        InstanceFinder.ClientManager.OnClientConnectionState += OnClientConnectionStateChanged;
 
         // Manually trigger the first update to sync UI with current state
         OnCountdownChanged(0, MatchFlowManager.Instance.CountdownTime.Value, false);
@@ -46,7 +47,9 @@ public sealed class UIController : MonoBehaviour
     {
         if (!_isSubscribed) return;
 
-        // Clean up match subscriptions
+
+        InstanceFinder.ClientManager.OnClientConnectionState -= OnClientConnectionStateChanged;
+
         if (MatchFlowManager.Instance != null)
         {
             MatchFlowManager.Instance.CountdownTime.OnChange -= OnCountdownChanged;
@@ -58,16 +61,15 @@ public sealed class UIController : MonoBehaviour
             DeathmatchManager.Instance.OnGameModeEnded -= OnGameModeEnded;
         }
 
-        // Clean up player subscriptions
         if (NetworkPlayer.LocalInstance != null)
         {
             NetworkPlayer.LocalInstance.ControlledPawn.OnChange -= OnLocalPawnChanged;
+            NetworkPlayer.LocalInstance.RespawnTimeEnd.OnChange -= OnRespawnTimeEndChanged;
         }
 
-        // Clean up pawn subscriptions specifically
         if (NetworkPlayer.LocalInstance != null && NetworkPlayer.LocalInstance.ControlledPawn.Value != null)
         {
-            NetworkPlayer.LocalInstance.ControlledPawn.Value.Health.OnChange -= OnLocalHealthChanged;
+            OnLocalPawnChanged(NetworkPlayer.LocalInstance.ControlledPawn.Value, null, false);
         }
     }
 
@@ -116,6 +118,10 @@ public sealed class UIController : MonoBehaviour
 
         if (next != null)
         {
+             // Call the OnLocalPawnSpawned event first so that views can listen to updates
+             // that are called in this block (ie. OnLocalHealthChanged, OnSlotsChanged).
+            NetworkUIEvents.OnLocalPawnSpawned?.Invoke(next);
+
             // Subscribe to the new pawn's health
             next.Health.OnChange += OnLocalHealthChanged;
             // Immediate update for the UI
@@ -129,14 +135,12 @@ public sealed class UIController : MonoBehaviour
             // Subscribe to the new pawn's ammo
             next.Ammo.AmmoPools.OnChange += OnAmmoPoolChanged;
             OnAmmoPoolChanged(SyncDictionaryOperation.Set, AmmoType.Bullet, next.Ammo.AmmoPools[AmmoType.Bullet], false);
-
-            NetworkUIEvents.OnLocalPawnSpawned?.Invoke(next);
         }
     }
 
     private void OnLocalHealthChanged(int prev, int next, bool asServer)
     {
-        // if (asServer) return;
+        if (asServer) return;
         NetworkUIEvents.OnLocalHealthChanged?.Invoke(next);
         if(next < prev) NetworkUIEvents.OnLocalDamageTaken?.Invoke(prev - next);
         if(next <= 0) NetworkUIEvents.OnLocalDeath?.Invoke();

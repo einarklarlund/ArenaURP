@@ -1,5 +1,54 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &540764378134763532
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3769583478143416516}
+  - component: {fileID: 4171483762779324888}
+  m_Layer: 7
+  m_Name: Data
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3769583478143416516
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 540764378134763532}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5977688255653788020}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4171483762779324888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 540764378134763532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 418ff8935befd42eca3c7d1f3e5168c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 2
+  _addedNetworkObject: {fileID: 5251044759896975893}
+  _networkObjectCache: {fileID: 5251044759896975893}
+  pawnInput: {fileID: 9156704708880269022}
+  defaultWeapon: {fileID: 11400000, guid: 48e941893a48a4bb8855fa5adce7fcd3, type: 2}
 --- !u!1 &1788495950034783890
 GameObject:
   m_ObjectHideFlags: 0
@@ -9,8 +58,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5873003061921037402}
-  - component: {fileID: 5940073971944496128}
-  - component: {fileID: 2172834107763743569}
   - component: {fileID: 4287951591573183018}
   m_Layer: 7
   m_Name: WeaponEngine
@@ -35,41 +82,6 @@ Transform:
   - {fileID: 6252270893925876090}
   m_Father: {fileID: 1711238136389494218}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5940073971944496128
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1788495950034783890}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1242a14260c094d628c79bf04291369f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _componentIndexCache: 9
-  _addedNetworkObject: {fileID: 5251044759896975893}
-  _networkObjectCache: {fileID: 5251044759896975893}
-  firePoint: {fileID: 6252270893925876090}
-  pawnAmmo: {fileID: 4287951591573183018}
---- !u!114 &2172834107763743569
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1788495950034783890}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 922ca838103cc46e189dcdac2cdec32a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _componentIndexCache: 10
-  _addedNetworkObject: {fileID: 5251044759896975893}
-  _networkObjectCache: {fileID: 5251044759896975893}
-  pawn: {fileID: 4354716618418224005}
-  inventory: {fileID: -2296356124106357427}
-  weaponEngine: {fileID: 5940073971944496128}
 --- !u!114 &4287951591573183018
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -98,7 +110,7 @@ GameObject:
   - component: {fileID: 2677217904697223385}
   - component: {fileID: 4672294585719670070}
   m_Layer: 7
-  m_Name: Body
+  m_Name: Body Mesh
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -194,6 +206,126 @@ MonoBehaviour:
   meshRenderers:
   - {fileID: 2677217904697223385}
   pawn: {fileID: 4354716618418224005}
+--- !u!1 &5266527820527433859
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2751938954657294740}
+  - component: {fileID: 900108584674882194}
+  - component: {fileID: 8027569241794719164}
+  - component: {fileID: 5316878365872719895}
+  - component: {fileID: 3481006608529361008}
+  m_Layer: 7
+  m_Name: Input Handling
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2751938954657294740
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5266527820527433859}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5977688255653788020}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &900108584674882194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5266527820527433859}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1242a14260c094d628c79bf04291369f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 9
+  _addedNetworkObject: {fileID: 5251044759896975893}
+  _networkObjectCache: {fileID: 5251044759896975893}
+  inventory: {fileID: 4171483762779324888}
+  input: {fileID: 9156704708880269022}
+  firePoint: {fileID: 6252270893925876090}
+  pawnAmmo: {fileID: 4287951591573183018}
+--- !u!114 &8027569241794719164
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5266527820527433859}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ecc6e2caf251423ca2dc8dbb4875e70, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnInteractionHandler
+  _componentIndexCache: 3
+  _addedNetworkObject: {fileID: 5251044759896975893}
+  _networkObjectCache: {fileID: 5251044759896975893}
+  pawn: {fileID: 4354716618418224005}
+  input: {fileID: 9156704708880269022}
+  interactRange: 4
+  interactableLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  cameraTransform: {fileID: 1711238136389494218}
+--- !u!114 &5316878365872719895
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5266527820527433859}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 750c965ce702f4442b4314145028293d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 1
+  _addedNetworkObject: {fileID: 5251044759896975893}
+  _networkObjectCache: {fileID: 5251044759896975893}
+  controller: {fileID: 649493103343056639}
+  pawn: {fileID: 4354716618418224005}
+  input: {fileID: 9156704708880269022}
+  initialMaxSpeedXZ: 12.5
+  speedUpTime: 0.075
+  slowDownTime: 0.075
+  marioJumpTime: 0.3
+  jumpHeight: 1.5
+  jumpBufferWindow: 0.3
+  speedOnHit: 7
+  minimumAngleOnHit: 35
+--- !u!114 &3481006608529361008
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5266527820527433859}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c5eed3625f9445eabdae0ad6dfcf3ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 5
+  _addedNetworkObject: {fileID: 5251044759896975893}
+  _networkObjectCache: {fileID: 5251044759896975893}
+  input: {fileID: 9156704708880269022}
+  characterControllerTransform: {fileID: 5977688255653788020}
+  cameraTransform: {fileID: 1711238136389494218}
 --- !u!1 &6075861232590339267
 GameObject:
   m_ObjectHideFlags: 0
@@ -389,11 +521,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5977688255653788020}
   - component: {fileID: 4354716618418224005}
-  - component: {fileID: 1103932591743916044}
-  - component: {fileID: -2296356124106357427}
-  - component: {fileID: 4684884546854607517}
   - component: {fileID: 9156704708880269022}
-  - component: {fileID: 331324919334143617}
   - component: {fileID: 649493103343056639}
   - component: {fileID: 37621982731376300}
   - component: {fileID: 5251044759896975893}
@@ -417,6 +545,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 2751938954657294740}
+  - {fileID: 3769583478143416516}
   - {fileID: 7949520896062250471}
   - {fileID: 1711238136389494218}
   m_Father: {fileID: 0}
@@ -437,72 +567,8 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
   Input: {fileID: 9156704708880269022}
-  Inventory: {fileID: -2296356124106357427}
+  Inventory: {fileID: 4171483762779324888}
   Ammo: {fileID: 4287951591573183018}
---- !u!114 &1103932591743916044
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8222945409447556197}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 750c965ce702f4442b4314145028293d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _componentIndexCache: 1
-  _addedNetworkObject: {fileID: 5251044759896975893}
-  _networkObjectCache: {fileID: 5251044759896975893}
-  controller: {fileID: 649493103343056639}
-  pawn: {fileID: 4354716618418224005}
-  initialMaxSpeedXZ: 12.5
-  speedUpTime: 0.075
-  slowDownTime: 0.075
-  marioJumpTime: 0.3
-  jumpHeight: 1.5
-  jumpBufferWindow: 0.3
-  speedOnHit: 7
-  minimumAngleOnHit: 35
---- !u!114 &-2296356124106357427
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8222945409447556197}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 418ff8935befd42eca3c7d1f3e5168c4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _componentIndexCache: 2
-  _addedNetworkObject: {fileID: 5251044759896975893}
-  _networkObjectCache: {fileID: 5251044759896975893}
-  weaponEngine: {fileID: 5940073971944496128}
-  defaultWeapon: {fileID: 11400000, guid: 48e941893a48a4bb8855fa5adce7fcd3, type: 2}
---- !u!114 &4684884546854607517
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8222945409447556197}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6ecc6e2caf251423ca2dc8dbb4875e70, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnInteractionHandler
-  _componentIndexCache: 3
-  _addedNetworkObject: {fileID: 5251044759896975893}
-  _networkObjectCache: {fileID: 5251044759896975893}
-  pawn: {fileID: 4354716618418224005}
-  inventory: {fileID: -2296356124106357427}
-  interactRange: 4
-  interactableLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  cameraTransform: {fileID: 1711238136389494218}
 --- !u!114 &9156704708880269022
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -519,23 +585,6 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
   Sensitivity: 2
---- !u!114 &331324919334143617
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8222945409447556197}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1c5eed3625f9445eabdae0ad6dfcf3ec, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _componentIndexCache: 5
-  _addedNetworkObject: {fileID: 5251044759896975893}
-  _networkObjectCache: {fileID: 5251044759896975893}
-  pawn: {fileID: 4354716618418224005}
-  CameraTarget: {fileID: 1711238136389494218}
 --- !u!143 &649493103343056639
 CharacterController:
   m_ObjectHideFlags: 0
@@ -627,16 +676,16 @@ MonoBehaviour:
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
   - {fileID: 4354716618418224005}
-  - {fileID: 1103932591743916044}
-  - {fileID: -2296356124106357427}
-  - {fileID: 4684884546854607517}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   - {fileID: 9156704708880269022}
-  - {fileID: 331324919334143617}
+  - {fileID: 0}
   - {fileID: 37621982731376300}
   - {fileID: 4672294585719670070}
   - {fileID: 349757071893823775}
-  - {fileID: 5940073971944496128}
-  - {fileID: 2172834107763743569}
+  - {fileID: 0}
+  - {fileID: 0}
   - {fileID: 4287951591573183018}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []

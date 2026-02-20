@@ -15,8 +15,6 @@ public class SignalManager : MonoBehaviour
     public static Action<string> RoomCreatedCallback;
     public static Action<bool> JoinRoomCallback;
 
-
-
     const byte createRoom = 0x01; //responded to directly with the room code
     const byte attemptToJoinRoom = 0x02; //responded to directly if join code is valid and if host has been notified
     const byte joinRoomCallback = 0x03; //this is the callback for the client who initiated the attempt
@@ -25,14 +23,12 @@ public class SignalManager : MonoBehaviour
     const byte trickleICE = 0x06; //not implemented
     const byte ping = 0x07;
 
-
     public static SimpleWebClient client;
 
     private void Start()
     {
         StartSignalClient();
     }
-
 
     void StartSignalClient()
     {
@@ -52,11 +48,7 @@ public class SignalManager : MonoBehaviour
             CanoeWebRTC.SignalShutdown();
         };
 
-
-
-        
         client.Connect(new Uri(SignalAddress));
-
     }
 
     private void OnApplicationQuit()
@@ -114,7 +106,7 @@ public class SignalManager : MonoBehaviour
         {
             client.Send(sendOfferSerializer(FilterOutLocalandIPV6Candidates((OfferAnswer)offerResult), SignalID, connectionID));
         }
-        
+
     }
 
     public static ArraySegment<byte> sendOfferSerializer(OfferAnswer offerAnswer, int SignalID, int connectionID)
@@ -166,11 +158,6 @@ public class SignalManager : MonoBehaviour
         }
         else
         {
-
-
-
-
-
             client.Send(sendAnswerSerializer(FilterOutLocalandIPV6Candidates((OfferAnswer)answerResult), signalID));
         }
 
@@ -225,7 +212,7 @@ public class SignalManager : MonoBehaviour
                 if (line.StartsWith("a=candidate"))
                 {
                     var parts = line.Split(' ');
-                    if (parts.Length < 5) return true; 
+                    if (parts.Length < 5) return true;
 
                     var address = parts[4];
 
@@ -292,7 +279,7 @@ public class SignalManager : MonoBehaviour
         switch (command)
         {
             case createRoom:
-                
+
                 int roomIDLength = data.Array[data.Offset + 1];
 
                 string roomID = Encoding.UTF8.GetString(data.Array, data.Offset + 2, roomIDLength);
@@ -342,9 +329,7 @@ public class SignalManager : MonoBehaviour
 
             case receivedOfferFromHost:
                 // We should make an answer and respond
-
                 Debug.Log("<color=cyan>[Signal]</color> Received an offer from a Host, creating an answer");
-
 
                 int receivedOffer_HostSignalID = BitConverter.ToInt32(data.Array, data.Offset + 1);
 
@@ -381,14 +366,13 @@ public class SignalManager : MonoBehaviour
 
                 byte[] sendICE_remainingData = data.Array.Skip(data.Offset + 5).Take(data.Count - 5).ToArray();
 
-
                 break;
-            
+
             case ping:
                 //simple ping
                 client.Send(data);
                 break;
-            
+
             default:
                 throw new InvalidOperationException("Unknown command received");
         }
@@ -405,4 +389,3 @@ public class SignalManager : MonoBehaviour
 
 
 
-    

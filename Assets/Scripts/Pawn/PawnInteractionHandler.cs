@@ -1,10 +1,10 @@
 using FishNet.Object;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PawnInteractionHandler : NetworkBehaviour
 {
     [SerializeField] private Pawn pawn;
-    [SerializeField] private PawnInventory inventory;
     [SerializeField] private float interactRange = 3f;
     [SerializeField] private LayerMask interactableLayer;
     [SerializeField] private Transform cameraTransform;
@@ -13,15 +13,21 @@ public class PawnInteractionHandler : NetworkBehaviour
     {
         base.OnStartClient();
         if (!IsOwner) return;
-        pawn.Input.OnInteractPressed += TryInteract;
+
+        InputManager.PawnControls.Interact.performed += TryInteract;
     }
 
-    private void TryInteract()
+    private void OnDestroy()
+    {
+        InputManager.PawnControls.Interact.performed -= TryInteract;
+    }
+
+    private void TryInteract(InputAction.CallbackContext context)
     {
         if (!IsOwner) return;
 
         // Raycast from the center of the screen
-        Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
+        Ray ray = new(cameraTransform.position, cameraTransform.forward);
         
         if (Physics.Raycast(ray, out RaycastHit hit, interactRange, interactableLayer))
         {
