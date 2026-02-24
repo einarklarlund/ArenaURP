@@ -8,38 +8,29 @@ using UnityEngine;
 
 public class SignalManager : MonoBehaviour
 {
-    public static SignalManager Instance { get; private set; }
+    public string SignalAddress = "ws://localhost:9001/Signal";
+    public bool copyCreatedRoomCodeToClipboard = false; //only works in standalone / editor
+    private string roomCode = "";
 
-    [SerializeField] private string SignalAddress = "ws://localhost:9001/Signal";
-    [SerializeField] private bool copyCreatedRoomCodeToClipboard = false; //only works in standalone / editor
-    [SerializeField] private string roomCode = "";
+    public static Action<string> RoomCreatedCallback;
+    public static Action<bool> JoinRoomCallback;
 
-    public static Action<string> OnRoomCreated;
-    public static Action<bool> OnRoomJoined;
-    public static Action<ClientState> OnClientStateChanged;
+    const byte createRoom = 0x01; //responded to directly with the room code
+    const byte attemptToJoinRoom = 0x02; //responded to directly if join code is valid and if host has been notified
+    const byte joinRoomCallback = 0x03; //this is the callback for the client who initiated the attempt
+    const byte receivedOfferFromHost = 0x04; //may contain error details if not allowed!
+    const byte receivedAnswerFromClient = 0x05; //client has received the offer, has started to join, and is sending answer
+    const byte trickleICE = 0x06; //not implemented
+    const byte ping = 0x07;
 
-    private const byte createRoom = 0x01; //responded to directly with the room code
-    private const byte attemptToJoinRoom = 0x02; //responded to directly if join code is valid and if host has been notified
-    private const byte joinRoomCallback = 0x03; //this is the callback for the client who initiated the attempt
-    private const byte receivedOfferFromHost = 0x04; //may contain error details if not allowed!
-    private const byte receivedAnswerFromClient = 0x05; //client has received the offer, has started to join, and is sending answer
-    private const byte trickleICE = 0x06; //not implemented
-    private const byte ping = 0x07;
-
-    private static SimpleWebClient client;
+    public static SimpleWebClient client;
 
     private void Start()
     {
-        if (Instance != null)
-        {
-            Debug.LogError("Tried to set singleton instance of SignalManager, but it was already set");
-            return;
-        }
-        Instance = this;
         StartSignalClient();
     }
 
-    public void StartSignalClient()
+    void StartSignalClient()
     {
         var tcpConfig = new TcpConfig(noDelay: false, sendTimeout: 120000, receiveTimeout: 120000);
         client = SimpleWebClient.Create(ushort.MaxValue, 5000, tcpConfig);
@@ -66,11 +57,11 @@ public class SignalManager : MonoBehaviour
         client = null;
     }
 
-    public void CreateRoom()
+    private static readonly ArraySegment<byte> createRoomSegment = new ArraySegment<byte>(new byte[] { createRoom });
+    public static void CreateRoom()
     {
         if (InstanceFinder.IsServerStarted)
         {
-            ArraySegment<byte> createRoomSegment = new (new byte[] { createRoom });
             client.Send(createRoomSegment);
         }
         else
@@ -79,12 +70,14 @@ public class SignalManager : MonoBehaviour
         }
     }
 
-    public void JoinRoom(string roomID)
+    private static readonly byte[] joinRoomBuffer = new byte[10];
+    public static void JoinRoom(string roomID)
     {
         Debug.Log($"<color=cyan>[Signal]</color> Attempting to join room <b><i><color=#DDA0DD>{roomID}</color></i></b>");
-        
-        byte[] joinRoomBuffer = new byte[10];
+
         byte roomIDLength = (byte)roomID.Length;
+
+        int messageLength = 1 + 1 + roomIDLength;
 
         joinRoomBuffer[0] = attemptToJoinRoom;
         joinRoomBuffer[1] = roomIDLength;
@@ -101,7 +94,9 @@ public class SignalManager : MonoBehaviour
     {
         int connectionID = CanoeWebRTC.CreateNewRemoteConnection();
 
+
         OfferAnswer offerResult = await CanoeWebRTC.CreateOfferForClient(connectionID);
+
 
         if (offerResult.error)
         {
@@ -114,8 +109,11 @@ public class SignalManager : MonoBehaviour
 
     }
 
-    private static ArraySegment<byte> sendOfferSerializer(OfferAnswer offerAnswer, int SignalID, int connectionID)
+    public static ArraySegment<byte> sendOfferSerializer(OfferAnswer offerAnswer, int SignalID, int connectionID)
     {
+
+
+
         byte[] requestObjectBytes = offerAnswer.Serialize();
 
         int totalLength = sizeof(byte) + sizeof(int) + sizeof(int) + requestObjectBytes.Length;
@@ -152,9 +150,11 @@ public class SignalManager : MonoBehaviour
     {
         OfferAnswer answerResult = await CanoeWebRTC.CreateAnswerForServer(offerAnswer);
 
+
         if (answerResult.error)
         {
             Debug.Log($"<color=cyan>[Signal]</color> Error when handling offer from server: {answerResult.errorMessage}");
+
         }
         else
         {
@@ -163,7 +163,7 @@ public class SignalManager : MonoBehaviour
 
     }
 
-    private static ArraySegment<byte> sendAnswerSerializer(OfferAnswer offerAnswer, int targetPlayerID)
+    public static ArraySegment<byte> sendAnswerSerializer(OfferAnswer offerAnswer, int targetPlayerID)
     {
         byte[] respondObjectBytes = offerAnswer.Serialize();
 
@@ -238,13 +238,14 @@ public class SignalManager : MonoBehaviour
     }
 
 
-    private static bool IsIPv4(string address)
+    public static bool IsIPv4(string address)
     {
+
         var octets = address.Split('.');
         return octets.Length == 4 && octets.All(octet => byte.TryParse(octet, out _));
     }
 
-    private static bool IsIPv6(string address)
+    public static bool IsIPv6(string address)
     {
         if (address.Contains('.'))
         {
@@ -285,7 +286,7 @@ public class SignalManager : MonoBehaviour
 
                 roomCode = roomID;
 
-                OnRoomCreated?.Invoke(roomID);
+                RoomCreatedCallback?.Invoke(roomID);
 
                 Debug.Log($"<color=cyan>[Signal]</color> Room <b><i><color=#DDA0DD>{roomID}</color></i></b> created");
                 if (copyCreatedRoomCodeToClipboard)
@@ -314,12 +315,12 @@ public class SignalManager : MonoBehaviour
                 {
                     //we did not join
                     Debug.Log("<color=cyan>[Signal]</color> Join Code Invalid");
-                    OnRoomJoined?.Invoke(false);
+                    JoinRoomCallback?.Invoke(false);
                 }
                 else if (confirmation == 0x01)
                 {
                     //we did join
-                    OnRoomJoined?.Invoke(true);
+                    JoinRoomCallback?.Invoke(true);
                     Debug.Log("<color=cyan>[Signal]</color> Join Code Valid, waiting for offer from host");
                 }
 
@@ -379,7 +380,10 @@ public class SignalManager : MonoBehaviour
 
     public void Update()
     {
-        client?.ProcessMessageQueue();
+        if (client != null)
+        {
+            client.ProcessMessageQueue();
+        }
     }
 }
 

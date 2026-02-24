@@ -12,8 +12,8 @@ public class RoomManager : MonoBehaviour
         InstanceFinder.ServerManager.OnServerConnectionState += HandleServerConnectionState;
 
         // Not sure if this callback is called regardless of whether this client requested the room creation.
-        SignalManager.OnRoomCreated += HandleRoomCreated;
-        SignalManager.OnRoomJoined += HandleRoomJoined;
+        SignalManager.RoomCreatedCallback += HandleRoomCreated;
+        SignalManager.JoinRoomCallback += HandleRoomJoined;
     }
 
     private void OnDestroy()
@@ -22,22 +22,22 @@ public class RoomManager : MonoBehaviour
         if (serverManager != null)
             serverManager.OnServerConnectionState -= HandleServerConnectionState;
 
-        SignalManager.OnRoomCreated -= HandleRoomCreated;
-        SignalManager.OnRoomJoined -= HandleRoomJoined;
+        SignalManager.RoomCreatedCallback -= HandleRoomCreated;
+        SignalManager.JoinRoomCallback -= HandleRoomJoined;
     }
 
     public static void JoinRoom(string roomCode)
     {
         SetCurrentRoom(roomCode);
         InstanceFinder.ClientManager.StartConnection();
-        SignalManager.Instance.JoinRoom(roomCode);
+        SignalManager.JoinRoom(roomCode);
     }
 
     private void HandleServerConnectionState(ServerConnectionStateArgs args)
     {
         if (args.ConnectionState == LocalConnectionState.Started)
         {
-            SignalManager.Instance.CreateRoom();
+            SignalManager.CreateRoom();
         }
     }
 
