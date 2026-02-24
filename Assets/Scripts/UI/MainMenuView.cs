@@ -31,6 +31,11 @@ public sealed class MainMenuView : View
         SignalManager.OnRoomCreated += HandleRoomCreated;
     }
 
+    private void OnDestroy()
+    {
+        SignalManager.OnRoomCreated -= HandleRoomCreated;
+    }
+
     private void HandleHostButtonClicked()
     {
         waitText.text = $"Starting room...";
