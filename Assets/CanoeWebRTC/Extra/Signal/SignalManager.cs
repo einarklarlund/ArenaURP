@@ -48,12 +48,12 @@ public class SignalManager : MonoBehaviour
 
         client.onConnect += () =>
         {
-            Debug.Log($"<color=cyan>[Signal]</color> Connected to signaling server.");
+            Debug.Log($"<color=cyan>[Signal]</color> Connected");
             OnClientStateChanged?.Invoke(ClientState.Connected);
         };
         client.onDisconnect += () =>
         {
-            Debug.Log($"<color=cyan>[Signal]</color> Disconnected.");
+            Debug.Log($"<color=cyan>[Signal]</color> Disconnected");
             CanoeWebRTC.SignalShutdown();
             OnClientStateChanged?.Invoke(ClientState.NotConnected);
         };
@@ -83,13 +83,13 @@ public class SignalManager : MonoBehaviour
         }
         else
         {
-            Debug.Log($"<color=cyan>[Signal]</color> Cannot create a room unless server is started.");
+            Debug.Log($"<color=cyan>[Signal]</color> Cannot create a room unless server is started");
         }
     }
 
     public void JoinRoom(string roomID)
     {
-        Debug.Log($"<color=cyan>[Signal]</color> Attempting to join room <b><i><color=#DDA0DD>{roomID}</color></i></b>.");
+        Debug.Log($"<color=cyan>[Signal]</color> Attempting to join room <b><i><color=#DDA0DD>{roomID}</color></i></b>");
         
         byte[] joinRoomBuffer = new byte[10];
         byte roomIDLength = (byte)roomID.Length;
@@ -295,7 +295,7 @@ public class SignalManager : MonoBehaviour
 
                 OnRoomCreated?.Invoke(roomID);
 
-                Debug.Log($"<color=cyan>[Signal]</color> Room <b><i><color=#DDA0DD>{roomID}</color></i></b> created.");
+                Debug.Log($"<color=cyan>[Signal]</color> Room <b><i><color=#DDA0DD>{roomID}</color></i></b> created");
                 if (copyCreatedRoomCodeToClipboard)
                 {
                     GUIUtility.systemCopyBuffer = roomCode;
@@ -307,7 +307,7 @@ public class SignalManager : MonoBehaviour
                 // a client is trying to join our game!
                 // this is where we would initiate the create offer and then send
 
-                Debug.Log("<color=cyan>[Signal]</color> Received request to join room, creating an offer.");
+                Debug.Log("<color=cyan>[Signal]</color> Received request to join room, creating an offer");
 
                 int clientAttemptingToJoin_SignalID = BitConverter.ToInt32(data.Array, data.Offset + 1);
                 CreateAndSendOffer(clientAttemptingToJoin_SignalID);
@@ -321,14 +321,14 @@ public class SignalManager : MonoBehaviour
                 if (confirmation == 0x00)
                 {
                     //we did not join
-                    Debug.Log("<color=cyan>[Signal]</color> Join Code Invalid.");
+                    Debug.Log("<color=cyan>[Signal]</color> Join Code Invalid");
                     OnRoomJoined?.Invoke(false);
                 }
                 else if (confirmation == 0x01)
                 {
                     //we did join
                     OnRoomJoined?.Invoke(true);
-                    Debug.Log("<color=cyan>[Signal]</color> Join Code Valid, waiting for offer from host.");
+                    Debug.Log("<color=cyan>[Signal]</color> Join Code Valid, waiting for offer from host");
                 }
 
 
@@ -336,7 +336,7 @@ public class SignalManager : MonoBehaviour
 
             case receivedOfferFromHost:
                 // We should make an answer and respond
-                Debug.Log("<color=cyan>[Signal]</color> Received an offer from a Host, creating an answer.");
+                Debug.Log("<color=cyan>[Signal]</color> Received an offer from a Host, creating an answer");
 
                 int receivedOffer_HostSignalID = BitConverter.ToInt32(data.Array, data.Offset + 1);
 
@@ -353,7 +353,7 @@ public class SignalManager : MonoBehaviour
                 // server received an answer from the client
                 // need to handle their answer
 
-                Debug.Log("<color=cyan>[Signal]</color> Client sent us their answer.");
+                Debug.Log("<color=cyan>[Signal]</color> Client sent us their answer");
 
                 int connID = BitConverter.ToInt32(data.Array, data.Offset + 1);
 
