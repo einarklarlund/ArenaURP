@@ -12,7 +12,7 @@ public sealed class PauseView : View
     {
         settingsButton.onClick.AddListener(HandleSettingsClicked);
         unpauseButton.onClick.AddListener(HandleUnpauseButtonClicked);
-        signalStatusDisplay.Initialize(SignalManager.Instance.ClientState);
+        // signalStatusDisplay.Initialize(SignalManager.Instance.ClientState);
 
         base.Show();
     }
