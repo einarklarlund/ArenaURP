@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3769583478143416516}
   - component: {fileID: 4171483762779324888}
+  - component: {fileID: 7520322266067727014}
   m_Layer: 7
   m_Name: Data
   m_TagString: Untagged
@@ -47,8 +48,22 @@ MonoBehaviour:
   _componentIndexCache: 2
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
-  pawnInput: {fileID: 9156704708880269022}
   defaultWeapon: {fileID: 11400000, guid: 48e941893a48a4bb8855fa5adce7fcd3, type: 2}
+--- !u!114 &7520322266067727014
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 540764378134763532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43cad787015f841cca5a450dcd7bfec6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnAmmo
+  _componentIndexCache: 11
+  _addedNetworkObject: {fileID: 5251044759896975893}
+  _networkObjectCache: {fileID: 5251044759896975893}
 --- !u!1 &1788495950034783890
 GameObject:
   m_ObjectHideFlags: 0
@@ -58,7 +73,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5873003061921037402}
-  - component: {fileID: 4287951591573183018}
   m_Layer: 7
   m_Name: WeaponEngine
   m_TagString: Untagged
@@ -82,21 +96,6 @@ Transform:
   - {fileID: 6252270893925876090}
   m_Father: {fileID: 1711238136389494218}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4287951591573183018
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1788495950034783890}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 43cad787015f841cca5a450dcd7bfec6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnAmmo
-  _componentIndexCache: 11
-  _addedNetworkObject: {fileID: 5251044759896975893}
-  _networkObjectCache: {fileID: 5251044759896975893}
 --- !u!1 &4202485580414913056
 GameObject:
   m_ObjectHideFlags: 0
@@ -126,7 +125,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 1, z: 0}
-  m_LocalScale: {x: 1.5, y: 1, z: 1.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5977688255653788020}
@@ -219,6 +218,7 @@ GameObject:
   - component: {fileID: 8027569241794719164}
   - component: {fileID: 5316878365872719895}
   - component: {fileID: 3481006608529361008}
+  - component: {fileID: 8733864699206394395}
   m_Layer: 7
   m_Name: Input Handling
   m_TagString: Untagged
@@ -257,9 +257,8 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
   inventory: {fileID: 4171483762779324888}
-  input: {fileID: 9156704708880269022}
   firePoint: {fileID: 6252270893925876090}
-  pawnAmmo: {fileID: 4287951591573183018}
+  pawnAmmo: {fileID: 7520322266067727014}
 --- !u!114 &8027569241794719164
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -276,7 +275,6 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
   pawn: {fileID: 4354716618418224005}
-  input: {fileID: 9156704708880269022}
   interactRange: 4
   interactableLayer:
     serializedVersion: 2
@@ -326,6 +324,21 @@ MonoBehaviour:
   input: {fileID: 9156704708880269022}
   characterControllerTransform: {fileID: 5977688255653788020}
   cameraTransform: {fileID: 1711238136389494218}
+--- !u!114 &8733864699206394395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5266527820527433859}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 93abc81575ab14813b84baf0f6dec277, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnUIHandler
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 5251044759896975893}
+  _networkObjectCache: {fileID: 0}
 --- !u!1 &6075861232590339267
 GameObject:
   m_ObjectHideFlags: 0
@@ -566,9 +579,8 @@ MonoBehaviour:
   _componentIndexCache: 0
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
-  Input: {fileID: 9156704708880269022}
   Inventory: {fileID: 4171483762779324888}
-  Ammo: {fileID: 4287951591573183018}
+  Ammo: {fileID: 7520322266067727014}
 --- !u!114 &9156704708880269022
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -686,7 +698,7 @@ MonoBehaviour:
   - {fileID: 349757071893823775}
   - {fileID: 0}
   - {fileID: 0}
-  - {fileID: 4287951591573183018}
+  - {fileID: 0}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}

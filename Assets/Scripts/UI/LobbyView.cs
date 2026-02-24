@@ -12,21 +12,26 @@ using UnityEngine.UI;
 /// </summary>
 public sealed class LobbyView : View
 {
+    [Header("Lobby Controls")]
     [SerializeField] private TMP_InputField usernameInput;
     [SerializeField] private Toggle readyToggle;
 
-    private void OnEnable()
+    public override void Show()
     {
         readyToggle.isOn = false;
         readyToggle.onValueChanged.AddListener(OnToggleClicked);
         usernameInput.onValueChanged.AddListener(OnUsernameChanged);
+
+        base.Show();
     }
 
-    private void OnDisable()
+    public override void Hide()
     {
         readyToggle.onValueChanged.RemoveListener(OnToggleClicked);
-    }
+        usernameInput.onValueChanged.RemoveListener(OnUsernameChanged);
 
+        base.Hide();
+    }
     private void OnUsernameChanged(string input)
     {
         NetworkPlayer.LocalInstance.ServerSetUsername(input);

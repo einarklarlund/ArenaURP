@@ -24,21 +24,36 @@ public sealed class MainMenuView : View
 
     private void Start()
     {
-        hostButton.onClick.AddListener(() =>
-        {
-            waitText.text = $"Starting room...";
-            SetWaitScreenActive(true);
-            InstanceFinder.ServerManager.StartConnection();
-        });
+        hostButton.onClick.AddListener(HandleHostButtonClicked);
+        connectButton.onClick.AddListener(HandleConnectButtonClicked);
+        settingsButton.onClick.AddListener(HandleSettingsButtonClicked);
 
-        connectButton.onClick.AddListener(() =>
-        {
-            waitText.text = $"Connecting to room ${roomCodeInputField.text}...";
-            SetWaitScreenActive(true);
-            RoomManager.JoinRoom(roomCodeInputField.text);
-        });
+        SignalManager.RoomCreatedCallback += HandleRoomCreated;
+    }
 
-        settingsButton.onClick.AddListener(() => LocalUIEvents.OnSettingsOpened?.Invoke());
+    private void HandleHostButtonClicked()
+    {
+        waitText.text = $"Starting room...";
+        SetWaitScreenActive(true);
+        InstanceFinder.ServerManager.StartConnection();
+    }
+
+    private void HandleConnectButtonClicked()
+    {
+        waitText.text = $"Connecting to room {roomCodeInputField.text}...";
+        SetWaitScreenActive(true);
+        RoomManager.JoinRoom(roomCodeInputField.text);
+    }
+
+    private void HandleSettingsButtonClicked()
+    {
+        LocalUIEvents.OnSettingsOpened?.Invoke();
+    }
+
+    private void HandleRoomCreated(string roomCode)
+    {
+        SetWaitScreenActive(true);
+        waitText.text = $"Created room {roomCode}, connecting...";
     }
 
     private void SetWaitScreenActive(bool active)

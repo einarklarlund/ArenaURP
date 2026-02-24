@@ -18,17 +18,19 @@ public class RoomManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        InstanceFinder.ServerManager.OnServerConnectionState -= HandleServerConnectionState;
+        var serverManager = InstanceFinder.ServerManager;
+        if (serverManager != null)
+            serverManager.OnServerConnectionState -= HandleServerConnectionState;
+
         SignalManager.RoomCreatedCallback -= HandleRoomCreated;
         SignalManager.JoinRoomCallback -= HandleRoomJoined;
     }
 
     public static void JoinRoom(string roomCode)
     {
+        SetCurrentRoom(roomCode);
         InstanceFinder.ClientManager.StartConnection();
         SignalManager.JoinRoom(roomCode);
-
-        CurrentRoom = roomCode;
     }
 
     private void HandleServerConnectionState(ServerConnectionStateArgs args)
@@ -42,12 +44,20 @@ public class RoomManager : MonoBehaviour
     private void HandleRoomCreated(string roomCode)
     {
         // The host joins the room after it's created.
-        CurrentRoom = roomCode;
         JoinRoom(roomCode);        
     }
 
     private void HandleRoomJoined(bool succeeded)
     {
-        if (!succeeded) CurrentRoom = "";
+        if (!succeeded)
+        {
+            SetCurrentRoom("");
+        }
+    }
+
+    private static void SetCurrentRoom(string room)
+    {
+        CurrentRoom = room;
+        NetworkUIEvents.OnCurrentRoomChanged?.Invoke(room);
     }
 }

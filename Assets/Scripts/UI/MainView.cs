@@ -9,10 +9,16 @@ using UnityEngine.UI;
 /// </summary>
 public sealed class MainView : View
 {
+    [Header("Main stats")]
     [SerializeField] private TMP_Text healthText;
+
+    [Header("Overlays")]
     [SerializeField] private Image damageImage;
+
+    [Header("Weapons")]
     [SerializeField] private TMP_Text primaryWeaponText;
     [SerializeField] private TMP_Text secondaryWeaponText;
+
     [Header("Ammo Texts")]
     [SerializeField] private TMP_Text bulletText;
     [SerializeField] private TMP_Text shotgunText;
