@@ -48,7 +48,7 @@ MonoBehaviour:
   _componentIndexCache: 2
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
-  defaultWeapon: {fileID: 11400000, guid: 48e941893a48a4bb8855fa5adce7fcd3, type: 2}
+  defaultWeapon: {fileID: 11400000, guid: 2fd0ba9be3752431cac98a757fd4c059, type: 2}
 --- !u!114 &7520322266067727014
 MonoBehaviour:
   m_ObjectHideFlags: 0
