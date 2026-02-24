@@ -6,11 +6,13 @@ public sealed class PauseView : View
 {
     [SerializeField] private Button settingsButton;
     [SerializeField] private Button unpauseButton;
+    [SerializeField] private SignalStatusDisplay signalStatusDisplay;
 
     public override void Show()
     {
         settingsButton.onClick.AddListener(HandleSettingsClicked);
         unpauseButton.onClick.AddListener(HandleUnpauseButtonClicked);
+        signalStatusDisplay.Initialize(SignalManager.Instance.ClientState);
 
         base.Show();
     }
