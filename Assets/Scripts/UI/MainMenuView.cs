@@ -28,7 +28,7 @@ public sealed class MainMenuView : View
         connectButton.onClick.AddListener(HandleConnectButtonClicked);
         settingsButton.onClick.AddListener(HandleSettingsButtonClicked);
 
-        SignalManager.RoomCreatedCallback += HandleRoomCreated;
+        SignalManager.OnRoomCreated += HandleRoomCreated;
     }
 
     private void HandleHostButtonClicked()
