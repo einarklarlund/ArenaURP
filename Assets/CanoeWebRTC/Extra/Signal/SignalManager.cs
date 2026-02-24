@@ -27,7 +27,7 @@ public class SignalManager : MonoBehaviour
     private const byte trickleICE = 0x06; //not implemented
     private const byte ping = 0x07;
 
-    private SimpleWebClient client;
+    private static SimpleWebClient client;
 
     private void Start()
     {
