@@ -15,14 +15,14 @@ public class SignalStatusDisplay : MonoBehaviour
 
     private void Awake()
     {
-        // SignalManager.OnClientStateChanged += HandleClientStateChanged;
+        SignalManager.OnClientStateChanged += HandleClientStateChanged;
         retryButton.onClick.AddListener(HandleRetryClicked);
         HideRetryButton();
     }
 
     private void OnDestroy()
     {
-        // SignalManager.OnClientStateChanged -= HandleClientStateChanged;
+        SignalManager.OnClientStateChanged -= HandleClientStateChanged;
         retryButton.onClick.RemoveListener(HandleRetryClicked);
     }
 
@@ -41,7 +41,7 @@ public class SignalStatusDisplay : MonoBehaviour
 
     private void HandleRetryClicked()
     {
-        // SignalManager.Instance.StartSignalClient();
+        SignalManager.Instance.StartSignalClient();
     }
 
     private void ShowRetryButton()
