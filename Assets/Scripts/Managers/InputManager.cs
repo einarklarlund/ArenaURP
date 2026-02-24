@@ -4,15 +4,13 @@ public class InputManager : MonoBehaviour
 {
     private static InputManager instance;
 
-    public static PlayerControls.PawnControlsActions PawnControls => instance.pawnControls;
+    [HideInInspector] public static PlayerControls.PawnControlsActions PawnControls => instance.controls;
 
-    private PlayerControls.PawnControlsActions pawnControls;
+    private PlayerControls.PawnControlsActions controls;
 
     void Awake()
     {
-        var playerControls = new PlayerControls();
-        pawnControls = playerControls.PawnControls;
-
+        controls = new PlayerControls().PawnControls;
         instance = this;
     }
 }

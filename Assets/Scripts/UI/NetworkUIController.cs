@@ -12,12 +12,12 @@ using UnityEngine;
 /// </summary>
 public sealed class NetworkUIController : MonoBehaviour
 {
-    private bool isSubscribed = false;
+    private bool _isSubscribed = false;
 
     private void Update()
     {
         // Wait until managers and the local player are ready
-        if (!isSubscribed && NetworkPlayer.LocalInstance != null && MatchFlowManager.Instance != null && DeathmatchManager.Instance != null)
+        if (!_isSubscribed && NetworkPlayer.LocalInstance != null && MatchFlowManager.Instance != null && DeathmatchManager.Instance != null)
         {
             InitializeSubscriptions();
         }
@@ -25,7 +25,7 @@ public sealed class NetworkUIController : MonoBehaviour
 
     private void InitializeSubscriptions()
     {
-        isSubscribed = true;
+        _isSubscribed = true;
 
         InstanceFinder.ClientManager.OnClientConnectionState += OnClientConnectionStateChanged;
 
@@ -45,11 +45,10 @@ public sealed class NetworkUIController : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (!isSubscribed) return;
+        if (!_isSubscribed) return;
 
-        var clientManager = InstanceFinder.ClientManager;
-        if (clientManager != null)
-            clientManager.OnClientConnectionState -= OnClientConnectionStateChanged;
+
+        InstanceFinder.ClientManager.OnClientConnectionState -= OnClientConnectionStateChanged;
 
         if (MatchFlowManager.Instance != null)
         {

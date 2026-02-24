@@ -24,44 +24,23 @@ public sealed class UIManager : MonoBehaviour
 
     private void OnEnable()
     {
-        // High level network events
-        NetworkUIEvents.OnClientConnectionChanged += HandleClientConnectionChanged;
-
-        // Match events
         NetworkUIEvents.OnMatchStateChanged += HandleMatchStateChanged;
-
-        // Pawn events
         NetworkUIEvents.OnLocalPawnSpawned += HandleLocalSpawn;
         NetworkUIEvents.OnLocalDeath += HandleLocalDeath;
+        NetworkUIEvents.OnClientConnectionChanged += HandleClientConnectionChanged;
 
-        // Settings events
         LocalUIEvents.OnSettingsOpened += Show<SettingsView>;
         LocalUIEvents.OnSettingsClosed += ShowPreviousView;
-
-        // Pause events
-        LocalUIEvents.OnPause += Show<PauseView>;
-        LocalUIEvents.OnUnpause += Show<MainView>;
     }
 
     private void OnDisable()
     {
-        // High level network events
-        NetworkUIEvents.OnClientConnectionChanged -= HandleClientConnectionChanged;
-
-        // Match events
         NetworkUIEvents.OnMatchStateChanged -= HandleMatchStateChanged;
-        
-        // Pawn events
         NetworkUIEvents.OnLocalPawnSpawned -= HandleLocalSpawn;
         NetworkUIEvents.OnLocalDeath -= HandleLocalDeath;
 
-        // Settings events
         LocalUIEvents.OnSettingsOpened -= Show<SettingsView>;
         LocalUIEvents.OnSettingsClosed -= ShowPreviousView;
-
-        // Pause events
-        LocalUIEvents.OnPause -= Show<PauseView>;
-        LocalUIEvents.OnUnpause -= Show<MainView>;
     }
 
     private void HandleClientConnectionChanged(bool connected)
