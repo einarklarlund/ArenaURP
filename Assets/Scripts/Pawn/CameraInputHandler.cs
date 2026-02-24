@@ -43,6 +43,12 @@ public sealed class CameraInputHandler : NetworkBehaviour
         float mouseX = input.Data.Look.x;
         float mouseY = input.Data.Look.y;
 
+        #if UNITY_WEBGL && !UNITY_EDITOR
+        // mouse sensitivity is way too high in web gl builds compare to editor
+        mouseX /= 10;
+        mouseY /= 10;
+        #endif
+
         // Rotate Body (Yaw)
         horizontalRotation += mouseX;
         characterControllerTransform.rotation = Quaternion.Euler(0f, horizontalRotation, 0f);
