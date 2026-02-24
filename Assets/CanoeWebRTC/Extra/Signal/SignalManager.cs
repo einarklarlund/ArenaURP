@@ -17,7 +17,6 @@ public class SignalManager : MonoBehaviour
     public static Action<string> OnRoomCreated;
     public static Action<bool> OnRoomJoined;
     public static Action<ClientState> OnClientStateChanged;
-    public ClientState ClientState => client.ConnectionState;
 
     private const byte createRoom = 0x01; //responded to directly with the room code
     private const byte attemptToJoinRoom = 0x02; //responded to directly if join code is valid and if host has been notified
@@ -27,7 +26,7 @@ public class SignalManager : MonoBehaviour
     private const byte trickleICE = 0x06; //not implemented
     private const byte ping = 0x07;
 
-    private SimpleWebClient client;
+    private static SimpleWebClient client;
 
     private void Start()
     {
@@ -42,33 +41,26 @@ public class SignalManager : MonoBehaviour
 
     public void StartSignalClient()
     {
-        OnClientStateChanged?.Invoke(ClientState.Connected);
         var tcpConfig = new TcpConfig(noDelay: false, sendTimeout: 120000, receiveTimeout: 120000);
         client = SimpleWebClient.Create(ushort.MaxValue, 5000, tcpConfig);
 
-        client.onConnect += () =>
-        {
-            Debug.Log($"<color=cyan>[Signal]</color> Connected");
-            OnClientStateChanged?.Invoke(ClientState.Connected);
-        };
+        client.onConnect += () => Debug.Log($"<color=cyan>[Signal]</color> Connected");
         client.onDisconnect += () =>
         {
             Debug.Log($"<color=cyan>[Signal]</color> Disconnected");
             CanoeWebRTC.SignalShutdown();
-            OnClientStateChanged?.Invoke(ClientState.NotConnected);
         };
         client.onData += HandleReceivedData;
         client.onError += (exception) =>
         {
             Debug.Log($"<color=cyan>[Signal]</color> Error:{exception}");
             CanoeWebRTC.SignalShutdown();
-            OnClientStateChanged?.Invoke(ClientState.NotConnected);
         };
 
         client.Connect(new Uri(SignalAddress));
     }
 
-    private void OnDestroy()
+    private void OnApplicationQuit()
     {
         client.Disconnect();
         client = null;

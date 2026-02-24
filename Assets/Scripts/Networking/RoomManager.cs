@@ -18,8 +18,9 @@ public class RoomManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (InstanceFinder.ServerManager != null)
-            InstanceFinder.ServerManager.OnServerConnectionState -= HandleServerConnectionState;
+        var serverManager = InstanceFinder.ServerManager;
+        if (serverManager != null)
+            serverManager.OnServerConnectionState -= HandleServerConnectionState;
 
         SignalManager.OnRoomCreated -= HandleRoomCreated;
         SignalManager.OnRoomJoined -= HandleRoomJoined;
