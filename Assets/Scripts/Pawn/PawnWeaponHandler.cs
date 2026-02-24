@@ -36,10 +36,10 @@ public class PawnWeaponHandler : NetworkBehaviour
 
     private void Update()
     {
+        if (!IsOwner) return;
+
         if (InputManager.PawnControls.Attack.IsPressed())
-        {
             TryFireAuto();
-        }
     }
 
     private void TryFireAuto()
