@@ -360,8 +360,11 @@ function CreateClientConnection() {
          const candidate = event.candidate;
 
          if (candidate.protocol === "udp") {
-            //console.log(`New local ICE candidate: ${candidate.candidate}`);
+            console.log(`New local ICE candidate: ${candidate.candidate}`);
             newConn.iceCandidates.push(candidate);
+         }
+         else {
+            console.log(`Ignored local ICE candidate: ${candidate.candidate}`);
          }
       }
    };
@@ -496,8 +499,11 @@ function CreateRemoteConnection(connectionID) {
          const candidate = event.candidate;
 
          if (candidate.protocol === "udp") {
-            //console.log(`ON SERVER -- New ICE candidate for remote connection: ${candidate.candidate}`);
+            console.log(`ON SERVER -- New ICE candidate for remote connection: ${candidate.candidate}`);
             newConn.iceCandidates.push(candidate);
+         } 
+         else {
+            console.log(`ON SERVER -- Ignored ICE candidate for remote connection: ${candidate.candidate}`);
          }
       }
    };
