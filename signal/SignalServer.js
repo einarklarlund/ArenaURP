@@ -57,7 +57,6 @@ const app = uWS.App().ws('/Signal', {
 
 
     open: (ws) => {
-
         playerCount++;
 
         const newID = generateID();
@@ -71,7 +70,6 @@ const app = uWS.App().ws('/Signal', {
                 sendData(ws, pingBuffer);
             }, (IdleTimeout * 1000) / 2);
         }
-        console.log("Client Connected")
     },
 
     // Called when a message is received
@@ -170,7 +168,6 @@ const app = uWS.App().ws('/Signal', {
             case receivedAnswerFromClient:
 
                 const sendAnswer_targetPlayerID = messageData.readInt32LE(1);
-                console.log("Target Player ID " + sendAnswer_targetPlayerID);
                 const sendAnswer_remainingData = messageData.slice(5);
                 responseBuffer = Buffer.alloc(1 + 4 + sendAnswer_remainingData.length);
 
@@ -198,8 +195,6 @@ const app = uWS.App().ws('/Signal', {
                 break;
 
             case ping:
-                //console.log('Ping received from client: ', ws.playerID);
-                // simple manual ping
                 break;
 
             default:
@@ -253,10 +248,9 @@ const app = uWS.App().ws('/Signal', {
     }
 });
 
-
 const BACKPRESSURE_THRESHOLD = 1024 * 1024; // 1MB
 
-function sendData(ws, data) {¸
+function sendData(ws, data) {
     if(ws){
         if (ws.getBufferedAmount() < BACKPRESSURE_THRESHOLD) {
             ws.send(data, true);
