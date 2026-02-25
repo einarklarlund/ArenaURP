@@ -374,6 +374,11 @@ function CreateClientConnection() {
       console.log(`CLIENT -- ICE Connection State changed to: ${state}`);
    };
 
+   newConn.peerConnection.onicegatheringstatechange = function () {
+      const state = newConn.peerConnection.iceGatheringState;
+      console.log(`CLIENT -- ICE Gathering State changed to: ${state}`);
+   };
+
    newConn.peerConnection.onconnectionstatechange = function () {
       const state = newConn.peerConnection.connectionState;
       console.log(`Peer Connection State changed to: ${state}`);
