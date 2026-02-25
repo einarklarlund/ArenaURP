@@ -371,7 +371,7 @@ function CreateClientConnection() {
 
    newConn.peerConnection.oniceconnectionstatechange = function () {
       const state = newConn.peerConnection.iceConnectionState;
-      console.log(`ICE Connection State changed to: ${state}`);
+      console.log(`CLIENT -- ICE Connection State changed to: ${state}`);
    };
 
    newConn.peerConnection.onconnectionstatechange = function () {
@@ -510,7 +510,7 @@ function CreateRemoteConnection(connectionID) {
 
    newConn.peerConnection.oniceconnectionstatechange = function () {
       const state = newConn.peerConnection.iceConnectionState;
-      //console.log(`ICE Connection State changed to: ${state}`);
+      console.log(`SERVER -- ICE Connection State changed to: ${state}`);
       //wont do anything here since below should handle
    };
 
