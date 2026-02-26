@@ -5,15 +5,13 @@ using UnityEngine;
 public class RoomManager : MonoBehaviour
 {
     public static string CurrentRoom { get; private set; }
+    public static RoomManager Instance { get; private set; }
 
     private void Start()
     {
-        // To properly use SignalManager, a room must be created once the host server is started
-        InstanceFinder.ServerManager.OnServerConnectionState += HandleServerConnectionState;
-
-        // Not sure if this callback is called regardless of whether this client requested the room creation.
         SignalManager.OnRoomCreated += HandleRoomCreated;
         SignalManager.OnRoomJoined += HandleRoomJoined;
+        Instance = this;
     }
 
     private void OnDestroy()
@@ -25,8 +23,20 @@ public class RoomManager : MonoBehaviour
         SignalManager.OnRoomJoined -= HandleRoomJoined;
     }
 
-    public static void JoinRoom(string roomCode)
+    public void CreateRoom()
     {
+        LocalUIEvents.OnHostInitiated?.Invoke();
+
+        // To properly use SignalManager, the host room must be 
+        // created after the host server is started
+        InstanceFinder.ServerManager.OnServerConnectionState += HandleServerConnectionState;
+        InstanceFinder.ServerManager.StartConnection();
+    }
+
+    public void JoinRoom(string roomCode)
+    {
+        LocalUIEvents.OnJoinInitiated?.Invoke();
+
         SetCurrentRoom(roomCode);
         InstanceFinder.ClientManager.StartConnection();
         SignalManager.Instance.JoinRoom(roomCode);
@@ -36,6 +46,7 @@ public class RoomManager : MonoBehaviour
     {
         if (args.ConnectionState == LocalConnectionState.Started)
         {
+            InstanceFinder.ServerManager.OnServerConnectionState -= HandleServerConnectionState;
             SignalManager.Instance.CreateRoom();
         }
     }

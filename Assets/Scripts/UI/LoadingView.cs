@@ -1,20 +1,38 @@
 using TMPro;
 using UnityEngine;
 using System.Text.RegularExpressions;
-
-public class WaitScreenInfoDisplay : MonoBehaviour
+public class LoadingView : View
 {
-    public TMP_Text infoText;
+    [SerializeField] private TMP_Text mainText;
+    [SerializeField] private TMP_Text infoText;
 
-    void OnEnable()
+    private void OnEnable()
     {
+        // Hacky way to see if we're hosting or joining a room
+        if (RoomManager.CurrentRoom == "")
+        {
+            mainText.text = "Creating a room...";
+        }
+        else
+        {
+            mainText.text = $"Joining room {RoomManager.CurrentRoom}...";
+        }
+
+        SignalManager.OnRoomCreated += HandleRoomCreated;
         Application.logMessageReceived += HandleLog;
+        mainText.text = $"Connecting to {RoomManager.CurrentRoom}";
         infoText.text = "";
     }
 
-    void OnDisable()
+    private void OnDisable()
     {
+        SignalManager.OnRoomCreated -= HandleRoomCreated;
         Application.logMessageReceived -= HandleLog;
+    }
+
+    private void HandleRoomCreated(string roomName)
+    {
+        mainText.text = $"Created room {roomName}, joining...";
     }
 
     void HandleLog(string logString, string stackTrace, LogType type)

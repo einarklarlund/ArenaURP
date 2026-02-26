@@ -10,7 +10,7 @@ public class SignalManager : MonoBehaviour
 {
     public static SignalManager Instance { get; private set; }
 
-    [SerializeField] private string SignalAddress = "ws://localhost:9001/Signal";
+    [SerializeField] private string SignalAddress;
     [SerializeField] private bool copyCreatedRoomCodeToClipboard = false; //only works in standalone / editor
     [SerializeField] private string roomCode = "";
 
@@ -31,6 +31,10 @@ public class SignalManager : MonoBehaviour
 
     private void Start()
     {
+        if (Debug.isDebugBuild || Application.isEditor)
+        {
+            SignalAddress = "ws://localhost:9001/Signal";
+        }
         if (Instance != null)
         {
             Debug.LogError("Tried to set singleton instance of SignalManager, but it was already set");
@@ -54,14 +58,12 @@ public class SignalManager : MonoBehaviour
         client.onDisconnect += () =>
         {
             Debug.Log($"<color=cyan>[Signal]</color> Disconnected.");
-            CanoeWebRTC.SignalShutdown();
             OnClientStateChanged?.Invoke(ClientState.NotConnected);
         };
         client.onData += HandleReceivedData;
         client.onError += (exception) =>
         {
             Debug.Log($"<color=cyan>[Signal]</color> Error:{exception}");
-            CanoeWebRTC.SignalShutdown();
             OnClientStateChanged?.Invoke(ClientState.NotConnected);
         };
 
@@ -300,6 +302,7 @@ public class SignalManager : MonoBehaviour
                 {
                     GUIUtility.systemCopyBuffer = roomCode;
                 }
+
                 break;
 
             case attemptToJoinRoom:
@@ -330,7 +333,6 @@ public class SignalManager : MonoBehaviour
                     OnRoomJoined?.Invoke(true);
                     Debug.Log("<color=cyan>[Signal]</color> Join Code Valid, waiting for offer from host.");
                 }
-
 
                 break;
 

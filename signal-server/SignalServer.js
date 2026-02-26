@@ -1,24 +1,20 @@
 const uWS = require('uWebSockets.js');
+const Redis = require('ioredis');
+const redis = new Redis();
 
 //TODO - Use buffer instead of reallocating, similar to jslib variant
 
-let playerCount = 0;
-
-let currentID = 0;
+let currentID = 1;
 function generateID() {
     const id = currentID;
     currentID = (currentID + 1) & 0x7FFFFFFF;
-    console.log(id);
     return id;
-
 }
-
 
 const playerID = {}; //uniqueID - player
 const signalConnectionID = {} //SignalID - ConnectionID
 
 const rooms = {}; //room key - host ws
-
 
 const createRoom = 0x01; //responded to directly with the room code
 const attemptToJoinRoom = 0x02; //responded to directly if join code is valid and if host has been notified
@@ -57,8 +53,6 @@ const app = uWS.App().ws('/Signal', {
 
 
     open: (ws) => {
-        playerCount++;
-
         const newID = generateID();
         playerID[newID] = ws;
         ws.playerID = newID;
@@ -70,6 +64,8 @@ const app = uWS.App().ws('/Signal', {
                 sendData(ws, pingBuffer);
             }, (IdleTimeout * 1000) / 2);
         }
+
+        console.log(`Client ${newID} opened connection.`)
     },
 
     // Called when a message is received
@@ -80,97 +76,102 @@ const app = uWS.App().ws('/Signal', {
         let responseBuffer;
 
         switch (messageType) {
-            case createRoom:
-
-                const roomID = generateUniqueKey();
-
-                rooms[roomID] = ws;
-
+            case createRoom: // A client wants to host a room
+                // Clean up any rooms that the client was already hosting
                 if(ws.hostRoomID != -1){
                     delete rooms[ws.hostRoomID];
+                    removeRedisRoom(ws.hostRoomID);
                 }
 
+                // Create the room
+                const roomID = generateUniqueKey();
+                rooms[roomID] = ws;
+                updateRedisRoom(roomID, ws.playerID);
+
+                // Set host websocket information
                 ws.hostRoomID = roomID;
+                ws.redisHeartbeat = setInterval(() => {
+                    updateRedisRoom(ws.hostRoomID, ws.playerID);
+                }, 30000); // Heartbeat every 30 seconds
 
-
+                // Clean up any connections this player was already connected to
                 if(signalConnectionID.hasOwnProperty(ws.playerID)){
                     delete signalConnectionID[ws.playerID]
                 }
 
+                // Respond to host with room ID
                 const roomIDLength = Buffer.byteLength(roomID);
                 responseBuffer = Buffer.alloc(2 + roomIDLength);
-
                 responseBuffer[0] = createRoom;
                 responseBuffer[1] = roomIDLength;
-
                 responseBuffer.write(roomID, 2, 'utf-8');
 
                 sendData(ws, responseBuffer);
 
                 break;
 
-            case attemptToJoinRoom:
-
-
-
+            case attemptToJoinRoom: // A client wants to join a room
+                // Parse incoming room ID
                 const joinRoom_RoomIDLength = messageData[1];
-                const joinRoom_RoomID = messageData.toString('utf-8', 2, 2 + joinRoom_RoomIDLength);
+                const joinRoom_RoomID = messageData
+                    .toString('utf-8', 2, 2 + joinRoom_RoomIDLength)
+                    .toUpperCase();
 
                 if (rooms.hasOwnProperty(joinRoom_RoomID)) {
+                    // MISSING - cleanup any room the rooms that the client was already 
+                    // hosting and reset hostRoomID ONLY IF not connecting to its own room
 
+                    // Prepare success response for connecting client
                     responseBuffer = Buffer.alloc(2);
                     responseBuffer[0] = joinRoomCallback;
                     responseBuffer[1] = 1;
 
-                    if(ws.hostRoomID != -1){
-                        ws.hostRoomID = -1;
-                        delete rooms[ws.hostRoomID];
-                    }
-
+                    // Notify host that a client is connecting
                     notifyBuffer = Buffer.alloc(1+4);
                     notifyBuffer[0] = attemptToJoinRoom;
                     notifyBuffer.writeInt32LE(ws.playerID, 1);
 
                     sendData(playerID[rooms[joinRoom_RoomID].playerID], notifyBuffer);
-
-
                 } else {
-                    // room does not exist
+                    // Prepare failure response for connecting client
                     responseBuffer = Buffer.alloc(2);
                     responseBuffer[0] = joinRoomCallback;
                     responseBuffer[1] = 0;
                 }
 
+                // Notify client of success/failure
                 sendData(ws, responseBuffer);
 
                 break;
 
-            case receivedOfferFromHost:
-
+            case receivedOfferFromHost: // Signal server received offer from host
+                // Read connecting client's ID
                 const sendOffer_targetPlayerSignalID = messageData.readInt32LE(1);
+
+                // Read the ID of the connection between the host and connecting client
                 const sendOffer_targetPlayerConnectionID = messageData.readInt32LE(5);
                 const sendOffer_remainingData = messageData.slice(9);
 
-
+                // Map connecting client ID to the connection ID
                 signalConnectionID[sendOffer_targetPlayerSignalID] = sendOffer_targetPlayerConnectionID
 
+                // Tell connecting client that a host has sent an offer
                 responseBuffer = Buffer.alloc(1 + 4 + sendOffer_remainingData.length);
-
                 responseBuffer[0] = receivedOfferFromHost;
                 responseBuffer.writeInt32LE(ws.playerID, 1);
-
                 sendOffer_remainingData.copy(responseBuffer, 5);
 
                 sendData(playerID[sendOffer_targetPlayerSignalID], responseBuffer);
 
                 break;
 
-            case receivedAnswerFromClient:
-
+            case receivedAnswerFromClient: // Signal server received a client's answer
+                // Read host's ID
                 const sendAnswer_targetPlayerID = messageData.readInt32LE(1);
                 const sendAnswer_remainingData = messageData.slice(5);
                 responseBuffer = Buffer.alloc(1 + 4 + sendAnswer_remainingData.length);
 
+                // Give the connection ID to the host
                 responseBuffer[0] = receivedAnswerFromClient;
                 responseBuffer.writeInt32LE(signalConnectionID[ws.playerID], 1);
                 sendAnswer_remainingData.copy(responseBuffer, 5);
@@ -202,9 +203,7 @@ const app = uWS.App().ws('/Signal', {
     }},
 
     close: (ws, code, message) => {
-        console.log("Client ["+ ws.playerID +"] closed");
-
-        playerCount--;
+        console.log("Client ["+ ws.playerID +"] closed connection.");
 
         if(signalConnectionID.hasOwnProperty(ws.playerID)){
             delete signalConnectionID[ws.playerID]
@@ -213,13 +212,14 @@ const app = uWS.App().ws('/Signal', {
         delete playerID[ws.playerID];
 
         if(ws.hostRoomID != -1){
+            removeRedisRoom(ws.hostRoomID);
+            clearInterval(ws.redisHeartbeat);
             delete rooms[ws.hostRoomID];
         }
 
         if (ws.pingInterval) {
             clearInterval(ws.pingInterval);
         }
-
     },
 
     drain: (ws) => {
@@ -262,9 +262,8 @@ function sendData(ws, data) {
     }
 }
 
-
 function generateUniqueKey() {
-    const allowedChars = 'abcdefghijklmnopqrstuvwxyz1234567890';
+    const allowedChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
     const generateKey = () => {
         let key = '';
         for (let i = 0; i < 5; i++) {
@@ -279,4 +278,21 @@ function generateUniqueKey() {
     } while (rooms.hasOwnProperty(key));
 
     return key;
+}
+
+async function updateRedisRoom(roomID, hostID) {
+    const key = `room:${roomID}`;
+    const roomMetadata = {
+        id: roomID,
+        hostID: hostID,
+        lastSeen: Date.now(),
+        // You can eventually pass player counts/map names here
+    };
+
+    // Set with a 60-second TTL. If no update happens, it expires.
+    await redis.set(key, JSON.stringify(roomMetadata), 'EX', 60);
+}
+
+async function removeRedisRoom(roomID) {
+    await redis.del(`room:${roomID}`);
 }

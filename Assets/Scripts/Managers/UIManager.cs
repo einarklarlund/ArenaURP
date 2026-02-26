@@ -34,6 +34,10 @@ public sealed class UIManager : MonoBehaviour
         NetworkUIEvents.OnLocalPawnSpawned += HandleLocalSpawn;
         NetworkUIEvents.OnLocalDeath += HandleLocalDeath;
 
+        // Loading screen events
+        LocalUIEvents.OnHostInitiated += Show<LoadingView>;
+        LocalUIEvents.OnJoinInitiated += Show<LoadingView>;
+
         // Settings events
         LocalUIEvents.OnSettingsOpened += Show<SettingsView>;
         LocalUIEvents.OnSettingsClosed += ShowPreviousView;
@@ -41,6 +45,10 @@ public sealed class UIManager : MonoBehaviour
         // Pause events
         LocalUIEvents.OnPause += Show<PauseView>;
         LocalUIEvents.OnUnpause += Show<MainView>;
+
+        // Server browser events
+        LocalUIEvents.OnRoomBrowserOpened += Show<RoomBrowserView>;
+        LocalUIEvents.OnRoomBrowserClosed += ShowPreviousView;
     }
 
     private void OnDisable()
@@ -55,6 +63,10 @@ public sealed class UIManager : MonoBehaviour
         NetworkUIEvents.OnLocalPawnSpawned -= HandleLocalSpawn;
         NetworkUIEvents.OnLocalDeath -= HandleLocalDeath;
 
+        // Loading screen events
+        LocalUIEvents.OnHostInitiated -= Show<LoadingView>;
+        LocalUIEvents.OnJoinInitiated -= Show<LoadingView>;
+
         // Settings events
         LocalUIEvents.OnSettingsOpened -= Show<SettingsView>;
         LocalUIEvents.OnSettingsClosed -= ShowPreviousView;
@@ -62,6 +74,10 @@ public sealed class UIManager : MonoBehaviour
         // Pause events
         LocalUIEvents.OnPause -= Show<PauseView>;
         LocalUIEvents.OnUnpause -= Show<MainView>;
+
+        // Server browser events
+        LocalUIEvents.OnRoomBrowserOpened -= Show<RoomBrowserView>;
+        LocalUIEvents.OnRoomBrowserClosed -= ShowPreviousView;
     }
 
     private void HandleClientConnectionChanged(bool connected)

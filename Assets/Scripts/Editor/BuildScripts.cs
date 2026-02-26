@@ -6,6 +6,29 @@ using System.Linq;
 
 public class BuildScripts
 {
+    [MenuItem("Build/Build WebGL Development")]
+    public static void BuildWebGLDevelopment()
+    {
+        string buildPath = "builds/webgl";
+        
+        // Get all enabled scenes in Build Settings
+        string[] scenes = EditorBuildSettings.scenes
+            .Where(s => s.enabled)
+            .Select(s => s.path)
+            .ToArray();
+
+        // Configure build options for a Development build
+        BuildPlayerOptions buildPlayerOptions = new()
+        {
+            scenes = scenes,
+            locationPathName = buildPath,
+            target = BuildTarget.WebGL,
+            options = BuildOptions.Development | BuildOptions.ConnectWithProfiler
+        };
+
+        BuildPipeline.BuildPlayer(buildPlayerOptions);
+    }
+
     public static void BuildProject()
     {
         string[] args = Environment.GetCommandLineArgs();
@@ -15,11 +38,13 @@ public class BuildScripts
         bool isDevelopment = args.Contains("-development");
         bool isProfiler = args.Contains("-profiler");
 
-        BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
-        buildPlayerOptions.scenes = EditorBuildSettings.scenes
-            .Where(s => s.enabled)
-            .Select(s => s.path)
-            .ToArray();
+        BuildPlayerOptions buildPlayerOptions = new()
+        {
+            scenes = EditorBuildSettings.scenes
+                .Where(s => s.enabled)
+                .Select(s => s.path)
+                .ToArray()
+        };
 
         // Configure Platform Specifics
         switch (platform)
