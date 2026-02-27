@@ -5640,7 +5640,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2bf0fa9d442f47308ca9f6dcc23c104, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomBrowserView
-  mainServerUrl: https://einark.duckdns.org/Rooms
+  mainServerUrl: https://einark.duckdns.org/Servers
   roomEntryPrefab: {fileID: 2049667008523943172, guid: 7d3d1e2aed4dc444b92c62067d350dec, type: 3}
   scrollContentContainer: {fileID: 4631476027585079380}
   closeBrowserButton: {fileID: 1691383346249048213}
