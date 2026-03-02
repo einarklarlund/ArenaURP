@@ -48013,11 +48013,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 57ce8bbb58966cb45a7140f32da5327a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _enableGlobalScenes: 0
+  _enableGlobalScenes: 1
   _startInOffline: 0
   _offlineScene: Assets/Scenes/Scene1Offline.unity
   _onlineScene: Assets/Scenes/Scene2Online.unity
-  _replaceScenes: 2
+  _replaceScenes: 0
 --- !u!114 &431599978
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -227257,6 +227257,10 @@ PrefabInstance:
       propertyPath: m_fontColorGradient.bottomRight.r
       value: 0.6
       objectReference: {fileID: 0}
+    - target: {fileID: 7939371929977567194, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
+      propertyPath: m_GlobalFontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: d778cecebf0604e4094b62d17e9b2baf, type: 2}
     - target: {fileID: 8148123850570212594, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_Name
       value: UIManager
@@ -227345,6 +227349,10 @@ PrefabInstance:
       propertyPath: m_fontColorGradient.bottomRight.r
       value: 0.6
       objectReference: {fileID: 0}
+    - target: {fileID: 8563670803771455734, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
+      propertyPath: m_FontData.m_Font
+      value: 
+      objectReference: {fileID: 12800000, guid: 326dbe15b94b24210a06a627dce18eb4, type: 3}
     - target: {fileID: 8713683090782658917, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_fontAsset
       value: 
