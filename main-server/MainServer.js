@@ -5,9 +5,6 @@ const cors = require('cors');
 const app = express();
 const redis = new Redis(); // Connects to the Redis instance on the machine (droplet or local)
 
-app.use(cors({
-    origin: 'https://einarklarlund.github.io'
-}));
 app.use(express.json());
 
 app.get('/Servers', async (req, res) => {
