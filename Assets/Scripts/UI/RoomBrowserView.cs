@@ -8,7 +8,7 @@ using UnityEngine.UI;
 public class RoomBrowserView : View
 {
     [Header("Server Settings")]
-    [SerializeField] private string mainServerUrl = "http://localhost:3000/Rooms";
+    [SerializeField] private string mainServerUrl = "http://localhost:3000/Servers";
     
     [Header("UI References")]
     [SerializeField] private RoomEntryUI roomEntryPrefab;
@@ -47,6 +47,10 @@ public class RoomBrowserView : View
 
     private IEnumerator GetRoomsRoutine()
     {
+        if (Debug.isDebugBuild || Application.isEditor)
+        {
+            mainServerUrl = "http://localhost:3000/Servers";
+        }
         using (UnityWebRequest webRequest = UnityWebRequest.Get(mainServerUrl))
         {
             yield return webRequest.SendWebRequest();
