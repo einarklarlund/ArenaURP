@@ -1,14 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using FishNet;
 using FishNet.Object;
 using UnityEngine;
 
 /// <summary>
 /// The authority on when and where pawns spawn and despawn.
 /// Responsibilities:
-/// - Spawns and respawns pawns.
+/// - Spawns and respawns pawns for both human players and bots.
 /// - Determines Pawn spawn locations and times.
 /// - Listens to pawn lifecycle and reports lifecycle events.
 /// </summary>
@@ -17,12 +16,17 @@ public sealed class PawnManager : NetworkBehaviour
     public event Action<Pawn, DamageInfo> OnPawnKilled;
 
     [SerializeField] private Pawn pawnPrefab;
+    [SerializeField] private Pawn botPawnPrefab;
     [SerializeField] private Transform[] spawnPoints;
 
     private int nextSpawnIndex;
     private readonly List<Pawn> pawns = new();
     private Dictionary<Pawn, Action<DamageInfo>> deathHandlers = new();
 
+    /// <summary>
+    /// All currently living pawns.
+    /// </summary>
+    public IReadOnlyList<Pawn> ActivePawns => pawns;
 
     [Server]
     public void SpawnPawnForPlayer(NetworkPlayer player)
@@ -33,18 +37,16 @@ public sealed class PawnManager : NetworkBehaviour
             return;
         }
 
-        // Find spawn point
         Transform sp = spawnPoints[nextSpawnIndex];
         nextSpawnIndex = (nextSpawnIndex + 1) % spawnPoints.Length;
 
-        // Spawn and initialize pawn
-        Pawn pawnInstance = Instantiate(pawnPrefab, sp.position, sp.rotation);
-        Spawn(pawnInstance, player.Owner);
+        var prefab = player.IsBot ? botPawnPrefab : pawnPrefab;
+        Pawn pawnInstance = Instantiate(prefab, sp.position, sp.rotation);
+        Spawn(pawnInstance, player.IsBot ? null : player.Owner);
 
         pawnInstance.ControllingPlayer.Value = player;
         player.ControlledPawn.Value = pawnInstance;
 
-        // Listen to lifecycle
         Action<DamageInfo> handler = (damageInfo) => OnPawnDeath(pawnInstance, damageInfo);
         pawnInstance.OnDeath += handler;
         deathHandlers[pawnInstance] = handler;
@@ -53,11 +55,19 @@ public sealed class PawnManager : NetworkBehaviour
     }
 
     [Server]
+    public void UnregisterPawnForPlayer(NetworkPlayer player)
+    {
+        var pawn = player.ControlledPawn.Value;
+        if (pawn != null)
+            UnregisterPawn(pawn);
+    }
+
+    [Server]
     public void ClearPawns()
     {
         foreach(var pawn in pawns)
         {
-            pawn.OnDeath -= deathHandlers[pawn];
+            UnregisterPawn(pawn);
             Despawn(pawn);
         }
 
@@ -65,17 +75,23 @@ public sealed class PawnManager : NetworkBehaviour
     }
 
     [Server]
-    private void OnPawnDeath(Pawn pawn, DamageInfo damageInfo)
+    private void UnregisterPawn(Pawn pawn)
     {
         pawn.OnDeath -= deathHandlers[pawn];
+        deathHandlers.Remove(pawn);
         pawns.Remove(pawn);
+    }
+
+    [Server]
+    private void OnPawnDeath(Pawn pawn, DamageInfo damageInfo)
+    {
+        UnregisterPawn(pawn);
         OnPawnKilled?.Invoke(pawn, damageInfo);
     }
 
     [Server]
     public void ServerStartRespawnTimerFor(NetworkPlayer player, float respawnDelay)
     {
-        // Calculate the exact moment in server time the player should respawn
         double spawnTime = TimeManager.TicksToTime() + respawnDelay;
         player.RespawnTimeEnd.Value = spawnTime;
 
@@ -85,7 +101,8 @@ public sealed class PawnManager : NetworkBehaviour
     private IEnumerator ServerExecuteSpawnAfterDelay(NetworkPlayer player, float delay)
     {
         yield return new WaitForSeconds(delay);
-        player.RespawnTimeEnd.Value = -1; // Reset timer
+        player.RespawnTimeEnd.Value = -1;
+
         SpawnPawnForPlayer(player);
     }
 }

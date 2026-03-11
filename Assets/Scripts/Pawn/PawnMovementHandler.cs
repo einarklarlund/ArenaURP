@@ -3,18 +3,14 @@ using UnityEngine;
 
 /// <summary>
 /// Executes the physical translation and simulation of the Pawn in the game world.
-/// Responsibilities:
-/// - Calculates horizontal velocity based on the Pawn's current forward orientation.
-/// - Manages vertical forces including gravity, jumping, and ground sticking.
-/// - Applies final movement to the CharacterController during the physics (FixedUpdate) step.
-/// - Operates independently of the Camera, allowing for headless/server-side validation.
+/// Depends on PawnInput provider for movement and jump inputs.
+/// Depends on Pawn for damage events.
 /// </summary>
 public sealed class MovementInputHandler : NetworkBehaviour
 {
-
     [SerializeField] private CharacterController controller;
     [SerializeField] private Pawn pawn;
-    [SerializeField] private PawnMovementInput input;
+    [SerializeField] private PawnInputProvider input;
 
     [Header("Ground Movement")]
     [SerializeField] private float initialMaxSpeedXZ = 10f;
@@ -43,21 +39,21 @@ public sealed class MovementInputHandler : NetworkBehaviour
     {
         base.OnStartClient();
 
-        if(!IsOwner) return;
+        if(!input.IsActive) return;
 
         pawn.OnDamageTaken += OnDamageTaken;
     }
 
     private void OnDestroy()
     {
-        if(!IsOwner) return;
+        if(!input.IsActive) return;
 
         pawn.OnDamageTaken -= OnDamageTaken;
     }
 
     void OnDamageTaken(DamageInfo damageInfo)
     {
-        if(!IsOwner) return;
+        if(!input.IsActive) return;
 
         wasHitThisFrame = true;
         this.damageInfo = damageInfo;
@@ -65,7 +61,7 @@ public sealed class MovementInputHandler : NetworkBehaviour
 
     void Update()
     {
-        if (!IsOwner)
+        if (!input.IsActive)
             return;
 
         maxSpeedXZ = controller.isGrounded ? initialMaxSpeedXZ : initialMaxSpeedXZ + 5;
@@ -200,7 +196,7 @@ public sealed class MovementInputHandler : NetworkBehaviour
         float horizontalMag = Vector3.ProjectOnPlane(dir, Vector3.up).magnitude;
 
         // Calculate the minimum Y required for a 30-degree incline 
-        // tan(30°) * horizontal distance = required height
+        // tan(30??) * horizontal distance = required height
         float minHeight = horizontalMag * Mathf.Tan(minimumAngleOnHit * Mathf.Deg2Rad);
 
         // Ensure dir.y is at least that height

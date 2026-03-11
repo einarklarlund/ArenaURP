@@ -3,12 +3,11 @@ using UnityEngine;
 using System.Linq;
 using FishNet;
 using FishNet.Component.Spawning;
-using FishNet.Object.Synchronizing;
 
 public sealed class MatchMediator : NetworkBehaviour
 {
-    private readonly SyncList<NetworkPlayer> players = new();
-
+    [SerializeField] private BotSpawner botSpawner;
+    [SerializeField] private NetworkPlayerManager networkPlayerManager;
     [SerializeField] private PawnManager pawnManager;
     [SerializeField] private MatchFlowManager matchFlowManager;
     [SerializeField] private DeathmatchManager deathmatchManager;
@@ -21,14 +20,14 @@ public sealed class MatchMediator : NetworkBehaviour
         foreach (NetworkObject nob in InstanceFinder.NetworkManager.ServerManager.Objects.Spawned.Values)
         {
             if (nob.TryGetComponent(out NetworkPlayer p))
-            {
-                ServerRegisterPlayer(p);
-            }
+                networkPlayerManager.ServerRegisterPlayer(p);
         }
 
         // Subscribe to highest-level network events
         var playerSpawner = InstanceFinder.NetworkManager.GetComponent<PlayerSpawner>();
-        playerSpawner.OnSpawned += ServerOnPlayerSpawned;
+        playerSpawner.OnSpawned += ServerHandlePlayerSpawn;
+
+        botSpawner.OnSpawned += ServerHandlePlayerSpawn;
 
         // Subscribe to high-level match lifecycle events
         matchFlowManager.State.OnChange += ServerHandleMatchStateChanged;
@@ -38,28 +37,37 @@ public sealed class MatchMediator : NetworkBehaviour
         pawnManager.OnPawnKilled += ServerHandlePawnKilled;
     }
 
+    /// <summary>
+    /// Handles PlayerSpawner OnSpawned events.
+    /// Registers the player with other services.
+    /// Registers event handlers player event handlers.
+    /// </summary>
     [Server]
-    private void ServerOnPlayerSpawned(NetworkObject playerObject)
+    private void ServerHandlePlayerSpawn(NetworkObject playerObject)
     {
-        ServerRegisterPlayer(playerObject.GetComponent<NetworkPlayer>());
-    }
+        var networkPlayer = playerObject.GetComponent<NetworkPlayer>();
+        networkPlayerManager.ServerRegisterPlayer(networkPlayer);
 
-    [Server]
-    private void ServerRegisterPlayer(NetworkPlayer player)
-    {
-        players.Add(player);
-        player.IsReady.OnChange += ServerHandleIsReadyChanged;
-        player.OnDespawn += ServerUnregisterPlayer;
-        
+        networkPlayer.IsReady.OnChange += ServerHandleIsReadyChanged;
+        networkPlayer.OnDespawn += ServerHandlePlayerDespawn;
+
         if (matchFlowManager.State.Value == MatchState.During)
-            pawnManager.SpawnPawnForPlayer(player);
+            pawnManager.SpawnPawnForPlayer(networkPlayer);
     }
 
+    /// <summary>
+    /// Handles NetworkPlayer OnDespawn events.
+    /// Unregisters the player with other services.
+    /// Unregisters player event handlers.
+    /// </summary>
     [Server]
-    private void ServerUnregisterPlayer(NetworkPlayer player)
+    private void ServerHandlePlayerDespawn(NetworkPlayer networkPlayer)
     {
-        players.Remove(player);
-        // NetworkObject ownership should get rid of the pawn prefab
+        networkPlayerManager.ServerUnregisterPlayer(networkPlayer);
+        pawnManager.UnregisterPawnForPlayer(networkPlayer);
+
+        networkPlayer.IsReady.OnChange -= ServerHandleIsReadyChanged;
+        networkPlayer.OnDespawn -= ServerHandlePlayerDespawn;
     }
 
     [Server]
@@ -68,7 +76,6 @@ public sealed class MatchMediator : NetworkBehaviour
         switch (next)
         {
             case MatchState.During:
-                // this handler is getting called twice for some reason, with prev == next on the second call
                 if (prev == next) return;
                 ServerHandleMatchStarted();
                 break;
@@ -81,21 +88,16 @@ public sealed class MatchMediator : NetworkBehaviour
     [Server]
     private void ServerHandleIsReadyChanged(bool prev, bool next, bool asServer)
     {
-        // player.IsReady.OnChange gets called twice when being set to true for some reason.
-        // the second call has params prev = true, next = true
         if (prev == next) return;
-
         if (matchFlowManager.State.Value != MatchState.Pregame) return;
 
-        bool everyoneReady = players.Count > 0 && players.All(p => p.IsReady.Value);
+        // Only human players participate in the ready check.
+        bool everyoneReady = networkPlayerManager.HumanPlayers.Count() > 0
+            && networkPlayerManager.HumanPlayers.All(p => p.IsReady.Value);
 
         if (everyoneReady)
         {
-            matchFlowManager.EnterPregameCountdown(); // does not immediately begin the match
-            foreach(var player in players)
-            {
-                player.IsReady.Value = false;
-            }
+            matchFlowManager.EnterPregameCountdown();
         }
     }
 
@@ -103,7 +105,8 @@ public sealed class MatchMediator : NetworkBehaviour
     private void ServerHandleMatchStarted()
     {
         deathmatchManager.BeginGame();
-        foreach (var player in players)
+
+        foreach (var player in networkPlayerManager.ActivePlayers)
         {
             pawnManager.SpawnPawnForPlayer(player);
         }
@@ -112,12 +115,12 @@ public sealed class MatchMediator : NetworkBehaviour
     [Server]
     private void ServerHandleGameModeEnded(NetworkPlayer winner)
     {
-        foreach (var player in players)
+        foreach (var player in networkPlayerManager.ActivePlayers)
         {
             deathmatchManager.ResetScore(player);
         }
         pawnManager.ClearPawns();
-        matchFlowManager.EnterPostgameCountdown(); // does not immediately end the match
+        matchFlowManager.EnterPostgameCountdown();
     }
 
     [Server]
@@ -126,12 +129,14 @@ public sealed class MatchMediator : NetworkBehaviour
         if (matchFlowManager.State.Value != MatchState.During) return;
 
         var killedPlayer = pawn.ControllingPlayer.Value;
-        var killer = players.Find(p => p.Owner == damageInfo.Attacker);
+        var killer = damageInfo.Attacker;
+
         deathmatchManager.ServerRecordKill(killer, killedPlayer);
 
-        deathmatchManager.CheckGameEnd(players.ToList());
-
-        if (deathmatchManager.IsRunning)
-            pawnManager.ServerStartRespawnTimerFor(pawn.ControllingPlayer.Value, deathmatchManager.RespawnDelay);
+        pawnManager.ServerStartRespawnTimerFor
+        (
+            killedPlayer,
+            deathmatchManager.RespawnDelay
+        );
     }
 }

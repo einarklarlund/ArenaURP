@@ -11,8 +11,6 @@ public sealed class DeathmatchManager : NetworkBehaviour
 
     public event Action<NetworkPlayer> OnGameModeEnded;
 
-    public bool IsRunning { get; private set; }
-
     public float RespawnDelay = 3;
 
     public readonly SyncVar<NetworkPlayer> leadPlayer = new(); // wish i could keep this private but i'm reading it in PostgameCountdownView
@@ -22,6 +20,7 @@ public sealed class DeathmatchManager : NetworkBehaviour
 
     private float highScore = 0;
     private float timeRemaining;
+    private bool isRunning = false;
 
     void Awake()
     {
@@ -32,13 +31,13 @@ public sealed class DeathmatchManager : NetworkBehaviour
     public void BeginGame()
     {
         timeRemaining = matchDuration;
-        IsRunning = true;
+        isRunning = true;
         highScore = 0;
     }
 
     private void Update()
     {
-        if (!IsServerStarted || !IsRunning) return;
+        if (!IsServerStarted || !isRunning) return;
 
         timeRemaining -= Time.deltaTime;
         if (timeRemaining <= 0)
@@ -58,6 +57,7 @@ public sealed class DeathmatchManager : NetworkBehaviour
                 leadPlayer.Value = killer;
                 highScore = killer.Score.Value;
             }
+            CheckGameEnd(killer);
         }
         else
         {
@@ -71,9 +71,9 @@ public sealed class DeathmatchManager : NetworkBehaviour
         player.Score.Value = 0;
     }
 
-    public void CheckGameEnd(List<NetworkPlayer> players)
+    private void CheckGameEnd(NetworkPlayer player)
     {
-        if (players.Any(p => p.Score.Value >= maxKills))
+        if (player.Score.Value >= maxKills)
             ServerEndGame();
     }
 
@@ -81,7 +81,7 @@ public sealed class DeathmatchManager : NetworkBehaviour
     private void ServerEndGame()
     {
         timeRemaining = 0;
-        IsRunning = false;
+        isRunning = false;
         OnGameModeEnded?.Invoke(leadPlayer.Value);
     }
 }

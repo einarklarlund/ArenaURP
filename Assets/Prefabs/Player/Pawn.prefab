@@ -256,9 +256,11 @@ MonoBehaviour:
   _componentIndexCache: 9
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
+  pawn: {fileID: 4354716618418224005}
   inventory: {fileID: 4171483762779324888}
   firePoint: {fileID: 6252270893925876090}
   pawnAmmo: {fileID: 7520322266067727014}
+  input: {fileID: 9156704708880269022}
 --- !u!114 &8027569241794719164
 MonoBehaviour:
   m_ObjectHideFlags: 0

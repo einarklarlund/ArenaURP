@@ -15,6 +15,13 @@ public struct BulletData
     public PreciseTick PreciseTick;
     public Vector3 StartDirection;
     public Vector3 StartPosition;
+
+    /// <summary>
+    /// The NetworkPlayer who fired this bullet (the controlling player of the
+    /// firing pawn). Null for environment damage. Serialized via the FishNet
+    /// NetworkBehaviour payload pattern so clients receive the reference on spawn.
+    /// </summary>
+    public NetworkPlayer Firer;
 }
 
 public class Bullet : NetworkBehaviour
@@ -40,21 +47,24 @@ public class Bullet : NetworkBehaviour
         writer.WritePreciseTick(data.PreciseTick);
         writer.WriteVector3(data.StartDirection);
         writer.WriteVector3(data.StartPosition);
+        writer.WriteNetworkBehaviour(data.Firer);
     }
 
     public override void ReadPayload(NetworkConnection connection, Reader reader)
     {
         base.ReadPayload(connection, reader);
-        var id = reader.ReadStringAllocated();
-        var preciseTick = reader.ReadPreciseTick();
+        var id             = reader.ReadStringAllocated();
+        var preciseTick    = reader.ReadPreciseTick();
         var startDirection = reader.ReadVector3();
-        var startPosition = reader.ReadVector3();
+        var startPosition  = reader.ReadVector3();
+        var firer          = reader.ReadNetworkBehaviour() as NetworkPlayer;
         data = new()
         {
-            ID = id,
-            PreciseTick = preciseTick,
+            ID             = id,
+            PreciseTick    = preciseTick,
             StartDirection = startDirection,
-            StartPosition = startPosition,
+            StartPosition  = startPosition,
+            Firer          = firer,
         };
         Initialize(data);
     }
@@ -108,12 +118,12 @@ public class Bullet : NetworkBehaviour
                 if (!ShouldIgnoreCollision(damageable))
                 {
                     ServerHandleHit(hit, damageable);
-                    validHits.Add(hit); // a valid damageable was hit
+                    validHits.Add(hit);
                 }
             }
             else
             {
-                validHits.Add(hit); // a wall was hit
+                validHits.Add(hit);
             }
         };
 
@@ -124,8 +134,13 @@ public class Bullet : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Ignore collisions with the pawn controlled by the firer so bullets
+    /// don't immediately hit the shooter. Works correctly for both players
+    /// (compared by NetworkPlayer reference) and bots.
+    /// </summary>
     private bool ShouldIgnoreCollision(IDamageable damageable) =>
-        damageable is Pawn pawn && pawn.Owner == Owner;
+        damageable is Pawn pawn && pawn.ControllingPlayer.Value == data.Firer;
 
     [Server]
     private void ServerHandleHit(RaycastHit hit, IDamageable damageable)
@@ -136,11 +151,11 @@ public class Bullet : NetworkBehaviour
         {
             DamageInfo info = new()
             {
-                Amount = damage,
-                Attacker = Owner,
-                HitPoint = hit.point,
+                Amount    = damage,
+                Attacker  = data.Firer,
+                HitPoint  = hit.point,
                 Direction = transform.forward,
-                Type = DamageType.Bullet
+                Type      = DamageType.Bullet
             };
             damageable.ServerTakeDamage(info);
         }
@@ -154,7 +169,7 @@ public class Bullet : NetworkBehaviour
 
     private void PlayHitEffects(Vector3 point, Vector3 normal)
     {
-        if(IsServerOnlyInitialized) return; // don't play hit effects on non-host server
+        if(IsServerOnlyInitialized) return;
     }
 
     private void GetCapsulePoints(Vector3 center, out Vector3 p1, out Vector3 p2)

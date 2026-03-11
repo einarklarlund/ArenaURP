@@ -35,7 +35,10 @@ public class Pawn : NetworkBehaviour, IDamageable
     public override void OnDespawnServer(NetworkConnection connection)
     {
         base.OnDespawnServer(connection);
-        ControllingPlayer.Value.ControlledPawn.Value = null;
+
+        // Guard: ControllingPlayer may not be set if the pawn is despawned before initialization.
+        if (ControllingPlayer.Value != null)
+            ControllingPlayer.Value.ControlledPawn.Value = null;
     }
 
     [Server]

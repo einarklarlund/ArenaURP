@@ -4,9 +4,12 @@
   <Project Path="FishNet.Runtime.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="GameKit.Dependencies.csproj" />
+  <Project Path="AnkleBreaker.UnityMCP.Editor.csproj" />
   <Project Path="SimpleWebTransport.csproj" />
   <Project Path="Unity.FishNet.Codegen.csproj" />
   <Project Path="FishNet.Demos.csproj" />
   <Project Path="ParrelSync.csproj" />
   <Project Path="CanoeWebRTC.csproj" />
+  <Project Path="Arena.Tests.csproj" />
+  <Project Path="Arena.Bot.Core.csproj" />
 </Solution>

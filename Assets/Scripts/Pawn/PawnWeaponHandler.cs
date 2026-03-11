@@ -1,71 +1,51 @@
-using System;
 using System.Collections;
 using FishNet;
 using FishNet.Object;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class PawnWeaponHandler : NetworkBehaviour
 {
+    [SerializeField] private Pawn pawn;
     [SerializeField] private PawnInventory inventory;
     [SerializeField] private Transform firePoint;
     [SerializeField] private PawnAmmo pawnAmmo;
+    [SerializeField] private PawnInputProvider input;
 
     private float lastFireTime;
     private bool isFiringSequence;
-
-    public override void OnStartClient()
-    {
-        base.OnStartClient();
-        if (!IsOwner) return;
-
-        InputManager.PawnControls.Attack.performed += HandleAttackPerformed;
-    }
-
-    private void OnDestroy()
-    {
-        if (!IsOwner) return;
-
-        InputManager.PawnControls.Attack.performed -= HandleAttackPerformed;
-    }
-
-    private void HandleAttackPerformed(InputAction.CallbackContext context)
-    {
-        TryFireSemiAuto();
-    }
+    private bool fireHeldLastFrame;
 
     private void Update()
     {
-        if (!IsOwner) return;
+        if (!input.IsActive) return;
 
-        if (InputManager.PawnControls.Attack.IsPressed())
-            TryFireAuto();
+        bool fireHeld = input.Data.Fire;
+        bool firePressed = fireHeld && !fireHeldLastFrame; // rising edge for semi-auto
+        fireHeldLastFrame = fireHeld;
+
+        var currentWeapon = inventory.CurrentWeaponData;
+
+        switch (currentWeapon.FireMode)
+        {
+            case FireMode.Automatic when fireHeld:
+                TryFire(currentWeapon);
+                break;
+            case FireMode.SemiAuto when firePressed:
+                TryFire(currentWeapon);
+                break;
+        }
     }
 
-    private void TryFireAuto()
-    {
-        var currentWeapon = inventory.CurrentWeaponData;
-        if (currentWeapon.FireMode == FireMode.Automatic)
-            TryFire(currentWeapon);
-    }
-    
-    private void TryFireSemiAuto()
-    {
-        var currentWeapon = inventory.CurrentWeaponData;
-        if (currentWeapon.FireMode == FireMode.SemiAuto)
-            TryFire(currentWeapon);
-    }
-    
     private void TryFire(WeaponData currentWeapon)
     {
-        if (!CanFireClient(currentWeapon)) return;
-        
+        if (!CanFire(currentWeapon)) return;
         StartCoroutine(FireSequence(currentWeapon));
     }
 
-    private bool CanFireClient(WeaponData currentWeapon)
+    private bool CanFire(WeaponData currentWeapon)
     {
-        bool hasAmmo = pawnAmmo.AmmoPools.TryGetValue(currentWeapon.AmmoType, out int amount) && amount >= currentWeapon.AmmoPerFire;
+        bool hasAmmo = pawnAmmo.AmmoPools.TryGetValue(currentWeapon.AmmoType, out int amount)
+                       && amount >= currentWeapon.AmmoPerFire;
         return Time.time >= lastFireTime + currentWeapon.FireRate && !isFiringSequence && hasAmmo;
     }
 
@@ -76,15 +56,17 @@ public class PawnWeaponHandler : NetworkBehaviour
             if (!pawnAmmo.ConsumeAmmo(currentWeapon.AmmoType, currentWeapon.AmmoPerFire))
             {
                 isFiringSequence = false;
-                yield break; // Not enough ammo to start the sequence
+                yield break;
             }
         }
-        
+
         isFiringSequence = true;
         lastFireTime = Time.time;
-        
+
         int shotsToFire = currentWeapon.ShotsPerFire;
-        float timeBetweenShots = currentWeapon.FireDuration > 0 ? currentWeapon.FireDuration / shotsToFire : 0;
+        float timeBetweenShots = currentWeapon.FireDuration > 0
+            ? currentWeapon.FireDuration / shotsToFire
+            : 0;
 
         for (int i = 0; i < shotsToFire; i++)
         {
@@ -101,21 +83,20 @@ public class PawnWeaponHandler : NetworkBehaviour
 
         for (int i = 0; i < count; i++)
         {
-            // Client-side Predicted Spawn
             NetworkObject nob = InstanceFinder.NetworkManager.GetPooledInstantiated(
-                currentWeapon.BulletPrefab.gameObject, 
-                firePoint.position, 
-                Quaternion.LookRotation(firePoint.forward), 
-                false 
+                currentWeapon.BulletPrefab.gameObject,
+                firePoint.position,
+                Quaternion.LookRotation(firePoint.forward),
+                false
             );
 
             if (nob.TryGetComponent<Bullet>(out var bullet))
             {
-                bullet.data = BulletHelper.GetSpawnState(currentWeapon, firePoint, i, count);
+                var bulletData = BulletHelper.GetSpawnState(currentWeapon, firePoint, i, count);
+                bulletData.Firer = pawn.ControllingPlayer.Value;
+                bullet.data = bulletData;
             }
 
-            // Call server manager to spawn the bullet in the client code
-            // since the Bullet utilizes PredictedSpawn
             InstanceFinder.ServerManager.Spawn(nob, Owner);
         }
     }

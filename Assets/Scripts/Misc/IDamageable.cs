@@ -1,6 +1,3 @@
-
-
-using FishNet.Connection;
 using UnityEngine;
 
 public enum DamageType
@@ -13,7 +10,7 @@ public enum DamageType
 public struct DamageInfo
 {
     public int Amount;
-    public NetworkConnection Attacker;
+    public NetworkPlayer Attacker;
     public Vector3 HitPoint;
     public Vector3 Direction;
     public DamageType Type;

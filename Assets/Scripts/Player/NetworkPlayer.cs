@@ -3,11 +3,8 @@ using FishNet.Object;
 using FishNet.Object.Synchronizing;
 
 /// <summary>
-/// Represents the network identity and persistent data of an individual user.
-/// Responsibilities:
-/// - Stores player-specific SyncVars like Ready status and the reference to their ControlledPawn.
-/// - Exposes player-specific game events, like pawn death.
-/// - Handles ServerRpc calls initiated by the user's input (e.g., toggling Ready).
+/// Represents the network identity and persistent data of an individual participant
+/// in a match. Used for both human players and bots.
 /// </summary>
 public sealed class NetworkPlayer : NetworkBehaviour
 {
@@ -19,6 +16,8 @@ public sealed class NetworkPlayer : NetworkBehaviour
     public readonly SyncVar<Pawn> ControlledPawn = new();
     public readonly SyncVar<double> RespawnTimeEnd = new();
     public readonly SyncVar<int> Score = new();
+
+    [NonSerialized] public bool IsBot;
 
     public Action<NetworkPlayer> OnDespawn;
 
