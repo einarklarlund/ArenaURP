@@ -6,9 +6,7 @@ public class PawnHealthIndicator : MonoBehaviour
     [SerializeField] private Pawn pawn;
     [SerializeField] private Color highHealthColor = Color.green;
     [SerializeField] private Color lowHealthColor = Color.red;
-    
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         pawn.Health.OnChange += OnHealthChanged;
