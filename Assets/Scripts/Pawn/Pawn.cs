@@ -61,7 +61,6 @@ public class Pawn : NetworkBehaviour, IDamageable
         if (Health.Value <= 0)
         {
             OnDeath?.Invoke(damageInfo);
-            Despawn();
         }
     }
 

@@ -67,7 +67,8 @@ public sealed class PawnManager : NetworkBehaviour
     {
         foreach(var pawn in pawns)
         {
-            UnregisterPawn(pawn);
+            pawn.OnDeath -= deathHandlers[pawn];
+            deathHandlers.Remove(pawn);
             Despawn(pawn);
         }
 
@@ -80,6 +81,7 @@ public sealed class PawnManager : NetworkBehaviour
         pawn.OnDeath -= deathHandlers[pawn];
         deathHandlers.Remove(pawn);
         pawns.Remove(pawn);
+        Despawn(pawn);
     }
 
     [Server]

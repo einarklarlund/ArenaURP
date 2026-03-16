@@ -49,6 +49,10 @@ public sealed class UIManager : MonoBehaviour
         // Server browser events
         LocalUIEvents.OnRoomBrowserOpened += Show<RoomBrowserView>;
         LocalUIEvents.OnRoomBrowserClosed += ShowPreviousView;
+
+        // Host options events
+        LocalUIEvents.OnHostOptionsOpened += Show<HostOptionsView>;
+        LocalUIEvents.OnHostOptionsClosed += ShowPreviousView;
     }
 
     private void OnDisable()
@@ -78,6 +82,10 @@ public sealed class UIManager : MonoBehaviour
         // Server browser events
         LocalUIEvents.OnRoomBrowserOpened -= Show<RoomBrowserView>;
         LocalUIEvents.OnRoomBrowserClosed -= ShowPreviousView;
+
+        // Host options events
+        LocalUIEvents.OnHostOptionsOpened -= Show<HostOptionsView>;
+        LocalUIEvents.OnHostOptionsClosed -= ShowPreviousView;
     }
 
     private void HandleClientConnectionChanged(bool connected)

@@ -29,7 +29,7 @@ public sealed class MainMenuView : View
 
     private void HandleHostButtonClicked()
     {
-        RoomManager.Instance.CreateRoom();
+        LocalUIEvents.OnHostOptionsOpened?.Invoke();
     }
 
     private void HandleConnectButtonClicked()

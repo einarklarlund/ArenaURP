@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 418ff8935befd42eca3c7d1f3e5168c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 2
+  _componentIndexCache: 10
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
   defaultWeapon: {fileID: 11400000, guid: 2fd0ba9be3752431cac98a757fd4c059, type: 2}
@@ -141,9 +141,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39f87eedb289f40ee8e4f302580d3eef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BotBrain
-  _componentIndexCache: 255
+  _componentIndexCache: 3
   _addedNetworkObject: {fileID: 5251044759896975893}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 5251044759896975893}
   pawn: {fileID: 4354716618418224005}
   botInput: {fileID: 8180198970849601088}
   enemyVision: {fileID: 3778586247185191764}
@@ -164,9 +164,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 89bd1d72cfcf54f6fbd02483998b2279, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BotVision
-  _componentIndexCache: 255
+  _componentIndexCache: 4
   _addedNetworkObject: {fileID: 5251044759896975893}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 5251044759896975893}
   pawnManager: {fileID: 0}
   selfPawn: {fileID: 4354716618418224005}
   viewRange: 30
@@ -278,7 +278,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42b4c392f2e4e409a85a22f808574fa0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 7
+  _componentIndexCache: 12
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
   meshRenderers:
@@ -332,7 +332,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1242a14260c094d628c79bf04291369f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 9
+  _componentIndexCache: 5
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
   pawn: {fileID: 4354716618418224005}
@@ -352,7 +352,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ecc6e2caf251423ca2dc8dbb4875e70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PawnInteractionHandler
-  _componentIndexCache: 3
+  _componentIndexCache: 6
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
   pawn: {fileID: 4354716618418224005}
@@ -373,7 +373,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 750c965ce702f4442b4314145028293d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 1
+  _componentIndexCache: 7
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
   controller: {fileID: 649493103343056639}
@@ -399,7 +399,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c5eed3625f9445eabdae0ad6dfcf3ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 5
+  _componentIndexCache: 8
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
   input: {fileID: 8180198970849601088}
@@ -417,9 +417,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 93abc81575ab14813b84baf0f6dec277, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PawnUIHandler
-  _componentIndexCache: 255
+  _componentIndexCache: 9
   _addedNetworkObject: {fileID: 5251044759896975893}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 5251044759896975893}
 --- !u!1 &6075861232590339267
 GameObject:
   m_ObjectHideFlags: 0
@@ -527,7 +527,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2836e36774ca1c4bbbee976e17b649c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 8
+  _componentIndexCache: 13
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
   _componentConfiguration: 0
@@ -676,9 +676,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92c1d2083f77a4fd0b307428e023a285, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BotPawnInput
-  _componentIndexCache: 255
+  _componentIndexCache: 1
   _addedNetworkObject: {fileID: 5251044759896975893}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 5251044759896975893}
   maxTurnSpeed: 360
   maxPitch: 60
 --- !u!195 &6450850777390981186
@@ -740,7 +740,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2836e36774ca1c4bbbee976e17b649c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 6
+  _componentIndexCache: 2
   _addedNetworkObject: {fileID: 5251044759896975893}
   _networkObjectCache: {fileID: 5251044759896975893}
   _componentConfiguration: 0
@@ -794,17 +794,19 @@ MonoBehaviour:
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
   - {fileID: 4354716618418224005}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 8180198970849601088}
   - {fileID: 37621982731376300}
+  - {fileID: 6633516360731515021}
+  - {fileID: 3778586247185191764}
+  - {fileID: 900108584674882194}
+  - {fileID: 8027569241794719164}
+  - {fileID: 5316878365872719895}
+  - {fileID: 3481006608529361008}
+  - {fileID: 8733864699206394395}
+  - {fileID: 4171483762779324888}
+  - {fileID: 7520322266067727014}
   - {fileID: 4672294585719670070}
   - {fileID: 349757071893823775}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -815,7 +817,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584307598314160858
+  _initializedTimestamp: -8584279226664062878
   NetworkObserver: {fileID: 0}
   _enablePrediction: 0
   _predictionType: 0
@@ -831,7 +833,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 19
+  <PrefabId>k__BackingField: 6
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 5115890907540043244
   SceneId: 0

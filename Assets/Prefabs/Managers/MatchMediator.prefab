@@ -193,6 +193,7 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 4535641304312154100}
   _networkObjectCache: {fileID: 4535641304312154100}
   pawnPrefab: {fileID: 4354716618418224005, guid: 8ac1544208bdb4372ae24a33bebc9171, type: 3}
+  botPawnPrefab: {fileID: 0}
   spawnPoints:
   - {fileID: 4780923743759950440}
   - {fileID: 3549079540909957355}
@@ -298,6 +299,7 @@ MonoBehaviour:
   _componentIndexCache: 0
   _addedNetworkObject: {fileID: 4535641304312154100}
   _networkObjectCache: {fileID: 4535641304312154100}
+  networkPlayerManager: {fileID: 0}
   pawnManager: {fileID: 7021897034347566630}
   matchFlowManager: {fileID: 6073357693094646435}
   deathmatchManager: {fileID: 6052699989581306856}
@@ -334,7 +336,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584307754637102658
+  _initializedTimestamp: -8584279226664062878
   NetworkObserver: {fileID: 0}
   _enablePrediction: 0
   _predictionType: 0
@@ -350,7 +352,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 5
+  <PrefabId>k__BackingField: 7
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 5784276517176129657
   SceneId: 0

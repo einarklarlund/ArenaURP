@@ -6,7 +6,6 @@ using FishNet.Component.Spawning;
 
 public sealed class MatchMediator : NetworkBehaviour
 {
-    [SerializeField] private BotSpawner botSpawner;
     [SerializeField] private NetworkPlayerManager networkPlayerManager;
     [SerializeField] private PawnManager pawnManager;
     [SerializeField] private MatchFlowManager matchFlowManager;
@@ -23,11 +22,11 @@ public sealed class MatchMediator : NetworkBehaviour
                 networkPlayerManager.ServerRegisterPlayer(p);
         }
 
-        // Subscribe to highest-level network events
+        // Subscribe to highest-level player spawning network events. These have to be 
+        // registered here to avoid race conditions of "who listens to whom" first (between
+        // the mediator and the NetworkPlayerManager).
         var playerSpawner = InstanceFinder.NetworkManager.GetComponent<PlayerSpawner>();
         playerSpawner.OnSpawned += ServerHandlePlayerSpawn;
-
-        botSpawner.OnSpawned += ServerHandlePlayerSpawn;
 
         // Subscribe to high-level match lifecycle events
         matchFlowManager.State.OnChange += ServerHandleMatchStateChanged;
@@ -126,13 +125,12 @@ public sealed class MatchMediator : NetworkBehaviour
     [Server]
     private void ServerHandlePawnKilled(Pawn pawn, DamageInfo damageInfo)
     {
-        if (matchFlowManager.State.Value != MatchState.During) return;
-
         var killedPlayer = pawn.ControllingPlayer.Value;
         var killer = damageInfo.Attacker;
 
         deathmatchManager.ServerRecordKill(killer, killedPlayer);
 
+        if (matchFlowManager.State.Value != MatchState.During) return;
         pawnManager.ServerStartRespawnTimerFor
         (
             killedPlayer,

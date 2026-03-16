@@ -50,9 +50,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8bd721812c7844d4586b3e2c8d62ebe9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AmmoChest
-  _componentIndexCache: 255
+  _componentIndexCache: 0
   _addedNetworkObject: {fileID: 983895785673298698}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 983895785673298698}
   ammoPickupPrefab: {fileID: 2028969170377381261, guid: 2768c594a68bc4a8e9b080311f50ad30, type: 3}
   numPickups: 2
 --- !u!33 &8373088591571570207
@@ -152,7 +152,7 @@ MonoBehaviour:
   <PredictedSpawn>k__BackingField: {fileID: 0}
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
-  - {fileID: 0}
+  - {fileID: 766811237834050295}
   - {fileID: 6524815324459991919}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
@@ -164,7 +164,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584308180278224788
+  _initializedTimestamp: -8584279226664062878
   NetworkObserver: {fileID: 0}
   _enablePrediction: 0
   _predictionType: 0
@@ -180,12 +180,12 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 13
+  <PrefabId>k__BackingField: 0
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 782545243261559712
   SceneId: 0
   SerializedTransformProperties:
-    Position: {x: 92.671, y: 0.5, z: 101.359}
+    Position: {x: 89.46, y: 0.5, z: 101.8}
     Rotation: {x: 0, y: 0, z: 0, w: 1}
     Scale: {x: 2, y: 1, z: 1}
     IsValid: 1

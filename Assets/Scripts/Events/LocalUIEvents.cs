@@ -15,6 +15,10 @@ public static class LocalUIEvents
     public static Action OnRoomBrowserOpened;
     public static Action OnRoomBrowserClosed;
 
+    // Host options events
+    public static Action OnHostOptionsOpened;
+    public static Action OnHostOptionsClosed;
+
     // Room actions
     public static Action OnHostInitiated;
     public static Action OnJoinInitiated;

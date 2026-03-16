@@ -6,21 +6,23 @@ public class BotSpawner : NetworkBehaviour
 {
     public event Action<NetworkObject> OnSpawned;
     
-    [SerializeField] private int numBots = 0;
     [SerializeField] private NetworkPlayer botPlayerPrefab;
 
-    public override void OnStartServer()
+    private void Start()
     {
-        base.OnStartServer();
-        SpawnBots();
+        SignalManager.OnRoomCreated += HandleRoomCreated;
     }
 
     /// <summary>
     /// Spawns bot players and registers them.
+    /// Reads the desired bot count from HostOptionsManager.
     /// </summary>
-    [Server]
-    private void SpawnBots()
+    private void HandleRoomCreated(string roomID)
     {
+        int numBots = HostOptionsManager.Instance != null
+            ? HostOptionsManager.Instance.Options.BotCount
+            : 0;
+
         // Spawn bots
         for (int i = 0; i < numBots; i++)
         {
