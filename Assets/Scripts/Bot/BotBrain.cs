@@ -3,11 +3,12 @@ using UnityEngine;
 using UnityEngine.AI;
 
 /// <summary>
-/// Server-side state machine controller for a bot.
-/// Issues move/look/fire intents to BotPawnInput.
-/// Depends on BotStateMachine to tracks and evaluate state transitions.
-/// Depends on Vision to inform state transitions.
-/// Depends on NavMeshAgent to plan paths to target.
+/// Server-side orchestrator for a bot. Each frame it builds a world snapshot,
+/// passes it to BotBrainLogic for a decision, and applies that decision to the
+/// bot's components (BotPawnInput, NavMeshAgent).
+///
+/// All behavioral logic (when to chase, flee, fire, etc.) lives in BotBrainLogic.
+/// This class only handles component wiring and NavMesh sampling.
 /// </summary>
 public sealed class BotBrain : NetworkBehaviour
 {
@@ -30,21 +31,17 @@ public sealed class BotBrain : NetworkBehaviour
     [Tooltip("The bot will stop closing in on the target once within this range.")]
     [SerializeField] private float preferredCombatRange = 10f;
 
-    private readonly BotStateMachine stateMachine = new();
-
+    private readonly BotBrainLogic logic = new();
     private Vector3 currentDestination;
-    private BotStateMachine.BotState previousState;
 
     public override void OnStartServer()
     {
         base.OnStartServer();
 
-        // Let character controller update the transform.
         agent.updatePosition = false;
         agent.updateRotation = false;
+        logic.PreferredCombatRange = preferredCombatRange;
 
-        previousState = BotStateMachine.BotState.Searching;
-        
         SetNewSearchWaypoint();
     }
 
@@ -52,101 +49,68 @@ public sealed class BotBrain : NetworkBehaviour
     {
         if (!IsServerInitialized) return;
 
-        bool isLowHealth = (float)pawn.Health.Value / pawn.MaxHealth.Value <= stateMachine.LowHealthThreshold;
-        bool isAtDest = IsAtDestination();
-        var newState = stateMachine.Evaluate(enemyVision.HasVisibleTarget, isLowHealth, isAtDest);
+        var snapshot = BuildSnapshot();
+        var decision = logic.Evaluate(snapshot);
+        ApplyDecision(decision);
 
-        bool stateChanged = newState != previousState;
-        previousState = newState;
-
-        switch (newState)
-        {
-            case BotStateMachine.BotState.Searching:
-                TickSearching(stateChanged, isAtDest);
-                break;
-
-            case BotStateMachine.BotState.Chasing:
-                TickChasing(stateChanged);
-                break;
-
-            case BotStateMachine.BotState.Fleeing:
-                TickFleeing(stateChanged);
-                break;
-        }
-
-        // Keep the NavMeshAgent's internal position in sync with the actual transform
-        // so path recalculations remain accurate.
         agent.nextPosition = transform.position;
     }
 
-    // State tick handlers 
-
-    private void TickSearching(bool justEntered, bool arrivedAtWaypoint)
+    private BotWorldSnapshot BuildSnapshot()
     {
-        if (justEntered || arrivedAtWaypoint)
-            SetNewSearchWaypoint();
-
-        MoveTowardDestination();
-        botInput.ClearLookTarget();
-        botInput.SetFiring(false);
-    }
-
-    private void TickChasing(bool justEntered)
-    {
-        Pawn target = enemyVision.VisibleTarget;
-
-        if (enemyVision.HasVisibleTarget && target != null)
+        return new BotWorldSnapshot
         {
-            // Chase to within preferred combat range; stop closing in once there.
-            Vector3 toTarget = target.transform.position - transform.position;
-            if (toTarget.magnitude > preferredCombatRange)
-                currentDestination = target.transform.position;
+            SelfPosition = transform.position,
+            HealthFraction = (float)pawn.Health.Value / pawn.MaxHealth.Value,
+            HasVisibleTarget = enemyVision.HasVisibleTarget,
+            TargetPosition = enemyVision.HasVisibleTarget && enemyVision.VisibleTarget != null
+                ? enemyVision.VisibleTarget.transform.position
+                : enemyVision.LastKnownTargetPosition,
+            LastKnownTargetPosition = enemyVision.LastKnownTargetPosition,
+            IsAtDestination = IsAtDestination(),
+            CurrentDestination = currentDestination,
+        };
+    }
 
-            botInput.SetLookTarget(target.transform.position);
-        }
-        else
+    private void ApplyDecision(BotDecision decision)
+    {
+        // Navigation
+        switch (decision.Navigation)
         {
-            // Lost sight ??? move to last known position.
-            currentDestination = enemyVision.LastKnownTargetPosition;
-            botInput.SetLookTarget(enemyVision.LastKnownTargetPosition);
+            case NavigationIntent.MoveToPosition:
+                currentDestination = decision.MovePosition;
+                agent.SetDestination(currentDestination);
+                break;
+            case NavigationIntent.FindSearchWaypoint:
+                SetNewSearchWaypoint();
+                break;
+            case NavigationIntent.FindCoverPosition:
+                currentDestination = FindCoverPosition();
+                agent.SetDestination(currentDestination);
+                break;
         }
 
-        agent.SetDestination(currentDestination);
-        MoveTowardDestination();
-        botInput.SetFiring(enemyVision.HasVisibleTarget);
-    }
-
-    private void TickFleeing(bool justEntered)
-    {
-        if (justEntered)
-            currentDestination = FindCoverPosition();
-
-        if (enemyVision.HasVisibleTarget && enemyVision.VisibleTarget != null)
-            botInput.SetLookTarget(enemyVision.VisibleTarget.transform.position);
-        else
-            botInput.SetLookTarget(currentDestination);
-
-        agent.SetDestination(currentDestination);
-        MoveTowardDestination();
-        botInput.SetFiring(enemyVision.HasVisibleTarget);
-    }
-
-    // Navigation helpers
-
-    private void MoveTowardDestination()
-    {
-        // NavMeshAgent.desiredVelocity is the world-space velocity the agent wants.
-        // BotPawnInput will convert it to local-space WASD for MovementInputHandler.
+        // Movement
         Vector3 desired = agent.desiredVelocity;
         botInput.SetMoveIntent(desired.magnitude > 0.01f ? desired.normalized : Vector3.zero);
+
+        // Look
+        if (decision.LookTarget.HasValue)
+            botInput.SetLookTarget(decision.LookTarget.Value);
+        else
+            botInput.ClearLookTarget();
+
+        // Fire
+        botInput.SetFiring(decision.Fire);
     }
+
+    // Navigation helpers (NavMesh-dependent, not extractable to pure C#)
 
     private bool IsAtDestination()
     {
         if (!agent.pathPending && agent.remainingDistance <= arrivalThreshold)
             return true;
 
-        // Also treat "very close" as arrived to avoid stopping exactly at origin.
         return Vector3.Distance(transform.position, currentDestination) <= arrivalThreshold;
     }
 
@@ -169,6 +133,6 @@ public sealed class BotBrain : NetworkBehaviour
         if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, coverDistance, NavMesh.AllAreas))
             return hit.position;
 
-        return transform.position; // fallback: stay put
+        return transform.position;
     }
 }

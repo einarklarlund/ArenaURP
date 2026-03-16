@@ -43,7 +43,7 @@ namespace Arena.Tests
         [Test]
         public void Chasing_BotBecomesLowHealth_TransitionsToFleeing()
         {
-            sm.Evaluate(hasTarget: true, isLowHealth: false, isAtDestination: false); // ??? Chasing
+            sm.Evaluate(hasTarget: true, isLowHealth: false, isAtDestination: false); // enter Chasing
             var state = sm.Evaluate(hasTarget: true, isLowHealth: true, isAtDestination: false);
             Assert.AreEqual(BotStateMachine.BotState.Fleeing, state);
         }
@@ -51,7 +51,7 @@ namespace Arena.Tests
         [Test]
         public void Chasing_NoTargetNotArrived_StaysChasing()
         {
-            sm.Evaluate(hasTarget: true, isLowHealth: false, isAtDestination: false); // ??? Chasing
+            sm.Evaluate(hasTarget: true, isLowHealth: false, isAtDestination: false); // enter Chasing
             var state = sm.Evaluate(hasTarget: false, isLowHealth: false, isAtDestination: false);
             Assert.AreEqual(BotStateMachine.BotState.Chasing, state);
         }
@@ -59,7 +59,7 @@ namespace Arena.Tests
         [Test]
         public void Chasing_NoTargetAndArrived_TransitionsToSearching()
         {
-            sm.Evaluate(hasTarget: true, isLowHealth: false, isAtDestination: false); // ??? Chasing
+            sm.Evaluate(hasTarget: true, isLowHealth: false, isAtDestination: false); // enter Chasing
             var state = sm.Evaluate(hasTarget: false, isLowHealth: false, isAtDestination: true);
             Assert.AreEqual(BotStateMachine.BotState.Searching, state);
         }
@@ -69,7 +69,7 @@ namespace Arena.Tests
         [Test]
         public void Fleeing_HealthRestored_TargetStillVisible_TransitionsToChasing()
         {
-            sm.Evaluate(hasTarget: true, isLowHealth: true, isAtDestination: false); // ??? Fleeing
+            sm.Evaluate(hasTarget: true, isLowHealth: true, isAtDestination: false); // enter Fleeing
             var state = sm.Evaluate(hasTarget: true, isLowHealth: false, isAtDestination: false);
             Assert.AreEqual(BotStateMachine.BotState.Chasing, state);
         }
@@ -77,7 +77,7 @@ namespace Arena.Tests
         [Test]
         public void Fleeing_NoTargetAndArrived_TransitionsToSearching()
         {
-            sm.Evaluate(hasTarget: true, isLowHealth: true, isAtDestination: false); // ??? Fleeing
+            sm.Evaluate(hasTarget: true, isLowHealth: true, isAtDestination: false); // enter Fleeing
             var state = sm.Evaluate(hasTarget: false, isLowHealth: true, isAtDestination: true);
             Assert.AreEqual(BotStateMachine.BotState.Searching, state);
         }
@@ -85,7 +85,7 @@ namespace Arena.Tests
         [Test]
         public void Fleeing_LowHealthTargetVisible_StaysFleeing()
         {
-            sm.Evaluate(hasTarget: true, isLowHealth: true, isAtDestination: false); // ??? Fleeing
+            sm.Evaluate(hasTarget: true, isLowHealth: true, isAtDestination: false); // enter Fleeing
             var state = sm.Evaluate(hasTarget: true, isLowHealth: true, isAtDestination: false);
             Assert.AreEqual(BotStateMachine.BotState.Fleeing, state);
         }
@@ -99,15 +99,15 @@ namespace Arena.Tests
             Assert.AreEqual(BotStateMachine.BotState.Searching,
                 sm.Evaluate(hasTarget: false, isLowHealth: false, isAtDestination: false));
 
-            // Spot a target while healthy ??? chase
+            // Spot a target while healthy, transition to chase
             Assert.AreEqual(BotStateMachine.BotState.Chasing,
                 sm.Evaluate(hasTarget: true, isLowHealth: false, isAtDestination: false));
 
-            // Take damage ??? flee
+            // Take damage, transition to flee
             Assert.AreEqual(BotStateMachine.BotState.Fleeing,
                 sm.Evaluate(hasTarget: true, isLowHealth: true, isAtDestination: false));
 
-            // Reach cover, target lost ??? search
+            // Reach cover, target lost, transition to search
             Assert.AreEqual(BotStateMachine.BotState.Searching,
                 sm.Evaluate(hasTarget: false, isLowHealth: true, isAtDestination: true));
         }

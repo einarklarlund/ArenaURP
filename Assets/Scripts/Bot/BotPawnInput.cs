@@ -13,8 +13,6 @@ public sealed class BotPawnInput : PawnInputProvider
     [Tooltip("Maximum upward/downward pitch in degrees.")]
     [SerializeField] private float maxPitch = 60f;
 
-    private Transform aimTransform; // set by BotBrain to the firePoint / camera transform
-
     // Intents written by BotBrain each frame
     private Vector3 moveIntentWorld = Vector3.zero;
     private Vector3 lookTargetWorld = Vector3.zero;
