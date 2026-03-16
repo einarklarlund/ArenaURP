@@ -141,7 +141,6 @@ public sealed class NetworkUIController : MonoBehaviour
 
     private void OnLocalHealthChanged(int prev, int next, bool asServer)
     {
-        if (asServer) return;
         NetworkUIEvents.OnLocalHealthChanged?.Invoke(next);
         if(next < prev) NetworkUIEvents.OnLocalDamageTaken?.Invoke(prev - next);
         if(next <= 0) NetworkUIEvents.OnLocalDeath?.Invoke();
