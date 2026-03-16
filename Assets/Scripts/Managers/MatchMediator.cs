@@ -97,6 +97,8 @@ public sealed class MatchMediator : NetworkBehaviour
         if (everyoneReady)
         {
             matchFlowManager.EnterPregameCountdown();
+            foreach (var player in networkPlayerManager.HumanPlayers)
+                player.IsReady.Value = false;
         }
     }
 
