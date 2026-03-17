@@ -4,22 +4,20 @@
   "references": [
     "GUID:27619889b8ba8c24980f49ee34dbb44a",
     "GUID:0acc523941302664db1f4e527237feb3",
-    "GUID:10f013db1eba24ed6b43ab19e78d3930"
+    "GUID:10f013db1eba24ed6b43ab19e78d3930",
+    "GUID:decc7598018c342f99de567786824272"
   ],
   "includePlatforms": [
     "Editor"
   ],
-  "excludePlatforms": [
-],
-"allowUnsafeCode": false,
-"overrideReferences": true,
-"precompiledReferences": [
-  "nunit.framework.dll"
-],
-"autoReferenced": false,
-"defineConstraints": [
-],
-"versionDefines": [
-],
-"noEngineReferences": false
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }
