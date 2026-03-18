@@ -3,7 +3,7 @@ using FishNet;
 using FishNet.Object;
 using UnityEngine;
 
-public class PawnWeaponHandler : NetworkBehaviour
+public class PawnWeapon : NetworkBehaviour
 {
     [SerializeField] private Pawn pawn;
     [SerializeField] private PawnInventory inventory;

@@ -5,7 +5,7 @@ using UnityEngine;
 /// Handles the visual orientation and rotational logic of the Pawn.
 /// Manages cursor locking and hides camera/audio listeners for non-owning players.
 /// </summary>
-public sealed class CameraInputHandler : NetworkBehaviour 
+public sealed class PawnCameraRotation : NetworkBehaviour 
 {
     [SerializeField] private PawnInputProvider input;
     [SerializeField] private Transform characterControllerTransform;

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PawnHealthIndicator : MonoBehaviour
+public class DamageIndicator : MonoBehaviour
 {
     [SerializeField] private Light healthIndicator;
     [SerializeField] private Pawn pawn;
