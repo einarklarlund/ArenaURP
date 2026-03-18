@@ -5,7 +5,7 @@ using FishNet.Demo.AdditiveScenes;
 using FishNet.Object;
 using UnityEngine;
 
-public class PawnColorController : NetworkBehaviour
+public class PawnColor : NetworkBehaviour
 {
     [SerializeField] private MeshRenderer[] meshRenderers;
 
@@ -46,14 +46,14 @@ public class PawnColorController : NetworkBehaviour
         ;
     }
 
-    public void SetColor(Color color, float forSeconds)
+    private void SetColor(Color color, float forSeconds)
     {
         targetColorChangedTime = Time.time;
         targetColorChangeDuration = forSeconds;
         targetColor = color;
     }
 
-    public void SetBaseColor(Color color, float forSeconds)
+    private void SetBaseColor(Color color, float forSeconds)
     {
         baseColorChangedTime = Time.time;
         baseColorChangeDuration = forSeconds;

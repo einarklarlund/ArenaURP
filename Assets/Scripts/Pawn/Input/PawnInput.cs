@@ -7,7 +7,7 @@ using FishNet.Object;
 /// Unity cannot serialize bare interfaces, so handler SerializeFields are
 /// typed to this class while C# logic programs to IPawnInput.
 /// </summary>
-public abstract class PawnInputProvider : NetworkBehaviour, IPawnInput
+public abstract class PawnInput : NetworkBehaviour, IPawnInput
 {
     public PawnInputData Data { get; protected set; }
 

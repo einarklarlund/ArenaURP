@@ -7,7 +7,7 @@ using UnityEngine;
 /// </summary>
 public sealed class PawnCameraRotation : NetworkBehaviour 
 {
-    [SerializeField] private PawnInputProvider input;
+    [SerializeField] private PawnInput input;
     [SerializeField] private Transform characterControllerTransform;
     [SerializeField] Transform cameraTransform;
     

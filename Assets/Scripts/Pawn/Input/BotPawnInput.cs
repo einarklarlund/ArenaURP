@@ -4,7 +4,7 @@ using UnityEngine;
 /// Bot implementation of PawnInputProvider. Translates AI intent (move direction,
 /// look target, fire flag) into PawnInputData each frame for input handlers.
 /// </summary>
-public sealed class BotPawnInput : PawnInputProvider
+public sealed class BotPawnInput : PawnInput
 {
     [Header("Rotation")]
     [Tooltip("Maximum degrees per second the bot can rotate toward its look target.")]

@@ -2,7 +2,7 @@ using FishNet.Object;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PawnInteractionHandler : NetworkBehaviour
+public class PawnInteraction : NetworkBehaviour
 {
     [SerializeField] private Pawn pawn;
     [SerializeField] private float interactRange = 3f;

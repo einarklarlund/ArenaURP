@@ -9,7 +9,7 @@ public class PawnWeapon : NetworkBehaviour
     [SerializeField] private PawnInventory inventory;
     [SerializeField] private Transform firePoint;
     [SerializeField] private PawnAmmo pawnAmmo;
-    [SerializeField] private PawnInputProvider input;
+    [SerializeField] private PawnInput input;
 
     private float lastFireTime;
     private bool isFiringSequence;

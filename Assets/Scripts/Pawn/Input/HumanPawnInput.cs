@@ -6,7 +6,7 @@ using UnityEngine;
 /// into Data for the pawn's handler components to consume.
 /// Only active on the owning client.
 /// </summary>
-public sealed class HumanPawnInput : PawnInputProvider
+public sealed class HumanPawnInput : PawnInput
 {
     public float Sensitivity = 1f;
 

@@ -14,7 +14,7 @@ public sealed class PawnMovement : NetworkBehaviour
     // ------------------------------------------------------------------
     [SerializeField] private CharacterController controller;
     [SerializeField] private Pawn pawn;
-    [SerializeField] private PawnInputProvider input;
+    [SerializeField] private PawnInput input;
 
     [Header("Movement Config")]
     [SerializeField] private MovementConfig config = MovementConfig.Default;
