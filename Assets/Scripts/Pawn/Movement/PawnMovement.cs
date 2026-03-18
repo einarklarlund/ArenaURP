@@ -7,7 +7,7 @@ using UnityEngine;
 /// Owns the CharacterController, reads input, feeds data to the processor, and applies
 /// the resulting velocity.
 /// </summary>
-public sealed class PawnMovementController : NetworkBehaviour
+public sealed class PawnMovement : NetworkBehaviour
 {
     // ------------------------------------------------------------------
     // Unity / Inspector references
