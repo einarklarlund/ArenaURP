@@ -227688,8 +227688,8 @@ MonoBehaviour:
   _componentIndexCache: 1
   _addedNetworkObject: {fileID: 4737948196284472836}
   _networkObjectCache: {fileID: 0}
-  pawnPrefab: {fileID: 4354716618418224005, guid: 8ac1544208bdb4372ae24a33bebc9171, type: 3}
-  botPawnPrefab: {fileID: 4354716618418224005, guid: 59a01efe9e7ab4d0bb2c9bbb2c67f04f, type: 3}
+  humanPawnPrefab: {fileID: 8871399434096018864, guid: 15e1575cd91d94569a84442559d95ba8, type: 3}
+  botPawnPrefab: {fileID: 6679574468413641677, guid: 1e080908070fd4c2f88339d02ea9b049, type: 3}
   spawnPoints:
   - {fileID: 4424795038650366872}
   - {fileID: 5652468871205746971}

@@ -11,6 +11,7 @@ public sealed class MainView : View
 {
     [Header("Main stats")]
     [SerializeField] private TMP_Text healthText;
+    [SerializeField] private TMP_Text temperatureText;
 
     [Header("Overlays")]
     [SerializeField] private Image damageImage;
@@ -36,6 +37,7 @@ public sealed class MainView : View
         damageImage.gameObject.SetActive(false);
 
         NetworkUIEvents.OnLocalHealthChanged += HandleHealthUpdate;
+        LocalUIEvents.OnTemperatureChanged += HandleTemperatureUpdate;
         NetworkUIEvents.OnWeaponInventoryChanged += HandleWeaponInventoryChange;
         NetworkUIEvents.OnAmmoPoolChanged += HandleAmmoPoolChanged;
         NetworkUIEvents.OnLocalDamageTaken += HandleDamageTaken;
@@ -55,6 +57,7 @@ public sealed class MainView : View
         StopAllCoroutines();
 
         NetworkUIEvents.OnLocalHealthChanged -= HandleHealthUpdate;
+        LocalUIEvents.OnTemperatureChanged -= HandleTemperatureUpdate;
         NetworkUIEvents.OnWeaponInventoryChanged -= HandleWeaponInventoryChange;
         NetworkUIEvents.OnAmmoPoolChanged -= HandleAmmoPoolChanged;
         // This makes it so that a player can be damaged while the main view isn't shown and
@@ -67,6 +70,11 @@ public sealed class MainView : View
     private void HandleHealthUpdate(int health)
     {
         healthText.text = health.ToString();
+    }
+
+    private void HandleTemperatureUpdate(float temperature)
+    {
+        temperatureText.text = temperature.ToString("F2");
     }
 
     private void HandleDamageTaken(int damage)

@@ -13,6 +13,7 @@ public struct WeaponSlot
 public class PawnInventory : NetworkBehaviour
 {
     [SerializeField] private WeaponData defaultWeapon;
+    [SerializeField] private PawnWeapon pawnWeapon;
 
     public readonly SyncList<WeaponSlot> Slots = new() { new(), new() };
     private readonly SyncVar<int> _equippedIndex = new(0);

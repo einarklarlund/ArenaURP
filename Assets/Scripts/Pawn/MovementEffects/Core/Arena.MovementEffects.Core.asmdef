@@ -1,0 +1,17 @@
+{
+  "name": "Arena.MovementEffects.Core",
+  "rootNamespace": "",
+  "references": [
+    "GUID:decc7598018c342f99de567786824272",
+    "GUID:fc2f2fb5b2ef142e0b006d7ea835dca6"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

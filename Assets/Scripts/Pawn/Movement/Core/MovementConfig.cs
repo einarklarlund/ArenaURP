@@ -34,13 +34,6 @@ public struct MovementConfig
     [Tooltip("Window in seconds after pressing jump that a buffered jump will still fire on landing.")]
     public float JumpBufferWindow;
 
-    [Header("On Hit Effects")]
-    [Tooltip("Speed applied as knockback when hit.")]
-    public float SpeedOnHit;
-
-    [Tooltip("Minimum launch angle in degrees from horizontal when hit.")]
-    public float MinimumAngleOnHit;
-
     [Header("Physics")]
     [Tooltip("Gravitational acceleration (negative value, e.g. -9.81).")]
     public float Gravity;
@@ -58,8 +51,6 @@ public struct MovementConfig
         JumpHeight = 1.5f,
         MarioJumpTime = 0.2f,
         JumpBufferWindow = 0.3f,
-        SpeedOnHit = 7f,
-        MinimumAngleOnHit = 35f,
         Gravity = -20f,
     };
 }

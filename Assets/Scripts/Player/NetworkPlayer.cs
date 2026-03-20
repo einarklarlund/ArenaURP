@@ -1,4 +1,5 @@
 using System;
+using FishNet;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 
@@ -31,6 +32,9 @@ public sealed class NetworkPlayer : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
+
+        if (IsBot)
+            GiveOwnership(InstanceFinder.ClientManager.Connection);
 
         if (!IsOwner) return;
 

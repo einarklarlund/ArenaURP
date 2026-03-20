@@ -1,9 +1,6 @@
 using FishNet.Object;
 using UnityEngine;
 
-public enum FireMode { SemiAuto, Automatic }
-public enum SpreadType { Random, Even }
-
 [CreateAssetMenu(fileName = "New Weapon", menuName = "FPS/Weapon Data")]
 public class WeaponData : ScriptableObject
 {

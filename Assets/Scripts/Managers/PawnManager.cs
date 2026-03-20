@@ -15,7 +15,7 @@ public sealed class PawnManager : NetworkBehaviour
 {
     public event Action<Pawn, DamageInfo> OnPawnKilled;
 
-    [SerializeField] private Pawn pawnPrefab;
+    [SerializeField] private Pawn humanPawnPrefab;
     [SerializeField] private Pawn botPawnPrefab;
     [SerializeField] private Transform[] spawnPoints;
 
@@ -40,9 +40,9 @@ public sealed class PawnManager : NetworkBehaviour
         Transform sp = spawnPoints[nextSpawnIndex];
         nextSpawnIndex = (nextSpawnIndex + 1) % spawnPoints.Length;
 
-        var prefab = player.IsBot ? botPawnPrefab : pawnPrefab;
+        var prefab = player.IsBot ? botPawnPrefab : humanPawnPrefab;
         Pawn pawnInstance = Instantiate(prefab, sp.position, sp.rotation);
-        Spawn(pawnInstance, player.IsBot ? null : player.Owner);
+        Spawn(pawnInstance, player.Owner);
 
         pawnInstance.ControllingPlayer.Value = player;
         player.ControlledPawn.Value = pawnInstance;

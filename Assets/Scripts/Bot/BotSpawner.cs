@@ -1,5 +1,8 @@
 using System;
+using System.Data;
+using FishNet;
 using FishNet.Object;
+using FishNet.Transporting;
 using UnityEngine;
 
 public class BotSpawner : NetworkBehaviour
@@ -100,14 +103,19 @@ public class BotSpawner : NetworkBehaviour
 
     private void Start()
     {
-        SignalManager.OnRoomCreated += HandleRoomCreated;
+        InstanceFinder.ClientManager.OnAuthenticated += HandleAuthenticated;
+    }
+
+    private void HandleAuthenticated()
+    {
+        SpawnBots();
     }
 
     /// <summary>
-    /// Spawns bot players and registers them.
-    /// Reads the desired bot count from HostOptionsManager.
+    /// Spawns bot players according to Host options.
     /// </summary>
-    private void HandleRoomCreated(string roomID)
+    [Server]
+    private void SpawnBots()
     {
         int numBots = HostOptionsManager.Instance != null
             ? HostOptionsManager.Instance.Options.BotCount

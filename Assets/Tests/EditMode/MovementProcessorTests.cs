@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -9,13 +11,11 @@ using UnityEngine;
 public class MovementProcessorTests
 {
     private MovementConfig _config;
-    private MovementModifier[] _noModifiers;
 
     [SetUp]
     public void SetUp()
     {
         _config = MovementConfig.Default;
-        _noModifiers = System.Array.Empty<MovementModifier>();
     }
 
     // =====================================================================
@@ -33,29 +33,31 @@ public class MovementProcessorTests
         bool isGrounded,
         int frames,
         float dt = 1f / 60f,
-        MovementModifier[] modifiers = null,
+        List<MovementModifier> modifiers = null,
         Quaternion? orientation = null,
-        HitKnockbackInfo? hitOnLastFrame = null)
+        List<Vector3> impulsesOnLastFrame = null)
     {
-        var mods = modifiers ?? _noModifiers;
-
         var input = new MovementInput
         {
             Move = moveInput,
             JumpPressed = jumpPressed,
             IsGrounded = isGrounded,
             WorldOrientation = orientation ?? Quaternion.identity,
+            Modifiers = modifiers ?? new List<MovementModifier>(),
         };
 
         for (int i = 0; i < frames; i++)
         {
-            if (i == frames - 1 && hitOnLastFrame.HasValue)
+            if (i == frames - 1 && impulsesOnLastFrame != null)
             {
-                state.HasPendingHit = true;
-                state.PendingHit = hitOnLastFrame.Value;
+                input.Impulses = impulsesOnLastFrame;
+            }
+            else
+            {
+                input.Impulses = null;
             }
 
-            state = MovementProcessor.Process(state, in _config, mods, in input, dt);
+            state = MovementProcessor.Process(state, in _config, in input, dt);
         }
 
         return state;
@@ -325,11 +327,13 @@ public class MovementProcessorTests
     {
         var speedBoost = new MovementModifier
         {
-            SpeedMultiplier = 2f,
+            WalkSpeedMultiplier = 2f,
+            WalkAccelerationMultiplier = 1f,
             JumpForceMultiplier = 1f,
             GravityMultiplier = 1f,
+            PreImpulseVelocityMultiplier = 1f,
         };
-        var mods = new[] { speedBoost };
+        var mods = new[] { speedBoost }.ToList();
 
         var state = MovementState.Default;
         state = Simulate(state, Vector2.up, false, isGrounded: true, frames: 120, modifiers: mods);
@@ -344,11 +348,13 @@ public class MovementProcessorTests
     {
         var slow = new MovementModifier
         {
-            SpeedMultiplier = 0.5f,
+            WalkSpeedMultiplier = 0.5f,
+            WalkAccelerationMultiplier = 1f,
             JumpForceMultiplier = 1f,
             GravityMultiplier = 1f,
+            PreImpulseVelocityMultiplier = 1f,
         };
-        var mods = new[] { slow };
+        var mods = new[] { slow }.ToList();
 
         var state = MovementState.Default;
         state = Simulate(state, Vector2.up, false, isGrounded: true, frames: 120, modifiers: mods);
@@ -363,9 +369,11 @@ public class MovementProcessorTests
     {
         var jumpBoost = new MovementModifier
         {
-            SpeedMultiplier = 1f,
+            WalkSpeedMultiplier = 1f,
+            WalkAccelerationMultiplier = 1f,
             JumpForceMultiplier = 1.5f,
             GravityMultiplier = 1f,
+            PreImpulseVelocityMultiplier = 1f,
         };
 
         // Without modifier
@@ -375,7 +383,7 @@ public class MovementProcessorTests
         // With modifier
         var stateBoosted = MovementState.Default;
         stateBoosted = Simulate(stateBoosted, Vector2.zero, jumpPressed: true, isGrounded: true, frames: 1,
-            modifiers: new[] { jumpBoost });
+            modifiers: new[] { jumpBoost }.ToList());
 
         Assert.Greater(stateBoosted.Velocity.y, stateNormal.Velocity.y,
             "Jump force modifier should increase initial jump velocity.");
@@ -386,9 +394,11 @@ public class MovementProcessorTests
     {
         var heavyGravity = new MovementModifier
         {
-            SpeedMultiplier = 1f,
+            WalkSpeedMultiplier = 1f,
+            WalkAccelerationMultiplier = 1f,
             JumpForceMultiplier = 1f,
             GravityMultiplier = 2f,
+            PreImpulseVelocityMultiplier = 1f,
         };
 
         // Without modifier
@@ -400,7 +410,7 @@ public class MovementProcessorTests
         var stateHeavy = MovementState.Default;
         stateHeavy.Velocity = new Vector3(0f, 10f, 0f);
         stateHeavy = Simulate(stateHeavy, Vector2.zero, false, isGrounded: false, frames: 10,
-            modifiers: new[] { heavyGravity });
+            modifiers: new[] { heavyGravity }.ToList());
 
         Assert.Less(stateHeavy.Velocity.y, stateNormal.Velocity.y,
             "2x gravity modifier should pull down faster.");
@@ -409,9 +419,23 @@ public class MovementProcessorTests
     [Test]
     public void MultipleModifiers_StackMultiplicatively()
     {
-        var boost1 = new MovementModifier { SpeedMultiplier = 2f, JumpForceMultiplier = 1f, GravityMultiplier = 1f };
-        var boost2 = new MovementModifier { SpeedMultiplier = 1.5f, JumpForceMultiplier = 1f, GravityMultiplier = 1f };
-        var mods = new[] { boost1, boost2 }; // 2.0 * 1.5 = 3.0x
+        var boost1 = new MovementModifier
+        {
+            WalkSpeedMultiplier = 2f,
+            WalkAccelerationMultiplier = 1f,
+            JumpForceMultiplier = 1f,
+            GravityMultiplier = 1f,
+            PreImpulseVelocityMultiplier = 1f,
+        };
+        var boost2 = new MovementModifier
+        {
+            WalkSpeedMultiplier = 1.5f,
+            WalkAccelerationMultiplier = 1f,
+            JumpForceMultiplier = 1f,
+            GravityMultiplier = 1f,
+            PreImpulseVelocityMultiplier = 1f,
+        };
+        var mods = new[] { boost1, boost2 }.ToList(); // 2.0 * 1.5 = 3.0x
 
         var state = MovementState.Default;
         state = Simulate(state, Vector2.up, false, isGrounded: true, frames: 120, modifiers: mods);
@@ -424,7 +448,7 @@ public class MovementProcessorTests
     [Test]
     public void IdentityModifier_HasNoEffect()
     {
-        var identity = new[] { MovementModifier.Identity };
+        var identity = new[] { MovementModifier.Identity }.ToList();
 
         // With identity modifier
         var stateWithMod = MovementState.Default;
@@ -439,73 +463,146 @@ public class MovementProcessorTests
     }
 
     // =====================================================================
-    // Hit / Knockback
+    // Impulses
     // =====================================================================
 
     [Test]
-    public void HitKnockback_AppliesVelocityInHitDirection()
+    public void Impulse_SingleImpulse_AppliedAdditively()
     {
         var state = MovementState.Default;
-        var hit = new HitKnockbackInfo { Direction = new Vector3(1f, 0f, 0f) };
+        var impulses = new List<Vector3> { new(5f, 0f, 0f) };
 
-        state = Simulate(state, Vector2.zero, false, isGrounded: true, frames: 1, hitOnLastFrame: hit);
+        state = Simulate(state, Vector2.zero, false, isGrounded: true, frames: 1,
+            impulsesOnLastFrame: impulses);
 
-        Assert.Greater(state.Velocity.magnitude, 0f,
-            "Hit knockback should produce velocity.");
+        Assert.AreEqual(5f, state.Velocity.x, 0.01f,
+            "A single impulse should be added to velocity.");
     }
 
     [Test]
-    public void HitKnockback_EnforcesMinimumAngle()
+    public void Impulse_MultipleImpulses_SummedAndApplied()
     {
-        var hit = new HitKnockbackInfo { Direction = new Vector3(1f, 0f, 0f) }; // purely horizontal
+        var state = MovementState.Default;
+        var impulses = new List<Vector3>
+        {
+            new(3f, 0f, 0f),
+            new(0f, 2f, 0f),
+        };
 
-        Vector3 result = MovementProcessor.ApplyHitKnockback(Vector3.zero, hit, in _config);
+        state = Simulate(state, Vector2.zero, false, isGrounded: true, frames: 1,
+            impulsesOnLastFrame: impulses);
 
-        // The minimum angle is 60 degrees, so the Y component should be significant
-        float angle = Vector3.Angle(Vector3.ProjectOnPlane(result, Vector3.up), result);
-        Assert.GreaterOrEqual(angle, _config.MinimumAngleOnHit - 0.1f,
-            $"Knockback should enforce a minimum {_config.MinimumAngleOnHit}-degree launch angle.");
+        Assert.AreEqual(3f, state.Velocity.x, 0.01f,
+            "Multiple impulses should be summed (X component).");
+        Assert.AreEqual(2f, state.Velocity.y, 0.01f,
+            "Multiple impulses should be summed (Y component).");
     }
 
     [Test]
-    public void HitKnockback_SpeedMatchesConfig()
+    public void Impulse_EmptyList_NoEffect()
     {
-        var hit = new HitKnockbackInfo { Direction = new Vector3(0f, 1f, 0f) };
+        var state = MovementState.Default;
+        var impulses = new List<Vector3>();
 
-        Vector3 result = MovementProcessor.ApplyHitKnockback(Vector3.zero, hit, in _config);
+        state = Simulate(state, Vector2.zero, false, isGrounded: true, frames: 1,
+            impulsesOnLastFrame: impulses);
 
-        Assert.AreEqual(_config.SpeedOnHit, result.magnitude, 0.01f,
-            "Knockback speed should match SpeedOnHit config value.");
+        Assert.AreEqual(Vector3.zero, state.Velocity,
+            "An empty impulse list should have no effect on velocity.");
     }
 
     [Test]
-    public void HitKnockback_OverridesPreviousVelocity()
+    public void Impulse_NullList_NoEffect()
     {
         var state = MovementState.Default;
 
-        // Get some velocity going
+        state = Simulate(state, Vector2.zero, false, isGrounded: true, frames: 1,
+            impulsesOnLastFrame: null);
+
+        Assert.AreEqual(Vector3.zero, state.Velocity,
+            "A null impulse list should have no effect on velocity.");
+    }
+
+    [Test]
+    public void Impulse_IsAdditiveToExistingVelocity()
+    {
+        var state = MovementState.Default;
+
+        // Build up velocity
         state = Simulate(state, Vector2.up, false, isGrounded: true, frames: 30);
-        Assert.Greater(state.Velocity.magnitude, 0f);
+        float speedBefore = state.Velocity.magnitude;
+        Assert.Greater(speedBefore, 0f);
 
-        // Hit should replace the velocity, not add to it
-        var hit = new HitKnockbackInfo { Direction = new Vector3(0f, 1f, 0f) };
-        state = Simulate(state, Vector2.zero, false, isGrounded: true, frames: 1, hitOnLastFrame: hit);
+        // Apply an impulse in a different direction
+        var impulses = new List<Vector3> { new(0f, 5f, 0f) };
+        state = Simulate(state, Vector2.zero, false, isGrounded: true, frames: 1,
+            impulsesOnLastFrame: impulses);
 
-        // The resulting velocity should be purely from the knockback
-        Assert.AreEqual(_config.SpeedOnHit, state.Velocity.magnitude, 0.5f,
-            "Knockback should override (not add to) existing velocity.");
+        Assert.Greater(state.Velocity.magnitude, 5f,
+            "Impulse should be additive to existing velocity.");
+    }
+
+    // =====================================================================
+    // PreImpulseVelocityMultiplier
+    // =====================================================================
+
+    [Test]
+    public void PreImpulseVelocityMultiplier_ScalesVelocityBeforeImpulses()
+    {
+        var halfVelocity = new MovementModifier
+        {
+            WalkSpeedMultiplier = 1f,
+            WalkAccelerationMultiplier = 1f,
+            JumpForceMultiplier = 1f,
+            GravityMultiplier = 1f,
+            PreImpulseVelocityMultiplier = 0.5f,
+        };
+        var mods = new[] { halfVelocity }.ToList();
+
+        var impulses = new List<Vector3> { new(0f, 5f, 0f) };
+
+        // With modifier: velocity is halved before impulse is added
+        var stateWithMod = MovementState.Default;
+        stateWithMod = Simulate(stateWithMod, Vector2.up, false, isGrounded: true, frames: 60, modifiers: mods);
+        stateWithMod = Simulate(stateWithMod, Vector2.zero, false, isGrounded: true, frames: 1,
+            modifiers: mods, impulsesOnLastFrame: impulses);
+
+        // Without modifier: full velocity before impulse
+        var stateNoMod = MovementState.Default;
+        stateNoMod = Simulate(stateNoMod, Vector2.up, false, isGrounded: true, frames: 60);
+        stateNoMod = Simulate(stateNoMod, Vector2.zero, false, isGrounded: true, frames: 1,
+            impulsesOnLastFrame: impulses);
+
+        Assert.Less(stateWithMod.Velocity.magnitude, stateNoMod.Velocity.magnitude,
+            "PreImpulseVelocityMultiplier should scale velocity before impulses are added.");
     }
 
     [Test]
-    public void HitKnockback_ClearedAfterProcessing()
+    public void PreImpulseVelocityMultiplier_DoesNotAffectImpulsesThemselves()
     {
-        var state = MovementState.Default;
-        var hit = new HitKnockbackInfo { Direction = new Vector3(1f, 0f, 0f) };
+        var halfVelocity = new MovementModifier
+        {
+            WalkSpeedMultiplier = 1f,
+            WalkAccelerationMultiplier = 1f,
+            JumpForceMultiplier = 1f,
+            GravityMultiplier = 1f,
+            PreImpulseVelocityMultiplier = 0.5f,
+        };
+        var mods = new[] { halfVelocity }.ToList();
 
-        state = Simulate(state, Vector2.zero, false, isGrounded: false, frames: 1, hitOnLastFrame: hit);
+        // From standstill, the pre-impulse velocity is zero, so the multiplier has no effect
+        var impulses = new List<Vector3> { new(0f, 5f, 0f) };
 
-        Assert.IsFalse(state.HasPendingHit,
-            "HasPendingHit should be cleared by the processor after consuming the hit.");
+        var stateWithMod = MovementState.Default;
+        stateWithMod = Simulate(stateWithMod, Vector2.zero, false, isGrounded: true, frames: 1,
+            modifiers: mods, impulsesOnLastFrame: impulses);
+
+        var stateNoMod = MovementState.Default;
+        stateNoMod = Simulate(stateNoMod, Vector2.zero, false, isGrounded: true, frames: 1,
+            impulsesOnLastFrame: impulses);
+
+        Assert.AreEqual(stateNoMod.Velocity.magnitude, stateWithMod.Velocity.magnitude, 0.01f,
+            "PreImpulseVelocityMultiplier should not affect the impulse itself.");
     }
 
     // =====================================================================

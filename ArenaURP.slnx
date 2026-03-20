@@ -1,5 +1,6 @@
 ﻿<Solution>
   <Project Path="FishNet.Codegen.Cecil.csproj" />
+  <Project Path="Arena.Temperature.Core.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="FishNet.Runtime.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
@@ -12,5 +13,8 @@
   <Project Path="Arena.Movement.Core.csproj" />
   <Project Path="ParrelSync.csproj" />
   <Project Path="CanoeWebRTC.csproj" />
+  <Project Path="Arena.MovementEffects.Core.csproj" />
+  <Project Path="Arena.Knockback.Core.csproj" />
   <Project Path="Arena.Bot.Core.csproj" />
+  <Project Path="Arena.Weapon.Core.csproj" />
 </Solution>

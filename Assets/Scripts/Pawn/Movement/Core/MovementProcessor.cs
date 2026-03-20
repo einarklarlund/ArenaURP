@@ -1,52 +1,48 @@
-using System;
 using UnityEngine;
 
 /// <summary>
 /// Pure, stateless processor that advances movement simulation by one step.
-/// Has zero Unity lifecycle dependencies - all state flows in and out via structs.
-///
-/// Logic is a 1:1 port of MovementInputHandler (PawnMovementHandler.cs).
 /// </summary>
 public static class MovementProcessor
 {
     /// <summary>
     /// Advance the movement simulation by one tick.
     /// </summary>
-    /// <param name="state">
-    /// Current movement state. Set state.HasPendingHit before calling to apply knockback this frame.
-    /// </param>
+    /// <param name="state">Current movement state.</param>
     /// <param name="config">Movement tuning parameters.</param>
-    /// <param name="modifiers">Active movement modifiers, stacked multiplicatively.</param>
-    /// <param name="input">All per-frame inputs: stick, jump, grounded flag, and orientation.</param>
+    /// <param name="input">All inputs that will affect the movement state.</param>
     /// <param name="deltaTime">Time step for this tick.</param>
     /// <returns>The new movement state after this tick.</returns>
     public static MovementState Process(
         MovementState state,
         in MovementConfig config,
-        ReadOnlySpan<MovementModifier> modifiers,
         in MovementInput input,
         float deltaTime)
     {
         state.IsGrounded = input.IsGrounded;
 
         // --- Combine modifiers ---
-        float speedMult = 1f;
+        float walkSpeedMult = 1f;
+        float walkAccelMult = 1f;
         float jumpMult = 1f;
         float gravMult = 1f;
-        foreach (var mod in modifiers)
+        float preImpulseVelMult = 1f;
+        foreach (var mod in input.Modifiers)
         {
-            speedMult *= mod.SpeedMultiplier;
+            walkSpeedMult *= mod.WalkSpeedMultiplier;
+            walkAccelMult *= mod.WalkAccelerationMultiplier;
             jumpMult *= mod.JumpForceMultiplier;
             gravMult *= mod.GravityMultiplier;
+            preImpulseVelMult *= mod.PreImpulseVelocityMultiplier;
         }
 
-        float effectiveMaxSpeed = config.MaxSpeedXZ * speedMult;
-        float effectiveAirMaxSpeed = (config.MaxSpeedXZ + config.AirSpeedBonus) * speedMult;
+        float effectiveMaxSpeed = config.MaxSpeedXZ * walkSpeedMult;
+        float effectiveAirMaxSpeed = (config.MaxSpeedXZ + config.AirSpeedBonus) * walkSpeedMult;
 
         // --- Horizontal velocity ---
         float activeMaxSpeedXZ = input.IsGrounded ? effectiveMaxSpeed : effectiveAirMaxSpeed;
         Vector3 velocityXZ = CalculateXZVelocity(
-            state, config, input, deltaTime, activeMaxSpeedXZ, effectiveMaxSpeed);
+            state, config, input, deltaTime, activeMaxSpeedXZ, effectiveMaxSpeed, walkAccelMult);
 
         // --- Vertical velocity ---
         float velocityY = CalculateYVelocity(
@@ -56,11 +52,14 @@ public static class MovementProcessor
         // --- Combine ---
         Vector3 finalVelocity = new(velocityXZ.x, velocityY, velocityXZ.z);
 
-        // --- Knockback (consumes and clears the pending hit) ---
-        if (state.HasPendingHit)
+        // --- Pre-impulse velocity scaling ---
+        finalVelocity *= preImpulseVelMult;
+
+        // --- Apply external impulses ---
+        if (input.Impulses != null)
         {
-            finalVelocity = ApplyHitKnockback(finalVelocity, state.PendingHit, config);
-            state.HasPendingHit = false;
+            foreach (var impulse in input.Impulses)
+                finalVelocity += impulse;
         }
 
         state.Velocity = finalVelocity;
@@ -76,7 +75,8 @@ public static class MovementProcessor
         in MovementInput input,
         float deltaTime,
         float activeMaxSpeedXZ,
-        float effectiveMaxSpeed)
+        float effectiveMaxSpeed,
+        float accelMult)
     {
         Vector3 previousVelocityXZ = Vector3.ProjectOnPlane(state.Velocity, Vector3.up);
 
@@ -108,7 +108,7 @@ public static class MovementProcessor
         // Acceleration (input present)
         Vector3 inputDirectionWorld = input.WorldOrientation * inputDirection;
         Vector3 inputVelocity = inputDirectionWorld * activeMaxSpeedXZ;
-        float walkAcceleration = activeMaxSpeedXZ / config.SpeedUpTime;
+        float walkAcceleration = activeMaxSpeedXZ / config.SpeedUpTime * accelMult;
 
         if (!input.IsGrounded)
         {
@@ -209,23 +209,4 @@ public static class MovementProcessor
         return Mathf.Sqrt(-1f * config.JumpHeight * config.Gravity) * jumpMult;
     }
 
-    /// <summary>
-    /// Applies knockback from a damage hit.
-    /// Ensures the launch direction meets a minimum angle from horizontal.
-    /// Mirrors ApplyOnHitEffects() from the original handler.
-    /// </summary>
-    public static Vector3 ApplyHitKnockback(
-        Vector3 currentVelocity,
-        HitKnockbackInfo hit,
-        in MovementConfig config)
-    {
-        Vector3 dir = hit.Direction.normalized;
-
-        float horizontalMag = Vector3.ProjectOnPlane(dir, Vector3.up).magnitude;
-        float minHeight = horizontalMag * Mathf.Tan(config.MinimumAngleOnHit * Mathf.Deg2Rad);
-        dir.y = Mathf.Max(dir.y, minHeight);
-        dir = dir.normalized;
-
-        return config.SpeedOnHit * dir;
-    }
 }

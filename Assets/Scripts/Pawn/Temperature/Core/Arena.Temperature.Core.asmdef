@@ -1,0 +1,16 @@
+{
+  "name": "Arena.Temperature.Core",
+  "rootNamespace": "",
+  "references": [
+    "GUID:decc7598018c342f99de567786824272"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

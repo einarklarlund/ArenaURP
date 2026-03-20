@@ -22,4 +22,7 @@ public static class LocalUIEvents
     // Room actions
     public static Action OnHostInitiated;
     public static Action OnJoinInitiated;
+
+    // In-game HUD events
+    public static Action<float> OnTemperatureChanged;
 }

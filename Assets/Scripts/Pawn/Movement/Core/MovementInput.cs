@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -19,6 +20,12 @@ public struct MovementInput
 
     /// <summary>Yaw rotation of the character, used to transform local move input to world space.</summary>
     public Quaternion WorldOrientation;
+
+    /// <summary>Active movement modifiers, stacked multiplicatively.</summary>
+    public List<MovementModifier> Modifiers;
+
+    /// <summary>External impulse vectors to apply this frame (summed additively after velocity scaling).</summary>
+    public List<Vector3> Impulses;
 
     /// <summary>An input snapshot representing a stationary, grounded character facing forward.</summary>
     public static MovementInput Default => new()

@@ -14,22 +14,6 @@ public sealed class PawnCameraRotation : NetworkBehaviour
     private float horizontalRotation = 0f;
     private float verticalRotation = 0f;
 
-    public override void OnStartClient() 
-    {
-        base.OnStartClient();
-        if (IsOwner) 
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            if(cameraTransform.TryGetComponent<Camera>(out var cam)) cam.enabled = true;
-            if(cameraTransform.TryGetComponent<AudioListener>(out var listener)) listener.enabled = true;
-        } 
-        else 
-        {
-            if(cameraTransform.TryGetComponent<Camera>(out var cam)) cam.enabled = false;
-            if(cameraTransform.TryGetComponent<AudioListener>(out var listener)) listener.enabled = false;
-        }
-    }
-
     private void Update() 
     {
         if (!input.IsActive) return;

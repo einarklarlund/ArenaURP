@@ -15,18 +15,21 @@ public sealed class MatchMediator : NetworkBehaviour
     {
         base.OnStartServer();
 
-        // Register existing players (i.e. if server is a host instead of headless)
+        // Register existing players and subcribe to NetworkPlayer spawn events. 
+        // These have to be registered here to avoid a condition where
+        // NetworkPlayerManager registers players before MatchMediator can subscribe
+        // to the NetworkPlayerManager.
         foreach (NetworkObject nob in InstanceFinder.NetworkManager.ServerManager.Objects.Spawned.Values)
         {
             if (nob.TryGetComponent(out NetworkPlayer p))
                 networkPlayerManager.ServerRegisterPlayer(p);
         }
 
-        // Subscribe to highest-level player spawning network events. These have to be 
-        // registered here to avoid race conditions of "who listens to whom" first (between
-        // the mediator and the NetworkPlayerManager).
         var playerSpawner = InstanceFinder.NetworkManager.GetComponent<PlayerSpawner>();
         playerSpawner.OnSpawned += ServerHandlePlayerSpawn;
+
+        var botSpawner = FindAnyObjectByType<BotSpawner>();
+        botSpawner.OnSpawned += ServerHandlePlayerSpawn;
 
         // Subscribe to high-level match lifecycle events
         matchFlowManager.State.OnChange += ServerHandleMatchStateChanged;
