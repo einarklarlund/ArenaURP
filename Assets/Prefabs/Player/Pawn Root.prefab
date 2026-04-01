@@ -125,9 +125,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 916791765297252954}
-  - component: {fileID: 6756919412226071654}
   - component: {fileID: 1975820720333990052}
-  - component: {fileID: 7248035274654949582}
   m_Layer: 7
   m_Name: Movement
   m_TagString: Untagged
@@ -150,26 +148,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 6715682311924083683}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &6756919412226071654
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2974204904791803502}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 733e5eb7fe4254e64ae56c8442d42a08, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnMovementEffects
-  _componentIndexCache: 255
-  _addedNetworkObject: {fileID: 8049762553664656302}
-  _networkObjectCache: {fileID: 0}
-  movement: {fileID: 1975820720333990052}
-  pawnWeapon: {fileID: 4890565649951695802}
-  config:
-    FireRateMultiplier: 0.25
-    SpreadAngleMultiplier: 0.7
 --- !u!114 &1975820720333990052
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -197,24 +175,6 @@ MonoBehaviour:
     MarioJumpTime: 0.2
     JumpBufferWindow: 0.3
     Gravity: -20
---- !u!114 &7248035274654949582
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2974204904791803502}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1c5eed3625f9445eabdae0ad6dfcf3ec, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnCameraRotation
-  _componentIndexCache: 255
-  _addedNetworkObject: {fileID: 8049762553664656302}
-  _networkObjectCache: {fileID: 0}
-  input: {fileID: 0}
-  characterControllerTransform: {fileID: 6715682311924083683}
-  cameraTransform: {fileID: 8591372839943455703}
 --- !u!1 &3015136927240068084
 GameObject:
   m_ObjectHideFlags: 0
@@ -228,6 +188,7 @@ GameObject:
   - component: {fileID: 601749567516735660}
   - component: {fileID: 6254141354047242925}
   - component: {fileID: 3552783497789917785}
+  - component: {fileID: 88209868974879693}
   m_Layer: 7
   m_Name: Camera
   m_TagString: Untagged
@@ -400,6 +361,24 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!114 &88209868974879693
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3015136927240068084}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c5eed3625f9445eabdae0ad6dfcf3ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnCameraRotation
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 8049762553664656302}
+  _networkObjectCache: {fileID: 0}
+  input: {fileID: 0}
+  characterControllerTransform: {fileID: 6715682311924083683}
+  cameraTransform: {fileID: 8591372839943455703}
 --- !u!1 &3600379976626434662
 GameObject:
   m_ObjectHideFlags: 0
@@ -810,7 +789,7 @@ MonoBehaviour:
   _componentIndexCache: 8
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
-  defaultWeapon: {fileID: 11400000, guid: f529980797c424fae8e68f48b8716cb7, type: 2}
+  defaultWeapon: {fileID: 11400000, guid: 48e941893a48a4bb8855fa5adce7fcd3, type: 2}
   pawnWeapon: {fileID: 4890565649951695802}
 --- !u!114 &8846440441223943934
 MonoBehaviour:

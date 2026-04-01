@@ -4,6 +4,7 @@ public enum DamageType
 {
     Bullet,
     Environment,
+    Laser,
 }
 
 [System.Serializable]

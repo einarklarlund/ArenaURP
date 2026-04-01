@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceed61286e9c648aa81453c54392e198, type: 3}
+  m_Name: Laser Pistol
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponData
+  AmmoType: 2
+  WeaponName: Laser Pistol
+  WeaponPrefab: {fileID: 0}
+  BulletPrefab: {fileID: 4168753386286655588, guid: 796b68a5a523a49ab908234aaa7a2418, type: 3}
+  FireMode: 1
+  FireRate: 0.3
+  AmmoPerFire: 1
+  ShotsPerFire: 1
+  FireDuration: 0
+  ProjectilesPerShot: 1
+  SpreadAngle: 1
+  SpreadType: 0
