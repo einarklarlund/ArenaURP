@@ -17,7 +17,7 @@ MonoBehaviour:
   WeaponPrefab: {fileID: 0}
   BulletPrefab: {fileID: 7284545159546586708, guid: e2228862eb62644bb96010c7a533e8d5, type: 3}
   FireMode: 0
-  FireRate: 0.5
+  FireRate: 1.17
   AmmoPerFire: 0
   SpawnPositionOffset: {x: 0, y: 0, z: 3.4}
   ShotsPerFire: 1

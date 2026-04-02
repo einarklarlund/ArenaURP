@@ -17,11 +17,11 @@ MonoBehaviour:
   WeaponPrefab: {fileID: 0}
   BulletPrefab: {fileID: 5874416749100384466, guid: ee4c4859e9f4a4807be40313b4aece50, type: 3}
   FireMode: 0
-  FireRate: 0.4
+  FireRate: 1.17
   AmmoPerFire: 0
   SpawnPositionOffset: {x: 0, y: 0, z: 3.4}
   ShotsPerFire: 1
   FireDuration: 0
-  ProjectilesPerShot: 1
-  SpreadAngle: 0
-  SpreadType: 0
+  ProjectilesPerShot: 3
+  SpreadAngle: 60
+  SpreadType: 1
