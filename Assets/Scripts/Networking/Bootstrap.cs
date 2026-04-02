@@ -44,6 +44,7 @@ public class Bootstrap : MonoBehaviour
         #endif
     }
 
+    #if DEVELOPMENT_BUILD || UNITY_EDITOR
     void StartDevBootstrap()
     {
         Destroy(prodNetworkManagerObject);
@@ -75,6 +76,7 @@ public class Bootstrap : MonoBehaviour
 
         uiManagerObject.SetActive(true);
     }
+    #endif
 
     void StartProdBootstrap()
     {
