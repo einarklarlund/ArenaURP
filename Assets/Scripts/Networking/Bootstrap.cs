@@ -35,11 +35,11 @@ public class Bootstrap : MonoBehaviour
             return;
         }
 
-        #if DEVELOPMENT_BUILD || UNITY_EDITOR
+        #if UNITY_EDITOR
         StartDevBootstrap();
         #endif
 
-        #if !DEVELOPMENT_BUILD && !UNITY_EDITOR
+        #if !UNITY_EDITOR
         StartProdBootstrap();
         #endif
     }
