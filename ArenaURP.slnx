@@ -9,7 +9,6 @@
   <Project Path="SimpleWebTransport.csproj" />
   <Project Path="Unity.FishNet.Codegen.csproj" />
   <Project Path="Arena.Tests.csproj" />
-  <Project Path="FishNet.Demos.csproj" />
   <Project Path="Arena.Movement.Core.csproj" />
   <Project Path="ParrelSync.csproj" />
   <Project Path="CanoeWebRTC.csproj" />

@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using FishNet.Demo.AdditiveScenes;
-
 public struct KillEventData
 {
     public Pawn VictimPawn;

@@ -1963,29 +1963,38 @@ namespace FishNet.Component.Transforming
             ChangedDelta changed = ChangedDelta.Unset;
             Transform t = _cachedTransform;
 
-            Vector3 position = t.localPosition;
-            if (Mathf.Abs(position.x - lastPosition.x) >= _positionSensitivity)
-                changed |= ChangedDelta.PositionX;
-            if (Mathf.Abs(position.y - lastPosition.y) >= _positionSensitivity)
-                changed |= ChangedDelta.PositionY;
-            if (Mathf.Abs(position.z - lastPosition.z) >= _positionSensitivity)
-                changed |= ChangedDelta.PositionZ;
+            if (_synchronizePosition)
+            {
+                Vector3 position = t.localPosition;
+                if (Mathf.Abs(position.x - lastPosition.x) >= _positionSensitivity)
+                    changed |= ChangedDelta.PositionX;
+                if (Mathf.Abs(position.y - lastPosition.y) >= _positionSensitivity)
+                    changed |= ChangedDelta.PositionY;
+                if (Mathf.Abs(position.z - lastPosition.z) >= _positionSensitivity)
+                    changed |= ChangedDelta.PositionZ;
+            }
 
-            Quaternion rotation = t.localRotation;
-            if (!rotation.Matches(lastRotation, true))
-                changed |= ChangedDelta.Rotation;
-
+            if (_synchronizeRotation)
+            {
+                Quaternion rotation = t.localRotation;
+                if (!rotation.Matches(lastRotation, true))
+                    changed |= ChangedDelta.Rotation;
+            }
+            
             ChangedDelta startChanged = changed;
 
-            Vector3 scale = t.localScale;
-            if (Mathf.Abs(scale.x - lastScale.x) >= _scaleSensitivity)
-                changed |= ChangedDelta.ScaleX;
-            if (Mathf.Abs(scale.y - lastScale.y) >= _scaleSensitivity)
-                changed |= ChangedDelta.ScaleY;
-            if (Mathf.Abs(scale.z - lastScale.z) >= _scaleSensitivity)
-                changed |= ChangedDelta.ScaleZ;
+            if (_synchronizeScale)
+            {
+                Vector3 scale = t.localScale;
+                if (Mathf.Abs(scale.x - lastScale.x) >= _scaleSensitivity)
+                    changed |= ChangedDelta.ScaleX;
+                if (Mathf.Abs(scale.y - lastScale.y) >= _scaleSensitivity)
+                    changed |= ChangedDelta.ScaleY;
+                if (Mathf.Abs(scale.z - lastScale.z) >= _scaleSensitivity)
+                    changed |= ChangedDelta.ScaleZ;
+            }
 
-            if (changed != ChangedDelta.Unset && ParentBehaviour != null)
+            if (_synchronizeParent && changed != ChangedDelta.Unset && ParentBehaviour != null)
                 changed |= ChangedDelta.Nested;
 
             //If added scale or childed then also add extended.
