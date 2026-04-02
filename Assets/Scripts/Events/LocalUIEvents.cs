@@ -23,6 +23,10 @@ public static class LocalUIEvents
     public static Action OnHostInitiated;
     public static Action OnJoinInitiated;
 
+    // Debug events
+    public static Action OnDebugViewOpened;
+    public static Action OnDebugViewClosed;
+
     // In-game HUD events
     public static Action<float> OnTemperatureChanged;
 }

@@ -99,7 +99,10 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 
 # Mac Finder folder attributes
-*.DS_Store
+.DS_Store
+**/.DS_Store
+._.DS_Store
+**/._.DS_Store
 
 # node build files
 */node_modules

@@ -17,11 +17,6 @@ public sealed class UIManager : MonoBehaviour
     private View previousView;
     private View currentView;
 
-    private void Start()
-    {
-        Show<MainMenuView>();
-    }
-
     private void OnEnable()
     {
         // High level network events
@@ -53,6 +48,12 @@ public sealed class UIManager : MonoBehaviour
         // Host options events
         LocalUIEvents.OnHostOptionsOpened += Show<HostOptionsView>;
         LocalUIEvents.OnHostOptionsClosed += ShowPreviousView;
+
+        // Debug events
+        LocalUIEvents.OnDebugViewOpened += Show<DebugView>;
+        LocalUIEvents.OnDebugViewClosed += ShowPreviousView;
+
+        Show<MainMenuView>();
     }
 
     private void OnDisable()
@@ -86,6 +87,10 @@ public sealed class UIManager : MonoBehaviour
         // Host options events
         LocalUIEvents.OnHostOptionsOpened -= Show<HostOptionsView>;
         LocalUIEvents.OnHostOptionsClosed -= ShowPreviousView;
+
+        // Debug events
+        LocalUIEvents.OnDebugViewOpened -= Show<DebugView>;
+        LocalUIEvents.OnDebugViewClosed -= ShowPreviousView;
     }
 
     private void HandleClientConnectionChanged(bool connected)

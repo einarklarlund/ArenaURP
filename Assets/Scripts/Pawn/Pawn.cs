@@ -21,8 +21,8 @@ public class Pawn : NetworkBehaviour, IDamageable
     
     [Header("Synced State")]
     public readonly SyncVar<NetworkPlayer> ControllingPlayer = new();
-    public readonly SyncVar<int> Health = new(40, new SyncTypeSettings(WritePermission.ServerOnly));
-    public readonly SyncVar<int> MaxHealth = new(40, new SyncTypeSettings(WritePermission.ServerOnly));
+    public readonly SyncVar<int> Health = new(21, new SyncTypeSettings(WritePermission.ServerOnly));
+    public readonly SyncVar<int> MaxHealth = new(21, new SyncTypeSettings(WritePermission.ServerOnly));
 
     public event Action<DamageInfo> OnDamageTaken;
     public event Action<DamageInfo> OnDeath;

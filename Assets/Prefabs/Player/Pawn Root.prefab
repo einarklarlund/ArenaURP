@@ -171,10 +171,10 @@ MonoBehaviour:
     SlowDownTime: 0.1
     AirSpeedBonus: 5
     AirControlDivisor: 12
-    JumpHeight: 1.5
+    JumpHeight: 1.75
     MarioJumpTime: 0.2
-    JumpBufferWindow: 0.3
-    Gravity: -20
+    JumpBufferWindow: 0.1
+    Gravity: -35
 --- !u!1 &3015136927240068084
 GameObject:
   m_ObjectHideFlags: 0
@@ -837,7 +837,7 @@ GameObject:
   - component: {fileID: 1650728035250711748}
   - component: {fileID: 4389033491855740370}
   m_Layer: 7
-  m_Name: Damage
+  m_Name: Knockback
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -877,5 +877,5 @@ MonoBehaviour:
   movement: {fileID: 1975820720333990052}
   input: {fileID: 0}
   config:
-    SpeedOnHit: 7
-    MinimumAngleOnHit: 0
+    SpeedOnHit: 12
+    MinimumAngleOnHit: 32.5

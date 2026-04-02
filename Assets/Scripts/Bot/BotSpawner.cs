@@ -1,8 +1,6 @@
 using System;
-using System.Data;
 using FishNet;
 using FishNet.Object;
-using FishNet.Transporting;
 using UnityEngine;
 
 public class BotSpawner : NetworkBehaviour
@@ -129,7 +127,7 @@ public class BotSpawner : NetworkBehaviour
     }
 
     [Server]
-    private void SpawnBot()
+    public void SpawnBot()
     {
         var bot = Instantiate(botPlayerPrefab);
         var name = names[UnityEngine.Random.Range(0, names.Length)];
@@ -137,7 +135,7 @@ public class BotSpawner : NetworkBehaviour
         bot.Username.Value = $"Bot {name}";
         bot.IsReady.Value = true;
         bot.IsBot = true;
-        Spawn(bot);
+        Spawn(bot, InstanceFinder.ClientManager.Connection);
         OnSpawned?.Invoke(bot);
     }
 }

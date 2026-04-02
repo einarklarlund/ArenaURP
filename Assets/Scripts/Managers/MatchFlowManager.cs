@@ -26,7 +26,7 @@ public sealed class MatchFlowManager : NetworkBehaviour
     public static MatchFlowManager Instance { get; private set; }
     
     public readonly SyncVar<int> CountdownTime = new();
-    public readonly SyncVar<MatchState> State = new();
+    public readonly SyncVar<MatchState> State = new(MatchState.Pregame);
     
     [SerializeField] private int beginMatchCountdown = 3;
     [SerializeField] private int endMatchCountdown = 20;
@@ -35,10 +35,10 @@ public sealed class MatchFlowManager : NetworkBehaviour
 
     private void Awake() => Instance = this;
 
-    public override void OnStartServer()
+    [Server]
+    public void StartDebugMatch()
     {
-        base.OnStartServer();
-        State.Value = MatchState.Pregame;
+        State.Value = MatchState.During;
     }
 
     [Server]

@@ -1,35 +1,21 @@
 using FishNet.Object;
 using UnityEngine;
 using System.Linq;
-using FishNet;
-using FishNet.Component.Spawning;
 
-public sealed class MatchMediator : NetworkBehaviour
+public class MatchMediator : NetworkBehaviour
 {
-    [SerializeField] private NetworkPlayerManager networkPlayerManager;
-    [SerializeField] private PawnManager pawnManager;
-    [SerializeField] private MatchFlowManager matchFlowManager;
-    [SerializeField] private DeathmatchManager deathmatchManager;
+    [SerializeField] protected NetworkPlayerManager networkPlayerManager;
+    [SerializeField] protected PawnManager pawnManager;
+    [SerializeField] protected MatchFlowManager matchFlowManager;
+    [SerializeField] protected DeathmatchManager deathmatchManager;
 
     public override void OnStartServer()
     {
         base.OnStartServer();
 
-        // Register existing players and subcribe to NetworkPlayer spawn events. 
-        // These have to be registered here to avoid a condition where
-        // NetworkPlayerManager registers players before MatchMediator can subscribe
-        // to the NetworkPlayerManager.
-        foreach (NetworkObject nob in InstanceFinder.NetworkManager.ServerManager.Objects.Spawned.Values)
-        {
-            if (nob.TryGetComponent(out NetworkPlayer p))
-                networkPlayerManager.ServerRegisterPlayer(p);
-        }
-
-        var playerSpawner = InstanceFinder.NetworkManager.GetComponent<PlayerSpawner>();
-        playerSpawner.OnSpawned += ServerHandlePlayerSpawn;
-
-        var botSpawner = FindAnyObjectByType<BotSpawner>();
-        botSpawner.OnSpawned += ServerHandlePlayerSpawn;
+        // Subscribe to and kick-off NetworkPlayer registration
+        networkPlayerManager.OnPlayerRegistered += ServerHandlePlayerRegistered;
+        networkPlayerManager.Initialize();
 
         // Subscribe to high-level match lifecycle events
         matchFlowManager.State.OnChange += ServerHandleMatchStateChanged;
@@ -40,32 +26,25 @@ public sealed class MatchMediator : NetworkBehaviour
     }
 
     /// <summary>
-    /// Handles PlayerSpawner OnSpawned events.
-    /// Registers the player with other services.
-    /// Registers event handlers player event handlers.
+    /// Registers event handlers.
+    /// Spawns a pawn if the game is already started.
     /// </summary>
     [Server]
-    private void ServerHandlePlayerSpawn(NetworkObject playerObject)
+    private void ServerHandlePlayerRegistered(NetworkPlayer networkPlayer)
     {
-        var networkPlayer = playerObject.GetComponent<NetworkPlayer>();
-        networkPlayerManager.ServerRegisterPlayer(networkPlayer);
-
         networkPlayer.IsReady.OnChange += ServerHandleIsReadyChanged;
-        networkPlayer.OnDespawn += ServerHandlePlayerDespawn;
 
         if (matchFlowManager.State.Value == MatchState.During)
             pawnManager.SpawnPawnForPlayer(networkPlayer);
     }
 
     /// <summary>
-    /// Handles NetworkPlayer OnDespawn events.
     /// Unregisters the player with other services.
     /// Unregisters player event handlers.
     /// </summary>
     [Server]
     private void ServerHandlePlayerDespawn(NetworkPlayer networkPlayer)
     {
-        networkPlayerManager.ServerUnregisterPlayer(networkPlayer);
         pawnManager.UnregisterPawnForPlayer(networkPlayer);
 
         networkPlayer.IsReady.OnChange -= ServerHandleIsReadyChanged;

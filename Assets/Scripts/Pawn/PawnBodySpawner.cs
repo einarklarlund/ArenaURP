@@ -30,6 +30,6 @@ public class PawnBodySpawner : NetworkBehaviour
     {
         var rb = Instantiate(bodyPrefab, position, rotation);
         rb.AddForce(speedOnDeath * velocityDir, ForceMode.VelocityChange);
-        rb.AddTorque(transform.right, ForceMode.VelocityChange);
+        rb.AddTorque(transform.right * rotationalSpeedOnDeath, ForceMode.VelocityChange);
     }
 }
