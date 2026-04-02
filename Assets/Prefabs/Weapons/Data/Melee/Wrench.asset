@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceed61286e9c648aa81453c54392e198, type: 3}
+  m_Name: Wrench
+  m_EditorClassIdentifier: 
+  AmmoType: 0
+  WeaponName: Wrench
+  WeaponPrefab: {fileID: 0}
+  BulletPrefab: {fileID: 2770152656487450615, guid: 03b6e9de94aab47e59d612462625aef2, type: 3}
+  FireMode: 0
+  FireRate: 0.3
+  AmmoPerFire: 0
+  SpawnPositionOffset: {x: 0, y: 0, z: 3.4}
+  ShotsPerFire: 1
+  FireDuration: 0
+  ProjectilesPerShot: 1
+  SpreadAngle: 0
+  SpreadType: 0

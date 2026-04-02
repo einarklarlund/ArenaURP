@@ -107,7 +107,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ecc6e2caf251423ca2dc8dbb4875e70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PawnInteractionHandler
-  _componentIndexCache: 3
+  _componentIndexCache: 8
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
   pawn: {fileID: 3390302888177528954}
@@ -160,7 +160,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f237c03b561d243c0be8d830ba9f6946, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PawnMovementController
-  _componentIndexCache: 6
+  _componentIndexCache: 2
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
   controller: {fileID: 7538533630776666726}
@@ -283,7 +283,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2836e36774ca1c4bbbee976e17b649c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 12
+  _componentIndexCache: 10
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
   _componentConfiguration: 0
@@ -373,9 +373,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c5eed3625f9445eabdae0ad6dfcf3ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PawnCameraRotation
-  _componentIndexCache: 255
+  _componentIndexCache: 11
   _addedNetworkObject: {fileID: 8049762553664656302}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 8049762553664656302}
   input: {fileID: 0}
   characterControllerTransform: {fileID: 6715682311924083683}
   cameraTransform: {fileID: 8591372839943455703}
@@ -585,17 +585,16 @@ MonoBehaviour:
   NetworkBehaviours:
   - {fileID: 3390302888177528954}
   - {fileID: 4374827591302998991}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
   - {fileID: 1975820720333990052}
-  - {fileID: 8310406695014145685}
   - {fileID: 4183851940234243241}
   - {fileID: 8846440441223943934}
   - {fileID: 4890565649951695802}
+  - {fileID: 4389033491855740370}
+  - {fileID: 8310406695014145685}
+  - {fileID: 4197683245214701733}
   - {fileID: 8741177467162054113}
   - {fileID: 6254141354047242925}
+  - {fileID: 88209868974879693}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -606,7 +605,10 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584277489084758838
+  _initializedTimestamp: -8584264534590463258
+  _localLevelOfDetailCalculationType: 0
+  _useLevelOfDetail: 0
+  _useRootLevelOfDetail: 1
   NetworkObserver: {fileID: 0}
   _enablePrediction: 0
   _predictionType: 0
@@ -622,12 +624,12 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 20
+  <PrefabId>k__BackingField: 1
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 2836306825777377454
   SceneId: 0
   SerializedTransformProperties:
-    Position: {x: 0, y: 0, z: 0}
+    Position: {x: 0, y: -0, z: 0}
     Rotation: {x: 0, y: 0, z: 0, w: 1}
     Scale: {x: 1, y: 1, z: 1}
     IsValid: 1
@@ -734,7 +736,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42b4c392f2e4e409a85a22f808574fa0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 11
+  _componentIndexCache: 9
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
   meshRenderers:
@@ -786,7 +788,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 418ff8935befd42eca3c7d1f3e5168c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 8
+  _componentIndexCache: 3
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
   defaultWeapon: {fileID: 11400000, guid: 48e941893a48a4bb8855fa5adce7fcd3, type: 2}
@@ -803,7 +805,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 43cad787015f841cca5a450dcd7bfec6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PawnAmmo
-  _componentIndexCache: 9
+  _componentIndexCache: 4
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
 --- !u!114 &4890565649951695802
@@ -818,7 +820,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1242a14260c094d628c79bf04291369f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 10
+  _componentIndexCache: 5
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
   pawn: {fileID: 3390302888177528954}
@@ -870,9 +872,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2ec4658d6b324d4996c38f6c23fab9a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PawnKnockback
-  _componentIndexCache: 255
+  _componentIndexCache: 6
   _addedNetworkObject: {fileID: 8049762553664656302}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 8049762553664656302}
   pawn: {fileID: 3390302888177528954}
   movement: {fileID: 1975820720333990052}
   input: {fileID: 0}

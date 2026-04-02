@@ -80790,6 +80790,9 @@ MonoBehaviour:
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
   _initializedTimestamp: 0
+  _localLevelOfDetailCalculationType: 0
+  _useLevelOfDetail: 0
+  _useRootLevelOfDetail: 1
   NetworkObserver: {fileID: 0}
   _enablePrediction: 0
   _predictionType: 0
@@ -203716,6 +203719,9 @@ MonoBehaviour:
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
   _initializedTimestamp: 0
+  _localLevelOfDetailCalculationType: 0
+  _useLevelOfDetail: 0
+  _useRootLevelOfDetail: 1
   NetworkObserver: {fileID: 0}
   _enablePrediction: 0
   _predictionType: 0
@@ -227297,6 +227303,14 @@ PrefabInstance:
       propertyPath: InitializedParentNetworkBehaviour
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 4586693265834254295, guid: 8d8f6887f8cde42448949849b88ca701, type: 3}
+      propertyPath: botPawnPrefab
+      value: 
+      objectReference: {fileID: 7718353176031296458, guid: 72028ba560df64c94ad5075a1b37ed4d, type: 3}
+    - target: {fileID: 4586693265834254295, guid: 8d8f6887f8cde42448949849b88ca701, type: 3}
+      propertyPath: humanPawnPrefab
+      value: 
+      objectReference: {fileID: 7121626455967874014, guid: 4163e66ff070a4d4396209fb4709e9a2, type: 3}
     - target: {fileID: 6919604355210352237, guid: 8d8f6887f8cde42448949849b88ca701, type: 3}
       propertyPath: SceneId
       value: 4153916796

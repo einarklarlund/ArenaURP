@@ -5,7 +5,6 @@ using FishNet.Managing.Timing;
 using UnityEngine;
 using FishNet.Connection;
 using FishNet.Serializing;
-using System.Linq;
 
 [Serializable]
 public struct BulletData
@@ -23,6 +22,7 @@ public struct BulletData
     public NetworkPlayer Firer;
 }
 
+// TODO - componentize these bullets
 public class Bullet : NetworkBehaviour
 {
     [Header("Projectile Settings")]
@@ -31,6 +31,7 @@ public class Bullet : NetworkBehaviour
     [SerializeField] protected int damage = 10;
     [SerializeField] protected float lifetime = 5f;
     [SerializeField] protected LayerMask hitLayers = Physics.AllLayers;
+    [SerializeField] protected bool deflectOtherBullets = false;
 
     [Header("Capsule Dimensions")]
     [SerializeField] protected float radius = 0.05f;
@@ -38,6 +39,10 @@ public class Bullet : NetworkBehaviour
     [SerializeField] protected int directionAxis = 2;
 
     public BulletData data;
+
+    public float Lifetime => lifetime;
+    
+    private CapsuleCollider deflectionCollider;
 
     public override void WritePayload(NetworkConnection connection, Writer writer)
     {
@@ -73,6 +78,21 @@ public class Bullet : NetworkBehaviour
         data = bulletData;
         float elapsed = (float)InstanceFinder.TimeManager.TimePassed(data.PreciseTick);
         transform.position = CalculateKinematicPosition(elapsed);
+
+        if (deflectOtherBullets)
+            AddDeflectionCollider();
+    }
+
+    private void AddDeflectionCollider()
+    {
+        if (deflectionCollider != null)
+            return;
+
+        deflectionCollider = gameObject.AddComponent<CapsuleCollider>();
+        deflectionCollider.radius = radius;
+        deflectionCollider.height = height;
+        deflectionCollider.direction = directionAxis;
+        deflectionCollider.isTrigger = true;
     }
 
     protected virtual void GetCapsulePoints(Vector3 center, out Vector3 p1, out Vector3 p2)
@@ -128,15 +148,25 @@ public class Bullet : NetworkBehaviour
     protected virtual bool CheckCollision(Vector3 velocity, float deltaTime)
     {
         float stepDistance = velocity.magnitude * deltaTime;
+        var vel = velocity == Vector3.zero ? Vector3.forward : velocity.normalized;
+        bool hasCollided = false;
         GetCapsulePoints(transform.position, out Vector3 p1, out Vector3 p2);
 
-        var hits = Physics.CapsuleCastAll(p1, p2, radius, velocity.normalized, stepDistance + 0.05f, hitLayers);
-        bool hasCollided = false;
+        var hits = Physics.CapsuleCastAll(p1, p2, radius, vel, stepDistance + 0.05f, hitLayers);
         foreach (var hit in hits)
         {
+            if (hit.collider.TryGetComponent<Bullet>(out var otherBullet))
+            {
+                // other bullets don't count as collisions
+                if (otherBullet != this && otherBullet.deflectOtherBullets)
+                    Deflect(otherBullet, hit);
+                continue;
+            }
+
             if (hit.collider.TryGetComponent<IDamageable>(out var damageable))
             {
-                if (!ShouldIgnoreCollision(damageable))
+                // don't hit the owner of the bullet
+                if (!(damageable is Pawn pawn && pawn.ControllingPlayer.Value == data.Firer))
                 {
                     HandleHitDamageable(hit, damageable);
                     hasCollided = true;
@@ -151,12 +181,34 @@ public class Bullet : NetworkBehaviour
         return hasCollided;
     }
 
-    /// <summary>
-    /// Ignore collisions with the pawn controlled by the firer so bullets
-    /// don't immediately hit the shooter.
-    /// </summary>
-    private bool ShouldIgnoreCollision(IDamageable damageable) =>
-        damageable is Pawn pawn && pawn.ControllingPlayer.Value == data.Firer;
+    protected virtual void Deflect(Bullet otherBullet, RaycastHit hit)
+    {
+        // client-authoritative for now
+        if (!IsOwner) return;
+
+        PreciseTick tick = TimeManager.GetPreciseTick(TimeManager.Tick);
+        Vector3 reflectedDirection = otherBullet.data.StartDirection;
+        // move capsule so that it doesn't overlap with the hit point
+        Vector3 startPosition = hit.point;
+        startPosition += (height / 2 + 0.01f) * reflectedDirection;
+
+        // todo - use object pooling
+        var newBullet = Instantiate(this, startPosition, Quaternion.LookRotation(reflectedDirection));
+
+        newBullet.data = new()
+        {
+            PreciseTick = tick,
+            StartDirection = reflectedDirection,
+            StartPosition = startPosition,
+            ID = Guid.NewGuid().ToString()
+        };
+        newBullet.data.Firer = otherBullet.data.Firer;
+
+        Spawn(newBullet, otherBullet.Owner);
+
+        if (IsSpawned)
+            Despawn(this);
+    }
 
     /// <summary>
     /// Hit behaviour that runs when a damageable has been hit.

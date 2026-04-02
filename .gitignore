@@ -108,3 +108,6 @@ InitTestScene*.unity*
 */node_modules
 */package-lock.json
 */package.json
+
+# scene recovery files
+*/_Recovery*

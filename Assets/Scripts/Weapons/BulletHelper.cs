@@ -20,7 +20,7 @@ public static class BulletHelper
         {
             PreciseTick = InstanceFinder.TimeManager.GetPreciseTick(TickType.Tick),
             StartDirection = fireDir,
-            StartPosition = firePoint.position,
+            StartPosition = firePoint.TransformPoint(weaponData.SpawnPositionOffset),
             ID = Guid.NewGuid().ToString()
         };
         return spawnState;

@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5647601902210038451}
   - component: {fileID: 4174127168352624721}
   - component: {fileID: 61803093793798684}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Visuals
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -102,7 +102,7 @@ GameObject:
   - component: {fileID: 5305605185445926192}
   - component: {fileID: -339553929967437806}
   - component: {fileID: -5144092180893098716}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Bolt
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -147,6 +147,8 @@ MonoBehaviour:
   hitLayers:
     serializedVersion: 2
     m_Bits: 4294967295
+  spawnPositionOffset: {x: 0, y: 0, z: 0}
+  deflectOtherBullets: 0
   radius: 0.2
   height: 1
   directionAxis: 2
@@ -186,7 +188,10 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584279226664062878
+  _initializedTimestamp: -8584264534590463258
+  _localLevelOfDetailCalculationType: 0
+  _useLevelOfDetail: 0
+  _useRootLevelOfDetail: 1
   NetworkObserver: {fileID: 0}
   _enablePrediction: 0
   _predictionType: 0
@@ -202,7 +207,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 8
+  <PrefabId>k__BackingField: 9
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 5982621741200110363
   SceneId: 0

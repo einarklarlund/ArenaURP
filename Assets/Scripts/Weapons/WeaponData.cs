@@ -15,6 +15,7 @@ public class WeaponData : ScriptableObject
     public FireMode FireMode = FireMode.Automatic;
     public float FireRate = 0.1f;
     public int AmmoPerFire = 1;
+    public Vector3 SpawnPositionOffset = Vector3.zero;
 
     [Header("Burst Settings")]
     public int ShotsPerFire = 1; // Total times it "pulses" per click

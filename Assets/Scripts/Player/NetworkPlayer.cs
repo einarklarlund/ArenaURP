@@ -36,7 +36,7 @@ public sealed class NetworkPlayer : NetworkBehaviour
         if (IsBot)
             GiveOwnership(InstanceFinder.ClientManager.Connection);
 
-        if (!IsOwner) return;
+        if (!IsOwner || IsBot) return;
 
         LocalInstance = this;
     }
