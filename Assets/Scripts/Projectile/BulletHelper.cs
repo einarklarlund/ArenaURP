@@ -9,14 +9,14 @@ public static class BulletHelper
     /// Creates a BulletData with spread applied. Uses the provided spread angle
     /// (which may have been modified by WeaponProcessor) instead of reading from WeaponData directly.
     /// </summary>
-    public static BulletData GetSpawnState(
+    public static BulletSpawnState GetSpawnState(
         WeaponData weaponData, Transform firePoint, int index, int total, float spreadAngle)
     {
         Vector3 fireDir = CalculateSpread(
             weaponData.SpreadType, weaponData.ProjectilesPerShot,
             spreadAngle, firePoint, index, total);
 
-        BulletData spawnState = new()
+        BulletSpawnState spawnState = new()
         {
             PreciseTick = InstanceFinder.TimeManager.GetPreciseTick(TickType.Tick),
             StartDirection = fireDir,
@@ -29,7 +29,7 @@ public static class BulletHelper
     /// <summary>
     /// Original overload for backward compatibility. Reads spread angle from WeaponData.
     /// </summary>
-    public static BulletData GetSpawnState(
+    public static BulletSpawnState GetSpawnState(
         WeaponData weaponData, Transform firePoint, int index, int total)
     {
         return GetSpawnState(weaponData, firePoint, index, total, weaponData.SpreadAngle);

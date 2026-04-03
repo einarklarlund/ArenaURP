@@ -92,12 +92,12 @@ public class PawnWeapon : NetworkBehaviour
                 false
             );
 
-            if (nob.TryGetComponent<Bullet>(out var bullet))
+            if (nob.TryGetComponent<ProjectileData>(out var bullet))
             {
-                var bulletData = BulletHelper.GetSpawnState(
+                var bulletSpawnState = BulletHelper.GetSpawnState(
                     currentWeapon, firePoint, i, count, spreadAngle);
-                bulletData.Firer = pawn.ControllingPlayer.Value;
-                bullet.data = bulletData;
+                bulletSpawnState.Firer = pawn.ControllingPlayer.Value;
+                bullet.spawnState = bulletSpawnState;
             }
 
             InstanceFinder.ServerManager.Spawn(nob, Owner);

@@ -80,6 +80,10 @@ PrefabInstance:
       propertyPath: input
       value: 
       objectReference: {fileID: 6882340550727723747}
+    - target: {fileID: 4183851940234243241, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: defaultWeapon
+      value: 
+      objectReference: {fileID: 11400000, guid: 48e941893a48a4bb8855fa5adce7fcd3, type: 2}
     - target: {fileID: 4389033491855740370, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: input
       value: 

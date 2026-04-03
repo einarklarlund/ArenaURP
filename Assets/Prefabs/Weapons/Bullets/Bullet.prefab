@@ -152,7 +152,7 @@ MonoBehaviour:
   radius: 0.3
   height: 1
   directionAxis: 2
-  data:
+  spawnState:
     ID: 
     StartDirection: {x: 0, y: 0, z: 0}
     StartPosition: {x: 0, y: 0, z: 0}
