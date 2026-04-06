@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using FishNet;
+using FishNet.Managing.Timing;
 using FishNet.Object;
 using UnityEngine;
 
@@ -92,12 +94,16 @@ public class PawnWeapon : NetworkBehaviour
                 false
             );
 
-            if (nob.TryGetComponent<ProjectileData>(out var bullet))
+            if (nob.TryGetComponent<ProjectileData>(out var bullet) &&
+                nob.TryGetComponent<ProjectileState>(out var state))
             {
-                var bulletSpawnState = BulletHelper.GetSpawnState(
-                    currentWeapon, firePoint, i, count, spreadAngle);
-                bulletSpawnState.Firer = pawn.ControllingPlayer.Value;
-                bullet.spawnState = bulletSpawnState;
+                var fireDir = WeaponHelper.CalculateSpread(currentWeapon, firePoint, 0, currentWeapon.ProjectilesPerShot);
+                state.PreciseTick    = InstanceFinder.TimeManager.GetPreciseTick(TickType.Tick);
+                state.StartDirection = fireDir;
+                state.StartPosition  = firePoint.TransformPoint(currentWeapon.SpawnPositionOffset);
+                state.ID             = Guid.NewGuid().ToString();
+                state.Firer = pawn.ControllingPlayer.Value;
+                state.Health = bullet.MaxHealth;
             }
 
             InstanceFinder.ServerManager.Spawn(nob, Owner);

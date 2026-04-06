@@ -11,6 +11,16 @@ GameObject:
   - component: {fileID: 7950980281138853418}
   - component: {fileID: 4207385163495234472}
   - component: {fileID: 7284545159546586708}
+  - component: {fileID: 2576231562385131500}
+  - component: {fileID: 5517405044674680376}
+  - component: {fileID: 9016115828691032018}
+  - component: {fileID: 7724474759346574540}
+  - component: {fileID: 1374761772881782439}
+  - component: {fileID: 3985989393766370792}
+  - component: {fileID: 6507090124792503081}
+  - component: {fileID: 1350978151427517312}
+  - component: {fileID: 2074055353476924946}
+  - component: {fileID: 4866613856931538426}
   m_Layer: 9
   m_Name: Sledgehammer Swing
   m_TagString: Untagged
@@ -52,18 +62,18 @@ MonoBehaviour:
   acceleration: 0
   damage: 24
   lifetime: 0.23
+  spawnOnDeath: []
   hitLayers:
     serializedVersion: 2
     m_Bits: 896
   deflectOtherBullets: 1
+  MaxHealth: 1
+  impactVfx: []
+  spawnOnDamageableImpact: []
+  spawnOnAnyImpact: []
   radius: 0.05
   height: 0.2
   directionAxis: 2
-  data:
-    ID: 
-    StartDirection: {x: 0, y: 0, z: 0}
-    StartPosition: {x: 0, y: 0, z: 0}
-    Firer: {fileID: 0}
 --- !u!114 &7284545159546586708
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -84,6 +94,13 @@ MonoBehaviour:
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
   - {fileID: 4207385163495234472}
+  - {fileID: 2576231562385131500}
+  - {fileID: 5517405044674680376}
+  - {fileID: 9016115828691032018}
+  - {fileID: 7724474759346574540}
+  - {fileID: 1374761772881782439}
+  - {fileID: 6507090124792503081}
+  - {fileID: 1350978151427517312}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -94,17 +111,17 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584264446201737108
+  _initializedTimestamp: -8584261168600446478
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
   NetworkObserver: {fileID: 0}
-  _enablePrediction: 0
-  _predictionType: 0
+  _enablePrediction: 1
+  _predictionType: 1
   _localReconcileCorrectionType: 2
   _graphicalObject: {fileID: 0}
   _detachGraphicalObject: 0
-  _enableStateForwarding: 1
+  _enableStateForwarding: 0
   _networkTransform: {fileID: 0}
   _ownerInterpolation: 1
   _ownerSmoothedProperties: 255
@@ -113,12 +130,192 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 5
+  <PrefabId>k__BackingField: 22
   <SpawnableCollectionId>k__BackingField: 0
-  <AssetPathHash>k__BackingField: 3912032390013037521
+  <AssetPathHash>k__BackingField: 14385930165654816161
   SceneId: 0
   SerializedTransformProperties:
     Position: {x: 0, y: 0, z: 0}
     Rotation: {x: 0, y: 0, z: 0, w: 1}
     Scale: {x: 1, y: 1, z: 1}
     IsValid: 1
+--- !u!114 &2576231562385131500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866916244568625414}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 672e12bba5c17424cb0f23d056bda8ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectileMovement
+  _componentIndexCache: 1
+  _addedNetworkObject: {fileID: 7284545159546586708}
+  _networkObjectCache: {fileID: 7284545159546586708}
+--- !u!114 &5517405044674680376
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866916244568625414}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf7a30ce2021848cb914766136478178, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectileHitEffects
+  _componentIndexCache: 2
+  _addedNetworkObject: {fileID: 7284545159546586708}
+  _networkObjectCache: {fileID: 7284545159546586708}
+--- !u!114 &9016115828691032018
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866916244568625414}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f4615b1e98c8433a8e8685a5100007f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectileCollision
+  _componentIndexCache: 3
+  _addedNetworkObject: {fileID: 7284545159546586708}
+  _networkObjectCache: {fileID: 7284545159546586708}
+--- !u!114 &7724474759346574540
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866916244568625414}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8d2270fd34ed49be990ccc8ec401ae5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Projectile
+  _componentIndexCache: 4
+  _addedNetworkObject: {fileID: 7284545159546586708}
+  _networkObjectCache: {fileID: 7284545159546586708}
+--- !u!114 &1374761772881782439
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866916244568625414}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22c1354782ea54acabc9805383fb193b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectileState
+  _componentIndexCache: 5
+  _addedNetworkObject: {fileID: 7284545159546586708}
+  _networkObjectCache: {fileID: 7284545159546586708}
+  ID: 
+  StartDirection: {x: 0, y: 0, z: 0}
+  StartPosition: {x: 0, y: 0, z: 0}
+  Firer: {fileID: 0}
+  Health: 0
+--- !u!54 &3985989393766370792
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866916244568625414}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!114 &6507090124792503081
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866916244568625414}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1d5e9e5ea6684544b6005862f2361d0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectileSurfaceImpact
+  _componentIndexCache: 6
+  _addedNetworkObject: {fileID: 7284545159546586708}
+  _networkObjectCache: {fileID: 7284545159546586708}
+--- !u!114 &1350978151427517312
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866916244568625414}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24f4281f98d8c4fdcab0ebf1a6e1815a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectileBulletImpact
+  _componentIndexCache: 7
+  _addedNetworkObject: {fileID: 7284545159546586708}
+  _networkObjectCache: {fileID: 7284545159546586708}
+--- !u!136 &2074055353476924946
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866916244568625414}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.05
+  m_Height: 0.2
+  m_Direction: 2
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &4866613856931538426
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866916244568625414}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40bcde17fa5e03f44b87f9963ac281b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.Prediction.NetworkCollision
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 7284545159546586708}
+  _networkObjectCache: {fileID: 0}
+  MaximumSimultaneousHits: 16
+  AdditionalSize: 0.1
+  Layers:
+    serializedVersion: 2
+    m_Bits: 0

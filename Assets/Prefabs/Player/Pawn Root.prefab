@@ -879,5 +879,5 @@ MonoBehaviour:
   movement: {fileID: 1975820720333990052}
   input: {fileID: 0}
   config:
-    SpeedOnHit: 12
-    MinimumAngleOnHit: 32.5
+    SpeedOnHit: 6
+    MinimumAngleOnHit: 45

@@ -19,12 +19,14 @@ public class MeleeSwingVisual : MonoBehaviour
     private Renderer _renderer;
     private Material _material;
     private ProjectileData _bullet;
+    private ProjectileState _state;
 
     private void Awake()
     {
         _renderer = GetComponent<Renderer>();
         _material = _renderer.material;
         _bullet = GetComponentInParent<ProjectileData>();
+        _state = GetComponentInParent<ProjectileState>();
     }
 
     private void Start()
@@ -38,9 +40,9 @@ public class MeleeSwingVisual : MonoBehaviour
 
     private void Update()
     {
-        if (_bullet == null || _material == null) return;
+        if (_state == null || _material == null) return;
 
-        float elapsed = (float)InstanceFinder.TimeManager.TimePassed(_bullet.spawnState.PreciseTick);
+        float elapsed = (float)InstanceFinder.TimeManager.TimePassed(_state.PreciseTick);
         float progress = Mathf.Clamp01(elapsed / Mathf.Max(_bullet.Lifetime, 0.001f));
         _material.SetFloat(SwingProgressID, progress);
     }

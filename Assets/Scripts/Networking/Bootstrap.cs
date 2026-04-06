@@ -2,6 +2,8 @@ using FishNet.Managing.Client;
 using FishNet.Managing.Server;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using FishNet.Transporting.Tugboat;
+using FishNet.Transporting.CanoeWebRTC;
 
 public class Bootstrap : MonoBehaviour
 {

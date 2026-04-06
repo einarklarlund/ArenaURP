@@ -23,6 +23,7 @@ public class PawnAmmo : NetworkBehaviour {
         AmmoPools[AmmoType.Shell] = 0;
         AmmoPools[AmmoType.Bolt] = 0;
         AmmoPools[AmmoType.Energy] = 0;
+        AmmoPools[AmmoType.Explosive] = 0;
     }
     
     [Server]
