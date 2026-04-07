@@ -104,10 +104,13 @@ InitTestScene*.unity*
 ._.DS_Store
 **/._.DS_Store
 
-# node build files
+# Node build files
 */node_modules
 */package-lock.json
 */package.json
 
-# scene recovery files
+# Scene recovery files
 */_Recovery*
+
+# Profiler captures
+ProfilerCaptures/*

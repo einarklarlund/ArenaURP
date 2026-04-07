@@ -17,6 +17,7 @@ public class PawnWeapon : NetworkBehaviour
     [SerializeField] private Transform firePoint;
     [SerializeField] private PawnAmmo pawnAmmo;
     [SerializeField] private PawnInput input;
+    [SerializeField] private Collider pawnCollider;
 
     // API
     public readonly List<WeaponModifier> Modifiers = new();
@@ -104,6 +105,11 @@ public class PawnWeapon : NetworkBehaviour
                 state.ID             = Guid.NewGuid().ToString();
                 state.Firer = pawn.ControllingPlayer.Value;
                 state.Health = bullet.MaxHealth;
+            }
+
+            if (nob.TryGetComponent<Collider>(out var bulletCollider))
+            {
+                Physics.IgnoreCollision(pawnCollider, bulletCollider);
             }
 
             InstanceFinder.ServerManager.Spawn(nob, Owner);

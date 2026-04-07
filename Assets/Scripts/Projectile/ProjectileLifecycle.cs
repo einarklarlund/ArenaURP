@@ -28,19 +28,6 @@ public class ProjectileLifecycle : NetworkBehaviour
 
         if (collision != null)
             collision.PostSpawnSetup();
-
-        IgnoreOwnerCollision();
-    }
-
-    private void IgnoreOwnerCollision()
-    {
-        var myCollider = GetComponent<Collider>();
-        Pawn firer = state.Firer != null ? state.Firer.ControlledPawn.Value : null;
-        if (myCollider != null && firer != null)
-        {
-            foreach (var col in firer.GetComponentsInChildren<Collider>())
-                Physics.IgnoreCollision(myCollider, col);
-        }
     }
 
     public void Kill()

@@ -605,7 +605,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584264534590463258
+  _initializedTimestamp: -8584260971138902628
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -624,7 +624,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 1
+  <PrefabId>k__BackingField: 2
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 2836306825777377454
   SceneId: 0
@@ -828,6 +828,7 @@ MonoBehaviour:
   firePoint: {fileID: 5178310690769963987}
   pawnAmmo: {fileID: 8846440441223943934}
   input: {fileID: 0}
+  pawnCollider: {fileID: 7538533630776666726}
 --- !u!1 &5972829445371107754
 GameObject:
   m_ObjectHideFlags: 0

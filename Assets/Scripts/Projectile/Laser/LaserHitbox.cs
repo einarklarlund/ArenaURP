@@ -19,6 +19,7 @@ public class LaserHitbox : ProjectileHitbox
     {
         base.Awake();
         _state = GetComponent<ProjectileState>();
+        PostSpawnSetup();
     }
 
     public override void PostSpawnSetup()
@@ -63,26 +64,16 @@ public class LaserHitbox : ProjectileHitbox
         GetCapsulePoints(transform.position, out Vector3 p1, out Vector3 p2);
 
         var hits = Physics.CapsuleCastAll(p1, p2, data.radius, vel, stepDistance + 0.05f, data.hitLayers);
-        HandleHits(hits, velocity);
+        HandleHits(hits);
     }
 
 
-    private void HandleHits(RaycastHit[] hits, Vector3 velocity)
+    private void HandleHits(RaycastHit[] hits)
     {
         List<HitInfo> surfaceHits = new();
         foreach (var hit in hits)
         {
             var hitInfo = HitInfo.FromRaycast(hit);
-
-            if (hit.collider.TryGetComponent<ProjectileData>(out var otherBullet))
-            {
-                if (otherBullet != data && otherBullet.deflectOtherBullets)
-                {
-                    var otherState = otherBullet.GetComponent<ProjectileState>();
-                    projectileBulletImpact.HandleImpact(otherState, hitInfo);
-                }
-                continue;
-            }
 
             if (hit.collider.TryGetComponent<IDamageable>(out var damageable))
             {
@@ -92,16 +83,6 @@ public class LaserHitbox : ProjectileHitbox
             {
                 surfaceHits.Add(hitInfo);
             }
-        }
-        if (surfaceHits.Count > 0)
-        {
-            projectileSurfaceImpact.HandleImpact(new HitInfo
-            {
-                point = surfaceHits.Select(h => h.point).Aggregate(Vector3.zero, (acc, v) => acc + v) / surfaceHits.Count,
-                normal = surfaceHits.Select(h => h.normal).Aggregate(Vector3.zero, (acc, v) => acc + v) / surfaceHits.Count,
-                collider = surfaceHits[0].collider,
-                transform = surfaceHits[0].transform
-            });
         }
     }
 }

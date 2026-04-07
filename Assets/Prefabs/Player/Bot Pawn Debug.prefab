@@ -18,7 +18,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2020105714796687385, guid: 1e080908070fd4c2f88339d02ea9b049, type: 3}
       propertyPath: <PrefabId>k__BackingField
-      value: 21
+      value: 23
       objectReference: {fileID: 0}
     - target: {fileID: 2020105714796687385, guid: 1e080908070fd4c2f88339d02ea9b049, type: 3}
       propertyPath: <AssetPathHash>k__BackingField
@@ -83,7 +83,7 @@ PrefabInstance:
     - target: {fileID: 5309282411675160350, guid: 1e080908070fd4c2f88339d02ea9b049, type: 3}
       propertyPath: defaultWeapon
       value: 
-      objectReference: {fileID: 11400000, guid: 48e941893a48a4bb8855fa5adce7fcd3, type: 2}
+      objectReference: {fileID: 11400000, guid: 2fd0ba9be3752431cac98a757fd4c059, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

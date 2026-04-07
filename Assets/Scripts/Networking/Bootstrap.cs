@@ -10,6 +10,7 @@ public class Bootstrap : MonoBehaviour
     enum BuildStage
     {
         None,
+        Local,
         Dev,
         Prod,
     }
@@ -33,7 +34,12 @@ public class Bootstrap : MonoBehaviour
         }
         if (EnforceBuildStage == BuildStage.Dev)
         {
-            StartProdBootstrap();
+            StartDevBootstrap();
+            return;
+        }
+        if(EnforceBuildStage == BuildStage.Local)
+        {
+            StartLocalBootstrap();
             return;
         }
 
@@ -45,10 +51,10 @@ public class Bootstrap : MonoBehaviour
         StartProdBootstrap();
         #endif
     }
-
-    #if DEVELOPMENT_BUILD || UNITY_EDITOR
     void StartDevBootstrap()
     {
+        #if DEVELOPMENT_BUILD || UNITY_EDITOR
+
         Destroy(prodNetworkManagerObject);
         Debug.Log("Start dev bootstrap");
 
@@ -77,8 +83,20 @@ public class Bootstrap : MonoBehaviour
         #endif
 
         uiManagerObject.SetActive(true);
+
+        #endif
     }
-    #endif
+
+    void StartLocalBootstrap()
+    {
+        Destroy(prodNetworkManagerObject);
+        var tugboat = debugNetworkManagerObject.GetComponent<Tugboat>();
+        DestroyImmediate(tugboat);
+        debugNetworkManagerObject.AddComponent<CanoeWebRTC>();
+        debugNetworkManagerObject.SetActive(true);
+        SceneManager.LoadScene(offlineSceneName);
+        uiManagerObject.SetActive(true);
+    }
 
     void StartProdBootstrap()
     {

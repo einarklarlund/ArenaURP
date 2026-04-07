@@ -28,7 +28,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.3, y: 0.3, z: 0.8}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7879899140674203278}
@@ -129,7 +129,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.3, y: 0.3, z: 0.8}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5647601902210038451}
@@ -193,6 +193,7 @@ MonoBehaviour:
   - {fileID: 5306217788609577396}
   - {fileID: 4469537424136684361}
   - {fileID: -433223960090627475}
+  - {fileID: 6659026778831328124}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -203,7 +204,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584261168600446478
+  _initializedTimestamp: -8584260971138902628
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -211,15 +212,15 @@ MonoBehaviour:
   _enablePrediction: 1
   _predictionType: 1
   _localReconcileCorrectionType: 2
-  _graphicalObject: {fileID: 0}
-  _detachGraphicalObject: 0
-  _enableStateForwarding: 0
+  _graphicalObject: {fileID: 5647601902210038451}
+  _detachGraphicalObject: 1
+  _enableStateForwarding: 1
   _networkTransform: {fileID: 0}
-  _ownerInterpolation: 1
+  _ownerInterpolation: 4
   _ownerSmoothedProperties: 255
-  _adaptiveInterpolation: 3
+  _adaptiveInterpolation: 6
   _spectatorSmoothedProperties: 255
-  _spectatorInterpolation: 2
+  _spectatorInterpolation: 5
   _enableTeleport: 0
   _teleportThreshold: 1
   <PrefabId>k__BackingField: 21
@@ -229,7 +230,7 @@ MonoBehaviour:
   SerializedTransformProperties:
     Position: {x: 0, y: 0, z: 0}
     Rotation: {x: 0, y: 0, z: 0, w: 1}
-    Scale: {x: 0.3, y: 0.3, z: 0.8}
+    Scale: {x: 1, y: 1, z: 1}
     IsValid: 1
 --- !u!114 &3440744385902357692
 MonoBehaviour:
@@ -401,9 +402,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 40bcde17fa5e03f44b87f9963ac281b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.Prediction.NetworkCollision
-  _componentIndexCache: 255
+  _componentIndexCache: 8
   _addedNetworkObject: {fileID: -5308844220977001481}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: -5308844220977001481}
   MaximumSimultaneousHits: 16
   AdditionalSize: 0.1
   Layers:

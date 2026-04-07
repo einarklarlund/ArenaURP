@@ -11765,6 +11765,7 @@ MonoBehaviour:
   - {fileID: 1604454257070217507}
   - {fileID: -774936758490388826}
   - {fileID: 6516696166453207043}
+  - {fileID: 8581973367180726483}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -11775,7 +11776,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584261168600446478
+  _initializedTimestamp: -8584260971138902628
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -11783,15 +11784,15 @@ MonoBehaviour:
   _enablePrediction: 1
   _predictionType: 1
   _localReconcileCorrectionType: 2
-  _graphicalObject: {fileID: 0}
-  _detachGraphicalObject: 0
-  _enableStateForwarding: 0
+  _graphicalObject: {fileID: 4086387982684939790}
+  _detachGraphicalObject: 1
+  _enableStateForwarding: 1
   _networkTransform: {fileID: 0}
-  _ownerInterpolation: 1
+  _ownerInterpolation: 4
   _ownerSmoothedProperties: 255
-  _adaptiveInterpolation: 3
+  _adaptiveInterpolation: 6
   _spectatorSmoothedProperties: 255
-  _spectatorInterpolation: 2
+  _spectatorInterpolation: 5
   _enableTeleport: 0
   _teleportThreshold: 1
   <PrefabId>k__BackingField: 16
@@ -11973,9 +11974,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 40bcde17fa5e03f44b87f9963ac281b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.Prediction.NetworkCollision
-  _componentIndexCache: 255
+  _componentIndexCache: 8
   _addedNetworkObject: {fileID: 2770152656487450615}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 2770152656487450615}
   MaximumSimultaneousHits: 16
   AdditionalSize: 0.1
   Layers:

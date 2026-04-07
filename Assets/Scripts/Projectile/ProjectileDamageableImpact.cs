@@ -16,23 +16,17 @@ public class ProjectileDamageableImpact : ProjectileImpact
     {
         return damageable is Pawn pawn && pawn.ControllingPlayer.Value == state.Firer;
     }
-
     public void HandleImpact(HitInfo hit, IDamageable damageable)
     {
-        if (IsServerInitialized)
+        if (hit.point == Vector3.zero)
         {
-            foreach (var prefab in data.spawnOnDamageableImpact)
-            {
-                SpawnPrefab(prefab);
-            }
+            hit.normal = hit.transform.position - transform.position;
+            hit.point = hit.collider.ClosestPoint(transform.position);
+        }
 
-            if (hit.point == Vector3.zero)
-            {
-                hit.normal = hit.transform.position - transform.position;
-                hit.point = hit.collider.ClosestPoint(transform.position);
-            }
-
-            if (damageable != null && !ShouldAvoidDamage(damageable))
+        if (damageable != null && !ShouldAvoidDamage(damageable))
+        {
+            if (IsServerInitialized)
             {
                 DamageInfo info = new()
                 {
@@ -45,10 +39,17 @@ public class ProjectileDamageableImpact : ProjectileImpact
                 damageable.ServerTakeDamage(info);
                 lifecycle.Kill();
             }
-        }
-        else
-        {
-            ActivateVfx();
+            else
+            {
+                ActivateVfx();
+                HideVisuals();
+            }
+
+            // predicted spawn?
+            foreach (var prefab in data.spawnOnDamageableImpact)
+            {
+                SpawnPrefab(prefab);
+            }
         }
     }
 }

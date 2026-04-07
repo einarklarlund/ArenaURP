@@ -8,15 +8,15 @@ public class PawnBodySpawner : NetworkBehaviour
     [SerializeField] private float speedOnDeath = 17f;
     [SerializeField] private float rotationalSpeedOnDeath = 5f;
 
-    public override void OnStartServer()
+    public override void OnStartClient()
     {
-        base.OnStartServer();
+        base.OnStartClient();
         pawnManager.OnPawnKilled += HandlePawnKilled;
     }
 
     private void HandlePawnKilled(Pawn pawn, DamageInfo damageInfo)
     {
-        ObserversInstantiateBody
+        InstantiateBody
         (
             pawn.transform.position,
             pawn.transform.rotation,
@@ -25,8 +25,7 @@ public class PawnBodySpawner : NetworkBehaviour
         );
     }
 
-    [ObserversRpc]
-    private void ObserversInstantiateBody(Vector3 position, Quaternion rotation, Vector3 torqueAxis, Vector3 velocityDir)
+    private void InstantiateBody(Vector3 position, Quaternion rotation, Vector3 torqueAxis, Vector3 velocityDir)
     {
         var rb = Instantiate(bodyPrefab, position, rotation);
         rb.AddForce(speedOnDeath * velocityDir, ForceMode.VelocityChange);

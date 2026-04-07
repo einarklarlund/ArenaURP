@@ -816,7 +816,7 @@ PlayerSettings:
   webGLShowDiagnostics: 0
   webGLDataCaching: 1
   webGLDebugSymbols: 0
-  webGLEmscriptenArgs: 
+  webGLEmscriptenArgs: -s STACK_SIZE=1048576
   webGLModulesDirectory: 
   webGLTemplate: APPLICATION:Default
   webGLAnalyzeBuildSize: 0
