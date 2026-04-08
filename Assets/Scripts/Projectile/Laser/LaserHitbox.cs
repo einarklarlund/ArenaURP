@@ -43,7 +43,7 @@ public class LaserHitbox : ProjectileHitbox
         }
     }
 
-    public override void GetCapsulePoints(Vector3 center, out Vector3 p1, out Vector3 p2)
+    private void GetCapsulePoints(Vector3 center, out Vector3 p1, out Vector3 p2)
     {
         p1 = center;
         p2 = center + transform.forward * data.height;

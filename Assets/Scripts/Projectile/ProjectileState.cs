@@ -20,21 +20,14 @@ public class ProjectileState : NetworkBehaviour
     /// NetworkBehaviour payload pattern so clients receive the reference on spawn.
     /// </summary>
     public NetworkPlayer Firer;
-    public int Health;
+    public int Health; // should be a syncvar
 
     private ProjectileLifecycle _projectile;
-    private bool isPayloadRead = false;
 
     private void Awake()
     {
         _projectile = GetComponent<ProjectileLifecycle>();
     }
-
-    private void OnDisable()
-    {
-        isPayloadRead = false;
-    }
-
     public override void WritePayload(NetworkConnection connection, Writer writer)
     {
         base.WritePayload(connection, writer);
@@ -56,7 +49,6 @@ public class ProjectileState : NetworkBehaviour
         Firer          = reader.ReadNetworkBehaviour() as NetworkPlayer;
         Health         = reader.ReadInt32();
 
-        isPayloadRead = true;
         _projectile.Initialize();
     }
 
@@ -69,7 +61,7 @@ public class ProjectileState : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
-        if (!IsOwner || isPayloadRead)
+        if (!IsOwner)
             return;
 
         // Predict bullet state

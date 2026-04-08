@@ -50,19 +50,6 @@ public class ProjectileHitbox : NetworkBehaviour
     /// </summary>
     public virtual void PostSpawnSetup() { }
 
-    public virtual void GetCapsulePoints(Vector3 center, out Vector3 p1, out Vector3 p2)
-    {
-        Vector3 offset = data.directionAxis switch
-        {
-            0 => transform.right,
-            1 => transform.up,
-            _ => transform.forward
-        };
-        float halfHeight = data.height / 2f;
-        p1 = center + offset * halfHeight;
-        p2 = center - offset * halfHeight;
-    }
-
     public virtual void CheckCollision(Vector3 velocity, float deltaTime)
     {
         // Base implementation is empty — collision is handled by NetworkCollision.
@@ -76,6 +63,12 @@ public class ProjectileHitbox : NetworkBehaviour
 
     protected void EnqueueHit(HitInfo hit)
     {
+        if (hit.point == Vector3.zero)
+        {
+            hit.normal = hit.transform.position - transform.position;
+            hit.point = hit.collider.ClosestPoint(transform.position);
+        }
+
         if (hit.collider.TryGetComponent<ProjectileData>(out var otherBullet))
         {
             if (otherBullet != data && otherBullet.deflectOtherBullets)
@@ -115,17 +108,5 @@ public class ProjectileHitbox : NetworkBehaviour
     private void LateUpdate()
     {
         ProcessHitQueue();
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        if (data == null) data = GetComponent<ProjectileData>();
-        if (data == null) return;
-
-        Gizmos.color = Color.red;
-        GetCapsulePoints(transform.position, out Vector3 p1, out Vector3 p2);
-        Gizmos.DrawWireSphere(p1, data.radius);
-        Gizmos.DrawWireSphere(p2, data.radius);
-        Gizmos.DrawLine(p1, p2);
     }
 }

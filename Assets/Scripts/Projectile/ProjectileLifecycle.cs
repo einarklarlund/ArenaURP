@@ -12,6 +12,9 @@ public class ProjectileLifecycle : NetworkBehaviour
     private ProjectileState state;
     private ProjectileMovement movement;
     private ProjectileHitbox collision;
+    private ProjectileVfx vfx;
+    
+    private bool isInitialized;
 
     private void Awake()
     {
@@ -19,6 +22,12 @@ public class ProjectileLifecycle : NetworkBehaviour
         state = GetComponent<ProjectileState>();
         movement = GetComponent<ProjectileMovement>();
         collision = GetComponent<ProjectileHitbox>();
+        vfx = GetComponent<ProjectileVfx>();
+    }
+
+    private void OnDisable()
+    {
+        isInitialized = false;
     }
 
     public void Initialize()
@@ -26,8 +35,13 @@ public class ProjectileLifecycle : NetworkBehaviour
         float elapsed = (float)InstanceFinder.TimeManager.TimePassed(state.PreciseTick);
         movement.SetInitialMotion(elapsed);
 
-        if (collision != null)
-            collision.PostSpawnSetup();
+        if (isInitialized)
+            return;
+
+        collision.PostSpawnSetup();
+
+        vfx.ShowVisuals();
+        isInitialized = true;
     }
 
     public void Kill()
@@ -35,7 +49,7 @@ public class ProjectileLifecycle : NetworkBehaviour
         if (!IsSpawned || state.Health <= 0)
             return;
 
-        state.Health = 0;
+        state.Health = 0; // should be a syncvar
 
         foreach (var prefab in data.spawnOnDeath)
         {
@@ -62,5 +76,24 @@ public class ProjectileLifecycle : NetworkBehaviour
         }
 
         Despawn(DespawnType.Pool);
+        SpawnPrefabs();
+        vfx.HideVisuals();
+    }
+
+    private void SpawnPrefabs()
+    {
+        foreach(var prefab in data.spawnOnDeath)
+        {
+            // predicted spawn?
+            NetworkObject nob = InstanceFinder.NetworkManager.GetPooledInstantiated
+            (
+                prefab,
+                transform.position,
+                transform.rotation,
+                false
+            );
+
+            InstanceFinder.ServerManager.Spawn(nob, Owner);
+        }
     }
 }

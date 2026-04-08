@@ -24,7 +24,6 @@ public class ProjectileData : NetworkBehaviour
 
     [Header("Collision spawning")]
     public List<GameObject> impactVfx;
-    public List<NetworkObject> spawnOnDamageableImpact;
     public List<NetworkObject> spawnOnAnyImpact;
 
     [Header("Capsule Dimensions")]

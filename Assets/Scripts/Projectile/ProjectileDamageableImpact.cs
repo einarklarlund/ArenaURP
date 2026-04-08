@@ -18,12 +18,6 @@ public class ProjectileDamageableImpact : ProjectileImpact
     }
     public void HandleImpact(HitInfo hit, IDamageable damageable)
     {
-        if (hit.point == Vector3.zero)
-        {
-            hit.normal = hit.transform.position - transform.position;
-            hit.point = hit.collider.ClosestPoint(transform.position);
-        }
-
         if (damageable != null && !ShouldAvoidDamage(damageable))
         {
             if (IsServerInitialized)
@@ -37,19 +31,9 @@ public class ProjectileDamageableImpact : ProjectileImpact
                     Type      = DamageType.Bullet
                 };
                 damageable.ServerTakeDamage(info);
-                lifecycle.Kill();
-            }
-            else
-            {
-                ActivateVfx();
-                HideVisuals();
             }
 
-            // predicted spawn?
-            foreach (var prefab in data.spawnOnDamageableImpact)
-            {
-                SpawnPrefab(prefab);
-            }
+            lifecycle.Kill();
         }
     }
 }

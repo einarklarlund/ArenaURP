@@ -56,7 +56,7 @@ MonoBehaviour:
   <PredictedSpawn>k__BackingField: {fileID: 0}
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
-  - {fileID: 9175380077914465224}
+  - {fileID: 0}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects:
   - {fileID: 90218549655823962}
@@ -71,7 +71,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584260971138902628
+  _initializedTimestamp: -8584259425368636868
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -90,7 +90,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 14
+  <PrefabId>k__BackingField: 20
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 8601861249518735017
   SceneId: 0
@@ -250,7 +250,7 @@ MonoBehaviour:
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
   - {fileID: 6086394704126292500}
-  InitializedParentNetworkBehaviour: {fileID: 9175380077914465224}
+  InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
   RuntimeChildNetworkBehaviours: []
@@ -260,7 +260,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584260971138902628
+  _initializedTimestamp: -8584259425368636868
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -368,8 +368,8 @@ MonoBehaviour:
   _componentIndexCache: 0
   _addedNetworkObject: {fileID: 72104867908995955}
   _networkObjectCache: {fileID: 90218549655823962}
-  humanPawnPrefab: {fileID: 8871399434096018864, guid: 15e1575cd91d94569a84442559d95ba8, type: 3}
-  botPawnPrefab: {fileID: 6679574468413641677, guid: 1e080908070fd4c2f88339d02ea9b049, type: 3}
+  humanPawnPrefab: {fileID: 7121626455967874014, guid: 4163e66ff070a4d4396209fb4709e9a2, type: 3}
+  botPawnPrefab: {fileID: 7718353176031296458, guid: 72028ba560df64c94ad5075a1b37ed4d, type: 3}
   spawnPoints:
   - {fileID: 5042788091302459492}
   - {fileID: 4939675746081387526}
@@ -394,7 +394,7 @@ MonoBehaviour:
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
   - {fileID: 4586693265834254295}
-  InitializedParentNetworkBehaviour: {fileID: 9175380077914465224}
+  InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
   RuntimeChildNetworkBehaviours: []
@@ -404,7 +404,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584260971138902628
+  _initializedTimestamp: -8584259425368636868
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -510,7 +510,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584260971138902628
+  _initializedTimestamp: -8584259425368636868
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -587,8 +587,8 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 72104867908995955}
   _networkObjectCache: {fileID: 6919604355210352237}
   RespawnDelay: 3
-  matchDuration: 600
-  maxKills: 4
+  matchDuration: 6000
+  maxKills: 100
 --- !u!114 &6919604355210352237
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -609,7 +609,7 @@ MonoBehaviour:
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
   - {fileID: 2040856623843302717}
-  InitializedParentNetworkBehaviour: {fileID: 9175380077914465224}
+  InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
   RuntimeChildNetworkBehaviours: []
@@ -619,7 +619,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584260971138902628
+  _initializedTimestamp: -8584259425368636868
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1

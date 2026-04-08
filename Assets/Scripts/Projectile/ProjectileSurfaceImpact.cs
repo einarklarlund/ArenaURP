@@ -16,25 +16,18 @@ public class ProjectileSurfaceImpact : ProjectileImpact
 
     public void HandleImpact(HitInfo hit)
     {
-        if (IsServerInitialized)
+        foreach (var prefab in data.spawnOnAnyImpact)
         {
-            foreach (var prefab in data.spawnOnAnyImpact)
-            {
-                SpawnPrefab(prefab);
-            }
+            SpawnPrefab(prefab);
+        }
 
-            if (state.Health > 1)
-            {
-                state.Health--;
-            }
-            else
-            {
-                lifecycle.Kill();
-            }
+        if (state.Health > 1)
+        {
+            state.Health--;
         }
         else
         {
-            ActivateVfx();
+            lifecycle.Kill();
         }
     }
 }

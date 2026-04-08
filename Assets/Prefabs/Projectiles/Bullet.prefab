@@ -28,7 +28,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.6, y: 0.6, z: 1.6}
+  m_LocalScale: {x: 1, y: 0.3, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7879899140674203278}
@@ -113,6 +113,7 @@ GameObject:
   - component: {fileID: 8648759148871932983}
   - component: {fileID: 4300745610121306461}
   - component: {fileID: 8810746683723058882}
+  - component: {fileID: 2524205256914934868}
   m_Layer: 9
   m_Name: Bullet
   m_TagString: Untagged
@@ -162,9 +163,8 @@ MonoBehaviour:
   deflectOtherBullets: 0
   MaxHealth: 1
   impactVfx: []
-  spawnOnDamageableImpact: []
   spawnOnAnyImpact: []
-  radius: 0.3
+  radius: 0.2
   height: 1
   directionAxis: 2
 --- !u!114 &-339553929967437806
@@ -196,6 +196,7 @@ MonoBehaviour:
   - {fileID: 8799787501295776469}
   - {fileID: 8648759148871932983}
   - {fileID: 8810746683723058882}
+  - {fileID: 2524205256914934868}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -206,7 +207,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584260971138902628
+  _initializedTimestamp: -8584259804708104998
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -225,7 +226,7 @@ MonoBehaviour:
   _spectatorInterpolation: 5
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 9
+  <PrefabId>k__BackingField: 12
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 5953843537903817003
   SceneId: 0
@@ -249,7 +250,6 @@ MonoBehaviour:
   _componentIndexCache: 1
   _addedNetworkObject: {fileID: -339553929967437806}
   _networkObjectCache: {fileID: -339553929967437806}
-  _tickCallbacks: 6
 --- !u!114 &553448458854491508
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -408,10 +408,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.3
+  m_Radius: 0.2
   m_Height: 1
-  m_Direction: 2
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Direction: 0
+  m_Center: {x: 0, y: 0, z: 0.25}
 --- !u!114 &8810746683723058882
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -432,6 +432,24 @@ MonoBehaviour:
   Layers:
     serializedVersion: 2
     m_Bits: 0
+--- !u!114 &2524205256914934868
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5204570706634878648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47439c51e71574688bacbc7fccc44094, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectileVfx
+  _componentIndexCache: 10
+  _addedNetworkObject: {fileID: -339553929967437806}
+  _networkObjectCache: {fileID: -339553929967437806}
+  lightningBoltsPrefab: {fileID: 2098084905547113999, guid: dec864e0e03c6444e88846ba1c4d54aa, type: 3}
+  onHitPrefab: {fileID: 4738163658229545523, guid: 0b13acce77c56491592ba3b7cfe40583, type: 3}
+  visuals: {fileID: 5647601902210038451}
 --- !u!1 &7664607775731829085
 GameObject:
   m_ObjectHideFlags: 0
