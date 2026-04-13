@@ -154,7 +154,7 @@ MonoBehaviour:
   roomManager: {fileID: 1132027635}
   offlineSceneName: Offline
   debugSceneName: Debug
-  EnforceBuildStage: 3
+  EnforceBuildStage: 0
 --- !u!4 &118122607
 Transform:
   m_ObjectHideFlags: 0
