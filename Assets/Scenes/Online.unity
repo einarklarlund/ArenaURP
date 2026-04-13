@@ -93,7 +93,7 @@ LightmapSettings:
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
-  m_LightingDataAsset: {fileID: 112000000, guid: 84b0b204d497b420ab14c50de761fc52, type: 2}
+  m_LightingDataAsset: {fileID: 112000002, guid: 5b71c521c5b4a41288adb95a35353e89, type: 2}
   m_LightingSettings: {fileID: 4890085278179872738, guid: 263cd86bc5b5145d2a840a066c042f35, type: 2}
 --- !u!196 &4
 NavMeshSettings:
@@ -27317,7 +27317,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
+  m_BackGroundColor: {r: 0.84, g: 0.84, b: 0.84, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -27343,7 +27343,7 @@ Camera:
   field of view: 60
   orthographic: 0
   orthographic size: 5
-  m_Depth: 0
+  m_Depth: 3
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 32
@@ -86382,7 +86382,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!108 &799234340
 Light:
   m_ObjectHideFlags: 0
@@ -86394,7 +86394,7 @@ Light:
   serializedVersion: 12
   m_Type: 1
   m_Color: {r: 0.98039216, g: 0.91580886, b: 0.7372549, a: 1}
-  m_Intensity: 0.34
+  m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -86456,13 +86456,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 799234339}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
+  m_LocalRotation: {x: 0.88880974, y: -0.10133652, z: 0.23815581, w: 0.37819308}
   m_LocalPosition: {x: 0, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+  m_LocalEulerAnglesHint: {x: 133.9, y: -30, z: 0}
 --- !u!114 &799234342
 MonoBehaviour:
   m_ObjectHideFlags: 0

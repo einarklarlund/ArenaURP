@@ -152,7 +152,7 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: -339553929967437806}
   _networkObjectCache: {fileID: -339553929967437806}
   speed: 60
-  acceleration: -33.33333
+  acceleration: -50
   damage: 22
   lifetime: 1.2
   spawnOnDeath: []
@@ -162,7 +162,6 @@ MonoBehaviour:
   deflectOtherBullets: 0
   MaxHealth: 4
   impactVfx: []
-  spawnOnDamageableImpact: []
   spawnOnAnyImpact: []
   radius: 0.5
   height: 0
@@ -206,7 +205,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584260971138902628
+  _initializedTimestamp: -8584254969279981838
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -225,7 +224,7 @@ MonoBehaviour:
   _spectatorInterpolation: 5
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 11
+  <PrefabId>k__BackingField: 15
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 6931399405632607131
   SceneId: 0
