@@ -625,6 +625,59 @@ public class MovementProcessorTests
     }
 
     // =====================================================================
+    // AlignToSlope (utility method)
+    // =====================================================================
+
+    [Test]
+    public void AlignToSlope_FlatGround_ReturnsUnchanged()
+    {
+        Vector3 velocity = new(0f, 0f, 10f);
+        Vector3 result = MovementProcessor.AlignToSlope(velocity, Vector3.up);
+
+        Assert.AreEqual(velocity, result,
+            "Flat ground normal (Vector3.up) should return velocity unchanged.");
+    }
+
+    [Test]
+    public void AlignToSlope_DownwardSlope_ProducesNegativeY()
+    {
+        Vector3 slopeNormal = Quaternion.Euler(30f, 0f, 0f) * Vector3.up;
+        Vector3 velocity = new(0f, 0f, 10f);
+
+        Vector3 result = MovementProcessor.AlignToSlope(velocity, slopeNormal);
+
+        Assert.Less(result.y, -0.1f,
+            "Moving forward on a downward slope should produce negative Y.");
+        Assert.Greater(result.z, 0f,
+            "Forward component should remain positive.");
+    }
+
+    [Test]
+    public void AlignToSlope_PreservesSpeed()
+    {
+        Vector3 slopeNormal = Quaternion.Euler(30f, 0f, 0f) * Vector3.up;
+        Vector3 velocity = new(0f, 0f, 10f);
+
+        Vector3 result = MovementProcessor.AlignToSlope(velocity, slopeNormal);
+
+        Assert.AreEqual(velocity.magnitude, result.magnitude, 0.01f,
+            "AlignToSlope should preserve the original speed.");
+    }
+
+    [Test]
+    public void AlignToSlope_UpwardSlope_ProducesPositiveY()
+    {
+        // Normal tilts toward -Z (uphill when moving +Z)
+        Vector3 slopeNormal = Quaternion.Euler(-30f, 0f, 0f) * Vector3.up;
+        Vector3 velocity = new(0f, 0f, 10f);
+
+        Vector3 result = MovementProcessor.AlignToSlope(velocity, slopeNormal);
+
+        Assert.Greater(result.y, 0.1f,
+            "Moving forward on an upward slope should produce positive Y.");
+    }
+
+    // =====================================================================
     // Determinism (critical for netcode prediction / replay)
     // =====================================================================
 

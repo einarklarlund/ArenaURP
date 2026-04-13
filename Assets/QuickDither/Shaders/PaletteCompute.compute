@@ -2,6 +2,7 @@
 // Gamma correction and differenceFactor concepts were huge additions
 // https://bisqwit.iki.fi/story/howto/dither/jy/
 
+#pragma kernel CSPrecompute
 #pragma kernel CSMain
 
 float size;
@@ -17,9 +18,60 @@ struct Dithered {
 };
 RWStructuredBuffer<Dithered> palette;
 
-float colDiff(float3 c1, float3 c2) {
-	return (c1.x - c2.x)*(c1.x - c2.x) + (c1.y - c2.y)*(c1.y - c2.y) + (c1.z - c2.z)*(c1.z - c2.z);
+// Precomputed per-palette-entry: mixed color + difference penalty
+struct Precomputed {
+	float3 mixed;
+	float penalty;
+};
+RWStructuredBuffer<Precomputed> precomputed;
+
+float3 rgbToXyz(float3 rgb) {
+	// Linearize sRGB
+	float3 lin;
+	lin.x = (rgb.x > 0.04045) ? pow((rgb.x + 0.055) / 1.055, 2.4) : rgb.x / 12.92;
+	lin.y = (rgb.y > 0.04045) ? pow((rgb.y + 0.055) / 1.055, 2.4) : rgb.y / 12.92;
+	lin.z = (rgb.z > 0.04045) ? pow((rgb.z + 0.055) / 1.055, 2.4) : rgb.z / 12.92;
+	// sRGB -> XYZ (D65)
+	float3 xyz;
+	xyz.x = lin.x * 0.4124564 + lin.y * 0.3575761 + lin.z * 0.1804375;
+	xyz.y = lin.x * 0.2126729 + lin.y * 0.7151522 + lin.z * 0.0721750;
+	xyz.z = lin.x * 0.0193339 + lin.y * 0.1191920 + lin.z * 0.9503041;
+	return xyz;
 }
+
+float labF(float t) {
+	return (t > 0.008856) ? pow(abs(t), 1.0 / 3.0) : (7.787 * t + 16.0 / 116.0);
+}
+
+float3 xyzToLab(float3 xyz) {
+	// D65 white point
+	float3 ref_white = float3(0.95047, 1.0, 1.08883);
+	float3 f;
+	f.x = labF(xyz.x / ref_white.x);
+	f.y = labF(xyz.y / ref_white.y);
+	f.z = labF(xyz.z / ref_white.z);
+	float L = 116.0 * f.y - 16.0;
+	float a = 500.0 * (f.x - f.y);
+	float b = 200.0 * (f.y - f.z);
+	return float3(L, a, b);
+}
+
+float3 rgbToLab(float3 rgb) {
+	return xyzToLab(rgbToXyz(rgb));
+}
+float colDiff(float3 c1, float3 c2) {
+	float3 d = c1 - c2;
+	return d.x * d.x + d.y * d.y + d.z * d.z;
+}
+
+// float colDiff(float3 c1, float3 c2) {
+// 	float3 lab1 = rgbToLab(c1);
+// 	float3 lab2 = rgbToLab(c2);
+// 	float dL = lab1.x - lab2.x;
+// 	float da = lab1.y - lab2.y;
+// 	float db = lab1.z - lab2.z;
+// 	return dL * dL + da * da + db * db;
+// }
 float3 adjustGamma(float3 c) {
 	return float3(pow(abs(c.x), gamma), pow(abs(c.y), gamma), pow(abs(c.z), gamma));
 }
@@ -32,6 +84,19 @@ float3 mix(Dithered col) {
 	return unadjustGamma(gB + (gA-gB) * col.ratio);
 }
 
+// Precompute mixed color and difference penalty per palette entry
+int precomputeOffset;
+[numthreads(64,1,1)]
+void CSPrecompute (uint3 id : SV_DispatchThreadID)
+{
+	int idx = (int)id.x + precomputeOffset;
+	if (idx >= paletteLength) return;
+	Precomputed p;
+	p.mixed = mix(palette[idx]);
+	p.penalty = colDiff(palette[idx].primary.xyz, palette[idx].secondary.xyz) * differenceFactor;
+	precomputed[idx] = p;
+}
+
 [numthreads(8,8,8)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
@@ -41,8 +106,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float ratio = 1.0;
 	float dist = 100000000000.0;
 	for (int i = 0; i < paletteLength; i++) {
-		float diff = colDiff(col, mix(palette[i])) + colDiff(palette[i].primary.xyz,palette[i].secondary.xyz)*differenceFactor;
-		if (diff < dist ) {
+		float diff = colDiff(col, precomputed[i].mixed) + precomputed[i].penalty;
+		if (diff < dist) {
 			primary = palette[i].primary.xyz;
 			secondary = palette[i].secondary.xyz;
 			ratio = palette[i].ratio;

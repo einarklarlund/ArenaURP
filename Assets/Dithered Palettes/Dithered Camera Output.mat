@@ -21,7 +21,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Dithered Camera Output
-  m_Shader: {fileID: -6465566751694194690, guid: 55fbb325aa289884b96761e609413d04, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: 8de4ecab2f8b042ec8bcd8669e77b7e0, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -62,7 +62,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 8400000, guid: 62ba092e569964c30975b28901cdc1a9, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
@@ -82,11 +82,11 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Primary:
-        m_Texture: {fileID: 11700000, guid: 4aa80888f1b33d14485d4519134218fc, type: 2}
+        m_Texture: {fileID: 11700000, guid: 7b59deccbcd415d4085b444f2f43baac, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Secondary:
-        m_Texture: {fileID: 11700000, guid: c0462eda77f92b3458113f4ec05ecf7e, type: 2}
+        m_Texture: {fileID: 11700000, guid: 901d123c75d809047af2078f8a1102cd, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SpecGlossMap:
@@ -126,6 +126,7 @@ Material:
     - _Glossiness: 0
     - _GlossyReflections: 0
     - _Metallic: 0
+    - _NoiseStrength: 0.2
     - _OcclusionStrength: 1
     - _Parallax: 0.005
     - _QueueOffset: 0

@@ -202,6 +202,18 @@ public static class MovementProcessor
     }
 
     /// <summary>
+    /// Projects velocity onto the slope surface so the character follows downhill slopes
+    /// instead of briefly becoming airborne. Preserves speed, only changes direction.
+    /// </summary>
+    public static Vector3 AlignToSlope(Vector3 velocity, Vector3 groundNormal)
+    {
+        if (groundNormal == Vector3.up)
+            return velocity;
+
+        return Vector3.ProjectOnPlane(velocity, groundNormal).normalized * velocity.magnitude;
+    }
+
+    /// <summary>
     /// Jump velocity derived from desired peak height: v = sqrt(-1 * h * g).
     /// </summary>
     public static float GetJumpYVelocity(in MovementConfig config, float jumpMult = 1f)

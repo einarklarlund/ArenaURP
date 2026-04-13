@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
+using UnityEngine.Rendering;
+using System.Diagnostics;
 
 namespace QuickDither {
 
@@ -35,10 +36,19 @@ namespace QuickDither {
             }
         }
         public Texture3D[] Generate() {
+            var sw = Stopwatch.StartNew();
             Texture3D[] output = new Texture3D[2];
             RenderTexture[] rtArr = GenerateRT(palette, size, ditherDepth, differenceFactor, gamma, paletteShader);
+            UnityEngine.Debug.Log($"[QuickDither] GenerateRT total: {sw.ElapsedMilliseconds}ms");
+
+            sw.Restart();
             output[0] = RenderTextureToTexture3D(rtArr[0]);
+            UnityEngine.Debug.Log($"[QuickDither] RenderTextureToTexture3D (primary): {sw.ElapsedMilliseconds}ms");
+
+            sw.Restart();
             output[1] = RenderTextureToTexture3D(rtArr[1]);
+            UnityEngine.Debug.Log($"[QuickDither] RenderTextureToTexture3D (secondary): {sw.ElapsedMilliseconds}ms");
+
             return output;
         }
         public static RenderTexture[] GenerateRT(Color[] palette, int size, int ditherDepth, float differenceFactor, float gamma, ComputeShader paletteShader) {
@@ -54,49 +64,91 @@ namespace QuickDither {
             }
 
             if (!SystemInfo.supportsComputeShaders) {
-                Debug.LogWarning("Compute shaders are not supported by this system, dithered palette failed to generate");
+                UnityEngine.Debug.LogWarning("Compute shaders are not supported by this system, dithered palette failed to generate");
                 return renderTextures;
             }
             if (!paletteShader) {
-                Debug.LogWarning("Palette compute shader is required to generate a dithered palette");
+                UnityEngine.Debug.LogWarning("Palette compute shader is required to generate a dithered palette");
                 return renderTextures;
             }
             if (palette.Length == 0) {
-                Debug.LogWarning("A dithered palette was generated with no input palette");
+                UnityEngine.Debug.LogWarning("A dithered palette was generated with no input palette");
                 return renderTextures;
             }
 
+            var sw = Stopwatch.StartNew();
             DitheredColor[] colors = GetDitheredColors(palette, ditherDepth);
+            UnityEngine.Debug.Log($"[QuickDither] GetDitheredColors: {sw.ElapsedMilliseconds}ms ({colors.Length} entries from {palette.Length} colors, depth {ditherDepth})");
+
+            sw.Restart();
             ComputeBuffer buffer = new ComputeBuffer(colors.Length, sizeof(float) * 9);
             buffer.SetData(colors);
-            paletteShader.SetBuffer(0, "palette", buffer);
+
+            // Precomputed buffer: 3 floats for mixed color + 1 float for penalty per entry
+            ComputeBuffer precomputedBuffer = new ComputeBuffer(colors.Length, sizeof(float) * 4);
+
+            int precomputeKernel = paletteShader.FindKernel("CSPrecompute");
+            int mainKernel = paletteShader.FindKernel("CSMain");
+
+            // Set shared uniforms
             paletteShader.SetInt("paletteLength", colors.Length);
             paletteShader.SetFloat("size", size * COMPUTE_THREAD_COUNT);
             paletteShader.SetFloat("differenceFactor", differenceFactor);
             paletteShader.SetFloat("gamma", gamma);
-            paletteShader.SetTexture(0, "PrimaryResult", renderTextures[0]);
-            paletteShader.SetTexture(0, "SecondaryResult", renderTextures[1]);
-            paletteShader.Dispatch(0, size, size, size);
+
+            // Precompute mixed colors and penalties (runs once per palette entry)
+            paletteShader.SetBuffer(precomputeKernel, "palette", buffer);
+            paletteShader.SetBuffer(precomputeKernel, "precomputed", precomputedBuffer);
+            const int maxGroupsPerDispatch = 65535;
+            int totalGroups = Mathf.CeilToInt(colors.Length / 64f);
+            for (int offset = 0; offset < totalGroups; offset += maxGroupsPerDispatch) {
+                int groups = Mathf.Min(maxGroupsPerDispatch, totalGroups - offset);
+                paletteShader.SetInt("precomputeOffset", offset * 64);
+                paletteShader.Dispatch(precomputeKernel, groups, 1, 1);
+            }
+
+            // Force GPU sync to measure precompute time
+            var precomputeReq = AsyncGPUReadback.Request(renderTextures[0]);
+            precomputeReq.WaitForCompletion();
+            UnityEngine.Debug.Log($"[QuickDither] Precompute dispatch (GPU): {sw.ElapsedMilliseconds}ms");
+
+            sw.Restart();
+            // Main LUT generation using precomputed data
+            paletteShader.SetBuffer(mainKernel, "palette", buffer);
+            paletteShader.SetBuffer(mainKernel, "precomputed", precomputedBuffer);
+            paletteShader.SetTexture(mainKernel, "PrimaryResult", renderTextures[0]);
+            paletteShader.SetTexture(mainKernel, "SecondaryResult", renderTextures[1]);
+            paletteShader.Dispatch(mainKernel, size, size, size);
+
+            // Force GPU sync to measure main kernel time
+            var mainReq = AsyncGPUReadback.Request(renderTextures[0]);
+            mainReq.WaitForCompletion();
+            UnityEngine.Debug.Log($"[QuickDither] Main dispatch (GPU): {sw.ElapsedMilliseconds}ms (texture size: {size * COMPUTE_THREAD_COUNT}^3)");
+
             buffer.Dispose();
+            precomputedBuffer.Dispose();
             return renderTextures;
         }
         private static DitheredColor[] GetDitheredColors(Color[] colors, int depth = 17) {
-            List<DitheredColor> ditheredColors = new List<DitheredColor>();
-            for (int i = 0; i < colors.Length; i++) {
-                ditheredColors.Add(new DitheredColor(colors[i], colors[i], 1f));
+            int n = colors.Length;
+            int totalCount = n + (depth > 1 ? n * (n - 1) / 2 * (depth - 1) : 0);
+            DitheredColor[] ditheredColors = new DitheredColor[totalCount];
+            int idx = 0;
+            for (int i = 0; i < n; i++) {
+                ditheredColors[idx++] = new DitheredColor(colors[i], colors[i], 1f);
             }
             if (depth == 1) {
-                return ditheredColors.ToArray();
+                return ditheredColors;
             }
             float step = 1f / (depth);
-            for (int i = 0; i < colors.Length; i++) {
-                for (int j = i + 1; j < colors.Length; j++) {
+            for (int i = 0; i < n; i++) {
+                for (int j = i + 1; j < n; j++) {
                     for (int k = 0; k < depth - 1; k++) {
-                        ditheredColors.Add(new DitheredColor(colors[i], colors[j], (k + 1) * step));
+                        ditheredColors[idx++] = new DitheredColor(colors[i], colors[j], (k + 1) * step);
                     }
                 }
             }
-            return ditheredColors.ToArray();
+            return ditheredColors;
         }
         public int ExpectedPaletteComplexity() {
             if( palette.Length == 0)

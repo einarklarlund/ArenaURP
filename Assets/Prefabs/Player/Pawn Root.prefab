@@ -175,6 +175,10 @@ MonoBehaviour:
     MarioJumpTime: 0.2
     JumpBufferWindow: 0.1
     Gravity: -35
+  groundRayDistance: 1
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1665
 --- !u!1 &3015136927240068084
 GameObject:
   m_ObjectHideFlags: 0
@@ -877,7 +881,6 @@ MonoBehaviour:
   pawnAmmo: {fileID: 8846440441223943934}
   input: {fileID: 0}
   pawnCollider: {fileID: 7538533630776666726}
-  vfx: {fileID: 0}
 --- !u!1 &5972829445371107754
 GameObject:
   m_ObjectHideFlags: 0

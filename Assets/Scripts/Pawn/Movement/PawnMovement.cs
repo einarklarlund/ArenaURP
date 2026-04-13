@@ -16,6 +16,10 @@ public sealed class PawnMovement : NetworkBehaviour
     [Header("Movement Config")]
     [SerializeField] private MovementConfig config = MovementConfig.Default;
 
+    [Header("Ground Detection")]
+    [SerializeField] private float groundRayDistance = 1.5f;
+    [SerializeField] private LayerMask groundMask = ~0;
+
     // API
     public readonly List<MovementModifier> Modifiers = new();
     public readonly List<Vector3> PendingImpulses = new();
@@ -49,9 +53,87 @@ public sealed class PawnMovement : NetworkBehaviour
             Time.deltaTime
         );
 
-        // Apply state to other components
-        controller.Move(state.Velocity * Time.deltaTime);
+        // Snap velocity to follow slope ahead
+        Vector3 velocity = state.Velocity;
+        if (controller.isGrounded && velocity.y <= 0f)
+        {
+            velocity = GetSlopeSnappedVelocity(velocity);
+        }
+
+        // Debug.DrawLine(transform.position, transform.position + state.Velocity, Color.red, 10f);
+        // Debug.DrawLine(transform.position, transform.position + velocity, Color.green, 10f);
+        controller.Move(velocity * Time.deltaTime);
+
+        // controller.Move(state.Velocity * Time.deltaTime);
 
         PendingImpulses.Clear();
+    }
+
+    private Vector3 GetSlopeSnappedVelocity(Vector3 velocity)
+    {
+        // Cast down from a point ahead in the velocity direction
+        Vector3 aheadPoint = transform.position + velocity.normalized * 0.3f;
+        
+        // Debug.DrawRay(
+        //     transform.position,
+        //     velocity.normalized * 0.3f,
+        //     Color.blue,
+        //     10f
+        // );
+
+        float castOriginHeight = groundRayDistance / 2;
+
+        if (
+            !Physics.Raycast(
+                aheadPoint + Vector3.up * castOriginHeight,
+                Vector3.down,
+                out RaycastHit hit,
+                groundRayDistance,
+                groundMask
+            )
+        )
+        {
+            // Debug.DrawRay(
+            //     aheadPoint + Vector3.up * castOriginHeight,
+            //     Vector3.down * (castOriginHeight + groundRayDistance),
+            //     Color.green,
+            //     10f
+            // );
+            return velocity;
+        }
+        else
+        {
+            
+            // Debug.DrawRay(
+            //     aheadPoint + Vector3.up * castOriginHeight,
+            //     Vector3.down * (castOriginHeight + groundRayDistance),
+            //     Color.red,
+            //     10f
+            // );
+        }
+
+        // Direction from current position to the ground point ahead
+        Vector3 toHit = hit.point - transform.position;
+        float slopeAngle = Vector3.Angle(velocity.normalized, toHit.normalized);
+
+        // Only snap if the slope is within the controller's slope limit
+        if (slopeAngle > controller.slopeLimit)
+        {
+            // Debug.DrawRay(
+            //     transform.position,
+            //     velocity,
+            //     Color.black,
+            //     10f
+            // );
+            // return velocity;
+        }
+        // Debug.DrawRay(
+        //     transform.position,
+        //     toHit.normalized * velocity.magnitude,
+        //     Color.white,
+        //     10f
+        // );
+
+        return toHit.normalized * velocity.magnitude;
     }
 }
