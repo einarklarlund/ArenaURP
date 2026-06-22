@@ -64,10 +64,6 @@ PrefabInstance:
       propertyPath: <AssetPathHash>k__BackingField
       value: 10814624885307176430
       objectReference: {fileID: 0}
-    - target: {fileID: 7926699728280344931, guid: 15e1575cd91d94569a84442559d95ba8, type: 3}
-      propertyPath: defaultWeapon
-      value: 
-      objectReference: {fileID: 11400000, guid: 48e941893a48a4bb8855fa5adce7fcd3, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

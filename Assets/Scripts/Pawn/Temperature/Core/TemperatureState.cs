@@ -19,10 +19,17 @@ public struct TemperatureState
     /// </summary>
     public MovementModifier MovementModifier;
 
+    /// <summary>
+    /// The weapon modifier derived from the current temperature.
+    /// Computed by the processor each tick.
+    /// </summary>
+    public WeaponModifier WeaponModifier;
+
     /// <summary>A fully-charged pawn at default max temperature.</summary>
     public static TemperatureState Default => new()
     {
         Temperature = 100f,
         MovementModifier = MovementModifier.Identity,
+        WeaponModifier = WeaponModifier.Identity,
     };
 }

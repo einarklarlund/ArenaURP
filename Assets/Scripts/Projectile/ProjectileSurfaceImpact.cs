@@ -21,12 +21,11 @@ public class ProjectileSurfaceImpact : ProjectileImpact
             SpawnPrefab(prefab);
         }
 
-        if (state.Health > 1)
+        state.Health--;
+
+        if (state.Health < 1)
         {
-            state.Health--;
-        }
-        else
-        {
+            // figure out if this can be called client-side
             lifecycle.Kill();
         }
     }

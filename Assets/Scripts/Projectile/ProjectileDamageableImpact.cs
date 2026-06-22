@@ -20,18 +20,15 @@ public class ProjectileDamageableImpact : ProjectileImpact
     {
         if (damageable != null && !ShouldAvoidDamage(damageable))
         {
-            if (IsServerInitialized)
+            DamageInfo info = new()
             {
-                DamageInfo info = new()
-                {
-                    Amount    = data.damage,
-                    Attacker  = state.Firer,
-                    HitPoint  = hit.point,
-                    Direction = transform.forward,
-                    Type      = DamageType.Bullet
-                };
-                damageable.ServerTakeDamage(info);
-            }
+                Amount    = data.damage,
+                Attacker  = state.Firer,
+                HitPoint  = hit.point,
+                Direction = transform.forward,
+                Type      = DamageType.Bullet
+            };
+            damageable.TakeDamage(info);
 
             lifecycle.Kill();
         }

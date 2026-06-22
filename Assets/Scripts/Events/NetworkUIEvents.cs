@@ -18,6 +18,4 @@ public static class NetworkUIEvents
     public static Action<int> OnLocalDamageTaken;
     public static Action OnLocalDeath;
     public static Action<double> OnRespawnTimerStarted;
-    public static Action<int, WeaponSlot> OnWeaponInventoryChanged;
-    public static Action<AmmoType, int> OnAmmoPoolChanged;
 }

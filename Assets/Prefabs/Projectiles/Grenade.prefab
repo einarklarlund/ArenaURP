@@ -164,7 +164,6 @@ MonoBehaviour:
   deflectOtherBullets: 0
   MaxHealth: 100
   impactVfx: []
-  spawnOnDamageableImpact: []
   spawnOnAnyImpact: []
   radius: 0.5
   height: 0
@@ -209,7 +208,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584260971138902628
+  _initializedTimestamp: -8584240246935650028
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -228,7 +227,7 @@ MonoBehaviour:
   _spectatorInterpolation: 5
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 26
+  <PrefabId>k__BackingField: 38
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 16304839524428555431
   SceneId: 0

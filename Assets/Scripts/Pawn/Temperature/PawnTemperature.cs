@@ -13,6 +13,8 @@ public sealed class PawnTemperature : NetworkBehaviour
     // Inspector references
     // ------------------------------------------------------------------
     [SerializeField] private PawnMovement movement;
+    [SerializeField] private PawnWeapon weapon;
+    [SerializeField] private PawnInput input;
 
     [Header("Temperature Config")]
     [SerializeField] private TemperatureConfig config = TemperatureConfig.Default;
@@ -28,10 +30,16 @@ public sealed class PawnTemperature : NetworkBehaviour
 
     private void Update()
     {
-        var tempInput = TemperatureInput.Default;
+        if (!input.IsActive) return;
 
-        // Cache the previous modifier before processing so we can swap it out.
-        var previousModifier = state.MovementModifier;
+        var tempInput = new TemperatureInput()
+        {
+            IsDraining = input.Data.Fire
+        };
+
+        // Cache the previous modifiers before processing so we can swap them out.
+        var previousMovementModifier = state.MovementModifier;
+        var previousWeaponModifier = state.WeaponModifier;
 
         state = TemperatureProcessor.Process(state, in config, in tempInput, Time.deltaTime);
 
@@ -39,8 +47,11 @@ public sealed class PawnTemperature : NetworkBehaviour
         if (IsOwner)
             LocalUIEvents.OnTemperatureChanged?.Invoke(state.Temperature);
 
-        // Replace the previous temperature modifier with the one derived from the new state.
-        movement.Modifiers.Remove(previousModifier);
+        // Replace the previous temperature modifiers with the ones derived from the new state.
+        movement.Modifiers.Remove(previousMovementModifier);
         movement.Modifiers.Add(state.MovementModifier);
+
+        weapon.Modifiers.Remove(previousWeaponModifier);
+        weapon.Modifiers.Add(state.WeaponModifier);
     }
 }

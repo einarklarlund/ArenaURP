@@ -6,7 +6,6 @@ using FishNet.Managing.Timing;
 using FishNet;
 using System;
 
-[RequireComponent(typeof(ProjectileLifecycle))]
 public class ProjectileState : NetworkBehaviour
 {
     public string ID;
@@ -58,20 +57,20 @@ public class ProjectileState : NetworkBehaviour
         _projectile.Initialize();
     }
 
-    public override void OnStartClient()
-    {
-        base.OnStartClient();
-        if (!IsOwner)
-            return;
+    // public override void OnStartClient()
+    // {
+    //     base.OnStartClient();
+    //     if (!IsOwner && )
+    //         return;
 
-        // Predict bullet state
-        ID             = Guid.NewGuid().ToString();
-        PreciseTick    = InstanceFinder.TimeManager.GetPreciseTick(TickType.Tick);
-        StartDirection = transform.forward;
-        StartPosition  = transform.position;
-        Firer          = NetworkPlayer.LocalInstance;
-        Health         = GetComponent<ProjectileData>().MaxHealth;
+    //     // Predict bullet state
+    //     ID             = Guid.NewGuid().ToString();
+    //     PreciseTick    = InstanceFinder.TimeManager.GetPreciseTick(TickType.Tick);
+    //     StartDirection = transform.forward;
+    //     StartPosition  = transform.position;
+    //     Firer          = NetworkPlayer.LocalInstance;
+    //     Health         = GetComponent<ProjectileData>().MaxHealth;
 
-        _projectile.Initialize();
-    }
+    //     _projectile.Initialize();
+    // }
 }

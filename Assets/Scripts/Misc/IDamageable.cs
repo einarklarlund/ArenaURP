@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 
 public enum DamageType
 {
@@ -17,8 +18,10 @@ public struct DamageInfo
     public DamageType Type;
 }
 
+[System.Serializable]
+public class DamageInfoEvent : UnityEvent<DamageInfo> { }
+
 public interface IDamageable
 {
-    void ServerTakeDamage(DamageInfo info);
-    void ObserversTakeDamage(DamageInfo info);
+    void TakeDamage(DamageInfo info);
 }

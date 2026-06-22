@@ -31,6 +31,7 @@ public static class TemperatureProcessor
 
         state.Temperature = Mathf.Clamp(state.Temperature, 0f, config.MaxTemperature);
         state.MovementModifier = GetMovementModifier(in state, in config);
+        state.WeaponModifier = GetWeaponModifier(in state, in config);
         return state;
     }
 
@@ -53,6 +54,23 @@ public static class TemperatureProcessor
             JumpForceMultiplier = jumpForceMultiplier,
             GravityMultiplier = 1f,
             PreImpulseVelocityMultiplier = 1f,
+        };
+    }
+
+    /// <summary>
+    /// Derives the WeaponModifier that temperature should currently impose on the pawn.
+    /// </summary>
+    private static WeaponModifier GetWeaponModifier(
+        in TemperatureState state,
+        in TemperatureConfig config)
+    {
+        float t = Mathf.Clamp01(state.Temperature / config.MaxTemperature);
+        float fireRateMultiplier = Mathf.Lerp(config.MaxFireRateMultiplier, 1f, t);
+
+        return new WeaponModifier
+        {
+            FireRateMultiplier = fireRateMultiplier,
+            SpreadMultiplier = 1f,
         };
     }
 }

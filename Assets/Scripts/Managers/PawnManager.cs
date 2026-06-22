@@ -42,6 +42,7 @@ public sealed class PawnManager : NetworkBehaviour
 
         var prefab = player.IsBot ? botPawnPrefab : humanPawnPrefab;
         Pawn pawnInstance = Instantiate(prefab, sp.position, sp.rotation);
+        pawnInstance.GetComponent<NetworkPlayerOwnership>().AssignOwner(player);
         Spawn(pawnInstance, player.Owner);
 
         pawnInstance.ControllingPlayer.Value = player;

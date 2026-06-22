@@ -40,17 +40,28 @@ public class ProjectileLifecycle : NetworkBehaviour
 
         collision.PostSpawnSetup();
 
-        vfx.ShowVisuals();
         isInitialized = true;
     }
 
     public void Kill()
     {
-        if (!IsSpawned || state.Health <= 0)
+        if (!IsSpawned)
             return;
 
-        state.Health = 0; // should be a syncvar
+        if (IsServerInitialized)
+            ServerKill();
+    }
 
+    private void ServerKill()
+    {
+        Despawn(DespawnType.Pool);
+        SpawnPrefabs();
+    }
+    
+    // does this work correctly with predicted spawn if the prefabs in data.spawnOnDeath have
+    // predicted spawn components?
+    private void SpawnPrefabs()
+    {
         foreach (var prefab in data.spawnOnDeath)
         {
             PreciseTick tick = InstanceFinder.TimeManager.GetPreciseTick(TickType.Tick);
@@ -73,27 +84,6 @@ public class ProjectileLifecycle : NetworkBehaviour
             newState.Health         = newData.MaxHealth;
 
             InstanceFinder.ServerManager.Spawn(newObj);
-        }
-
-        Despawn(DespawnType.Pool);
-        SpawnPrefabs();
-        vfx.HideVisuals();
-    }
-
-    private void SpawnPrefabs()
-    {
-        foreach(var prefab in data.spawnOnDeath)
-        {
-            // predicted spawn?
-            NetworkObject nob = InstanceFinder.NetworkManager.GetPooledInstantiated
-            (
-                prefab,
-                transform.position,
-                transform.rotation,
-                false
-            );
-
-            InstanceFinder.ServerManager.Spawn(nob, Owner);
         }
     }
 }

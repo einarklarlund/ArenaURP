@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using FishNet;
-using FishNet.Object.Synchronizing;
 using FishNet.Transporting;
 using UnityEngine;
 
@@ -113,8 +111,6 @@ public sealed class NetworkUIController : MonoBehaviour
         if (prev != null)
         {
             prev.Health.OnChange -= OnLocalHealthChanged;
-            prev.Inventory.Slots.OnChange -= OnSlotsChanged;
-            prev.Ammo.AmmoPools.OnChange -= OnAmmoPoolChanged;
         }
 
         if (next != null)
@@ -127,15 +123,6 @@ public sealed class NetworkUIController : MonoBehaviour
             next.Health.OnChange += OnLocalHealthChanged;
             // Immediate update for the UI
             OnLocalHealthChanged(0, next.Health.Value, false);
-
-            // Subscribe to the new pawn's inventory
-            next.Inventory.Slots.OnChange += OnSlotsChanged;
-            OnSlotsChanged(SyncListOperation.Set, 0, default, next.Inventory.Slots[0], false);
-            OnSlotsChanged(SyncListOperation.Set, 1, default, next.Inventory.Slots[1], false);
-
-            // Subscribe to the new pawn's ammo
-            next.Ammo.AmmoPools.OnChange += OnAmmoPoolChanged;
-            OnAmmoPoolChanged(SyncDictionaryOperation.Set, AmmoType.Bullet, next.Ammo.AmmoPools[AmmoType.Bullet], false);
         }
     }
 
@@ -144,25 +131,5 @@ public sealed class NetworkUIController : MonoBehaviour
         NetworkUIEvents.OnLocalHealthChanged?.Invoke(next);
         if(next < prev) NetworkUIEvents.OnLocalDamageTaken?.Invoke(prev - next);
         if(next <= 0) NetworkUIEvents.OnLocalDeath?.Invoke();
-    }
-
-    private void OnSlotsChanged(SyncListOperation op, int index, WeaponSlot oldItem, WeaponSlot newItem, bool asServer)
-    {
-        switch(op)
-        {
-            case SyncListOperation.Set:
-                NetworkUIEvents.OnWeaponInventoryChanged?.Invoke(index, newItem);
-                break;
-        }
-    }
-
-    private void OnAmmoPoolChanged(SyncDictionaryOperation op, AmmoType ammo, int numAmmo, bool asServer)
-    {
-        switch (op)
-        {
-            case SyncDictionaryOperation.Set:
-                NetworkUIEvents.OnAmmoPoolChanged?.Invoke(ammo, numAmmo);
-                break;
-        }
     }
 }

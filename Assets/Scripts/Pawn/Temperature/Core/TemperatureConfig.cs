@@ -36,6 +36,13 @@ public struct TemperatureConfig
         "Independent of the speed multiplier.")]
     public float MinJumpForceMultiplier;
 
+    [Header("Weapon Effect")]
+    [Tooltip(
+        "Fire-rate cooldown multiplier applied to the pawn's weapon when temperature reaches 0. " +
+        "Values greater than 1 slow the fire rate (longer cooldown between shots). " +
+        "Interpolates linearly to 1.0 at max temperature.")]
+    public float MaxFireRateMultiplier;
+
     public static TemperatureConfig Default => new()
     {
         MaxTemperature = 100f,
@@ -44,5 +51,6 @@ public struct TemperatureConfig
         MinSpeedMultiplier = 0.7f,
         MinAccelerationMultiplier = 0.3f,
         MinJumpForceMultiplier = 1f,
+        MaxFireRateMultiplier = 2f,
     };
 }

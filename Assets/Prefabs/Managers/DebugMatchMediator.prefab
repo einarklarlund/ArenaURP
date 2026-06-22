@@ -31,6 +31,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 8989825345770827633}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &119802996718573865
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 849793349847830004}
+  m_Layer: 0
+  m_Name: Spawn Point 2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &849793349847830004
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 119802996718573865}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -0.8736448, z: 0, w: 0.48656425}
+  m_LocalPosition: {x: 23.437492, y: 0, z: 22.460999}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8989825345770827633}
+  m_LocalEulerAnglesHint: {x: 0, y: -121.77, z: 0}
 --- !u!1 &310876520447911202
 GameObject:
   m_ObjectHideFlags: 0
@@ -118,7 +149,7 @@ MonoBehaviour:
   <PredictedSpawn>k__BackingField: {fileID: 0}
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
-  - {fileID: 0}
+  - {fileID: 9175380077914465224}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects:
   - {fileID: 90218549655823962}
@@ -133,7 +164,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584259425368636868
+  _initializedTimestamp: -8584240246935650028
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -152,7 +183,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 20
+  <PrefabId>k__BackingField: 21
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 8601861249518735017
   SceneId: 0
@@ -180,6 +211,37 @@ MonoBehaviour:
   pawnManager: {fileID: 4586693265834254295}
   matchFlowManager: {fileID: 6086394704126292500}
   deathmatchManager: {fileID: 2040856623843302717}
+--- !u!1 &3849547752077164299
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 962107430633237434}
+  m_Layer: 0
+  m_Name: Spawn Point 1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &962107430633237434
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3849547752077164299}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.65275973, z: -0, w: 0.757565}
+  m_LocalPosition: {x: -32.154427, y: 0, z: -3.0360773}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8989825345770827633}
+  m_LocalEulerAnglesHint: {x: 0, y: 81.5, z: 0}
 --- !u!1 &4128198370406185776
 GameObject:
   m_ObjectHideFlags: 0
@@ -281,7 +343,7 @@ MonoBehaviour:
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
   - {fileID: 6086394704126292500}
-  InitializedParentNetworkBehaviour: {fileID: 0}
+  InitializedParentNetworkBehaviour: {fileID: 9175380077914465224}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
   RuntimeChildNetworkBehaviours: []
@@ -291,7 +353,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584259425368636868
+  _initializedTimestamp: -8584240246935650028
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -402,12 +464,9 @@ MonoBehaviour:
   humanPawnPrefab: {fileID: 7121626455967874014, guid: 4163e66ff070a4d4396209fb4709e9a2, type: 3}
   botPawnPrefab: {fileID: 7718353176031296458, guid: 72028ba560df64c94ad5075a1b37ed4d, type: 3}
   spawnPoints:
-  - {fileID: 4954692002545015083}
-  - {fileID: 4898418353410279327}
-  - {fileID: 5581988023498815558}
-  - {fileID: 4875877465561885443}
-  - {fileID: 5599832010258058957}
-  - {fileID: 2050135948797920237}
+  - {fileID: 962107430633237434}
+  - {fileID: 849793349847830004}
+  - {fileID: 6281423592381786758}
 --- !u!114 &90218549655823962
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -428,7 +487,7 @@ MonoBehaviour:
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
   - {fileID: 4586693265834254295}
-  InitializedParentNetworkBehaviour: {fileID: 0}
+  InitializedParentNetworkBehaviour: {fileID: 9175380077914465224}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
   RuntimeChildNetworkBehaviours: []
@@ -438,7 +497,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584259425368636868
+  _initializedTimestamp: -8584240246935650028
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -466,6 +525,37 @@ MonoBehaviour:
     Rotation: {x: -0, y: -0, z: -0, w: 1}
     Scale: {x: 1, y: 1, z: 1}
     IsValid: 1
+--- !u!1 &5931194671570105360
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6281423592381786758}
+  m_Layer: 0
+  m_Name: Spawn Point 3
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6281423592381786758
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5931194671570105360}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.9351352, z: 0, w: 0.35429108}
+  m_LocalPosition: {x: -21.773424, y: 0, z: 31.406275}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8989825345770827633}
+  m_LocalEulerAnglesHint: {x: 0, y: 138.5, z: 0}
 --- !u!1 &5942255247116421615
 GameObject:
   m_ObjectHideFlags: 0
@@ -544,7 +634,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584259425368636868
+  _initializedTimestamp: -8584240246935650028
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -674,7 +764,7 @@ MonoBehaviour:
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
   - {fileID: 2040856623843302717}
-  InitializedParentNetworkBehaviour: {fileID: 0}
+  InitializedParentNetworkBehaviour: {fileID: 9175380077914465224}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
   RuntimeChildNetworkBehaviours: []
@@ -684,7 +774,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584259425368636868
+  _initializedTimestamp: -8584240246935650028
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -778,5 +868,8 @@ Transform:
   - {fileID: 4875877465561885443}
   - {fileID: 5599832010258058957}
   - {fileID: 2050135948797920237}
+  - {fileID: 962107430633237434}
+  - {fileID: 849793349847830004}
+  - {fileID: 6281423592381786758}
   m_Father: {fileID: 246053464465968148}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

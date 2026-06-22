@@ -107,7 +107,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ecc6e2caf251423ca2dc8dbb4875e70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PawnInteractionHandler
-  _componentIndexCache: 8
+  _componentIndexCache: 6
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
   pawn: {fileID: 3390302888177528954}
@@ -166,7 +166,7 @@ MonoBehaviour:
   controller: {fileID: 7538533630776666726}
   input: {fileID: 0}
   config:
-    MaxSpeedXZ: 12.5
+    MaxSpeedXZ: 16
     SpeedUpTime: 0.1
     SlowDownTime: 0.1
     AirSpeedBonus: 5
@@ -225,7 +225,7 @@ Camera:
   m_GameObject: {fileID: 3015136927240068084}
   m_Enabled: 0
   serializedVersion: 2
-  m_ClearFlags: 2
+  m_ClearFlags: 1
   m_BackGroundColor: {r: 0.5658, g: 0.68379, b: 0.69, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
@@ -287,7 +287,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2836e36774ca1c4bbbee976e17b649c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 10
+  _componentIndexCache: 8
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
   _componentConfiguration: 0
@@ -377,7 +377,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c5eed3625f9445eabdae0ad6dfcf3ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PawnCameraRotation
-  _componentIndexCache: 11
+  _componentIndexCache: 9
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
   input: {fileID: 0}
@@ -474,17 +474,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6bad650112074c0eb45d7583c6b3ec7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PawnTemperature
-  _componentIndexCache: 7
+  _componentIndexCache: 5
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
   movement: {fileID: 1975820720333990052}
+  weapon: {fileID: 1555019613777059898}
+  input: {fileID: 0}
   config:
     MaxTemperature: 100
-    DrainRatePerSecond: 20
-    RegenRatePerSecond: 15
+    DrainRatePerSecond: 60
+    RegenRatePerSecond: 90
     MinSpeedMultiplier: 1
     MinAccelerationMultiplier: 1
     MinJumpForceMultiplier: 1
+    MaxFireRateMultiplier: 1
 --- !u!1 &4613304413970483175
 GameObject:
   m_ObjectHideFlags: 0
@@ -498,6 +501,8 @@ GameObject:
   - component: {fileID: 7538533630776666726}
   - component: {fileID: 4374827591302998991}
   - component: {fileID: 8049762553664656302}
+  - component: {fileID: 1819017640497088891}
+  - component: {fileID: 3229108476807971348}
   m_Layer: 7
   m_Name: Pawn Root
   m_TagString: Untagged
@@ -543,8 +548,7 @@ MonoBehaviour:
   _componentIndexCache: 0
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
-  Inventory: {fileID: 4183851940234243241}
-  Ammo: {fileID: 8846440441223943934}
+  ownership: {fileID: 3229108476807971348}
 --- !u!143 &7538533630776666726
 CharacterController:
   m_ObjectHideFlags: 0
@@ -638,9 +642,7 @@ MonoBehaviour:
   - {fileID: 3390302888177528954}
   - {fileID: 4374827591302998991}
   - {fileID: 1975820720333990052}
-  - {fileID: 4183851940234243241}
-  - {fileID: 8846440441223943934}
-  - {fileID: 4890565649951695802}
+  - {fileID: 1555019613777059898}
   - {fileID: 4389033491855740370}
   - {fileID: 8310406695014145685}
   - {fileID: 4197683245214701733}
@@ -657,7 +659,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584260971138902628
+  _initializedTimestamp: -8584240246935650028
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -685,6 +687,51 @@ MonoBehaviour:
     Rotation: {x: 0, y: 0, z: 0, w: 1}
     Scale: {x: 1, y: 1, z: 1}
     IsValid: 1
+--- !u!114 &1819017640497088891
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4613304413970483175}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5daa0370ec6a846b58453333f9456cc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HurtBox
+  onHurt:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 3390302888177528954}
+        m_TargetAssemblyTypeName: Pawn, Assembly-CSharp
+        m_MethodName: TakeDamage
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!114 &3229108476807971348
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4613304413970483175}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90f0b562f926b4249b353e0d0b55805b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkPlayerOwnership
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 8049762553664656302}
+  _networkObjectCache: {fileID: 0}
+  onAssignment:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &4680480237612131196
 GameObject:
   m_ObjectHideFlags: 0
@@ -788,7 +835,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42b4c392f2e4e409a85a22f808574fa0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 9
+  _componentIndexCache: 7
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
   meshRenderers:
@@ -803,9 +850,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1575051875707792718}
-  - component: {fileID: 4183851940234243241}
-  - component: {fileID: 8846440441223943934}
-  - component: {fileID: 4890565649951695802}
+  - component: {fileID: 1555019613777059898}
   m_Layer: 7
   m_Name: Weapon
   m_TagString: Untagged
@@ -828,39 +873,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 6715682311924083683}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4183851940234243241
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5539008407713458590}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 418ff8935befd42eca3c7d1f3e5168c4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _componentIndexCache: 3
-  _addedNetworkObject: {fileID: 8049762553664656302}
-  _networkObjectCache: {fileID: 8049762553664656302}
-  defaultWeapon: {fileID: 11400000, guid: 48e941893a48a4bb8855fa5adce7fcd3, type: 2}
-  pawnWeapon: {fileID: 4890565649951695802}
---- !u!114 &8846440441223943934
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5539008407713458590}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 43cad787015f841cca5a450dcd7bfec6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnAmmo
-  _componentIndexCache: 4
-  _addedNetworkObject: {fileID: 8049762553664656302}
-  _networkObjectCache: {fileID: 8049762553664656302}
---- !u!114 &4890565649951695802
+--- !u!114 &1555019613777059898
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -871,14 +884,13 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1242a14260c094d628c79bf04291369f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
-  _componentIndexCache: 5
+  m_EditorClassIdentifier: Assembly-CSharp::PawnWeapon
+  _componentIndexCache: 3
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
   pawn: {fileID: 3390302888177528954}
-  inventory: {fileID: 4183851940234243241}
   firePoint: {fileID: 5178310690769963987}
-  pawnAmmo: {fileID: 8846440441223943934}
+  weaponData: {fileID: 11400000, guid: f529980797c424fae8e68f48b8716cb7, type: 2}
   input: {fileID: 0}
   pawnCollider: {fileID: 7538533630776666726}
 --- !u!1 &5972829445371107754
@@ -925,12 +937,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2ec4658d6b324d4996c38f6c23fab9a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PawnKnockback
-  _componentIndexCache: 6
+  _componentIndexCache: 4
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
   pawn: {fileID: 3390302888177528954}
   movement: {fileID: 1975820720333990052}
   input: {fileID: 0}
   config:
-    SpeedOnHit: 6
+    SpeedOnHit: 0
     MinimumAngleOnHit: 45

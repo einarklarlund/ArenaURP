@@ -1,7 +1,5 @@
 using System;
-using FishNet;
 using FishNet.Connection;
-using FishNet.Managing.Timing;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using UnityEngine;
@@ -15,10 +13,6 @@ using UnityEngine;
 /// </summary>
 public class Pawn : NetworkBehaviour, IDamageable
 {
-    [Header("References")] // Components on the pawn that other game components
-    public PawnInventory Inventory;
-    public PawnAmmo Ammo;
-    
     [Header("Synced State")]
     public readonly SyncVar<NetworkPlayer> ControllingPlayer = new();
     public readonly SyncVar<int> Health = new(21, new SyncTypeSettings(WritePermission.ServerOnly));
@@ -41,34 +35,32 @@ public class Pawn : NetworkBehaviour, IDamageable
             ControllingPlayer.Value.ControlledPawn.Value = null;
     }
 
-    [Server]
     public void Heal(int amount)
     {
         
     }
-    
-    [Server]
-    public void ServerTakeDamage(DamageInfo damageInfo)
-    {
+
+    public void TakeDamage(DamageInfo damageInfo)
+    {        
         if (Health.Value <= 0) return;
 
-        Health.Value -= damageInfo.Amount;
-        
+        // We want clients to predictively use with TakeDamage before even waiting for
+        // Health.Value to be updated, ie. predicting a valid hit and playing effects.
         OnDamageTaken?.Invoke(damageInfo);
 
-        ObserversTakeDamage(damageInfo);
+        // This here will cause trouble if OnDeath is used for game UI since the
+        // game UI will have to account for rollbacks.
+        if (IsClientInitialized && Health.Value - damageInfo.Amount <= 0)
+            OnDeath.Invoke(damageInfo);
+
+        if (!IsServerInitialized)
+            return;
+
+        Health.Value -= damageInfo.Amount;
 
         if (Health.Value <= 0)
         {
             OnDeath?.Invoke(damageInfo);
         }
-    }
-
-    [ObserversRpc]
-    public void ObserversTakeDamage(DamageInfo damageInfo)
-    {
-        if (IsServerInitialized) return;
-
-        OnDamageTaken?.Invoke(damageInfo);
     }
 }

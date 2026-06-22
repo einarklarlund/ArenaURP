@@ -45,9 +45,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae7a67fb108a641f6846de1024f85608, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HumanPawnInput
-  _componentIndexCache: 255
+  _componentIndexCache: 2
   _addedNetworkObject: {fileID: 4298628873098372708}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 4298628873098372708}
   Sensitivity: 1
 --- !u!114 &7437331317049218652
 MonoBehaviour:
@@ -61,9 +61,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 93abc81575ab14813b84baf0f6dec277, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PawnUIHandler
-  _componentIndexCache: 255
+  _componentIndexCache: 3
   _addedNetworkObject: {fileID: 4298628873098372708}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 4298628873098372708}
 --- !u!1001 &6057706863010018762
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -76,18 +76,38 @@ PrefabInstance:
       propertyPath: input
       value: 
       objectReference: {fileID: 6882340550727723747}
+    - target: {fileID: 88209868974879693, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: _componentIndexCache
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 1555019613777059898, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: input
+      value: 
+      objectReference: {fileID: 6882340550727723747}
+    - target: {fileID: 1555019613777059898, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: _componentIndexCache
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 1975820720333990052, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: input
       value: 
       objectReference: {fileID: 6882340550727723747}
-    - target: {fileID: 4183851940234243241, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
-      propertyPath: defaultWeapon
-      value: 
-      objectReference: {fileID: 11400000, guid: 48e941893a48a4bb8855fa5adce7fcd3, type: 2}
+    - target: {fileID: 1975820720333990052, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: _componentIndexCache
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4197683245214701733, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: _componentIndexCache
+      value: 8
+      objectReference: {fileID: 0}
     - target: {fileID: 4389033491855740370, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: input
       value: 
       objectReference: {fileID: 6882340550727723747}
+    - target: {fileID: 4389033491855740370, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: _componentIndexCache
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 4613304413970483175, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: m_Name
       value: Human Pawn
@@ -96,6 +116,10 @@ PrefabInstance:
       propertyPath: input
       value: 
       objectReference: {fileID: 6882340550727723747}
+    - target: {fileID: 6254141354047242925, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: _componentIndexCache
+      value: 11
+      objectReference: {fileID: 0}
     - target: {fileID: 6715682311924083683, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -149,13 +173,73 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: <PrefabId>k__BackingField
+      value: 36
+      objectReference: {fileID: 0}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: NetworkBehaviours.Array.size
+      value: 13
+      objectReference: {fileID: 0}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: <AssetPathHash>k__BackingField
       value: 15595989576249134116
       objectReference: {fileID: 0}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[2]'
+      value: 
+      objectReference: {fileID: 6882340550727723747}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[3]'
+      value: 
+      objectReference: {fileID: 7437331317049218652}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[4]'
+      value: 
+      objectReference: {fileID: 5727112192058547566}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[5]'
+      value: 
+      objectReference: {fileID: 4721397841650128368}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[6]'
+      value: 
+      objectReference: {fileID: 7564278255855007768}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[7]'
+      value: 
+      objectReference: {fileID: 2829723535607393119}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[8]'
+      value: 
+      objectReference: {fileID: 7948966455331646831}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[9]'
+      value: 
+      objectReference: {fileID: 3269519716430886955}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[10]'
+      value: 
+      objectReference: {fileID: 917710660114727215}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[11]'
+      value: 
+      objectReference: {fileID: 205582453823862631}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[12]'
+      value: 
+      objectReference: {fileID: 6136205221942396423}
     - target: {fileID: 8310406695014145685, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: input
       value: 
       objectReference: {fileID: 6882340550727723747}
+    - target: {fileID: 8310406695014145685, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: _componentIndexCache
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 8741177467162054113, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: _componentIndexCache
+      value: 9
+      objectReference: {fileID: 0}
     - target: {fileID: 9085910193075617708, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: input
       value: 
@@ -171,6 +255,17 @@ PrefabInstance:
       insertIndex: 1
       addedObject: {fileID: 917710660114727215}
   m_SourcePrefab: {fileID: 100100000, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+--- !u!114 &205582453823862631 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6254141354047242925, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+  m_PrefabInstance: {fileID: 6057706863010018762}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9063115212817100350}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2836e36774ca1c4bbbee976e17b649c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!4 &658555997265305129 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6715682311924083683, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
@@ -181,6 +276,28 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8591372839943455703, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
   m_PrefabInstance: {fileID: 6057706863010018762}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2829723535607393119 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8310406695014145685, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+  m_PrefabInstance: {fileID: 6057706863010018762}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6bad650112074c0eb45d7583c6b3ec7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnTemperature
+--- !u!114 &3269519716430886955 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8741177467162054113, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+  m_PrefabInstance: {fileID: 6057706863010018762}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42b4c392f2e4e409a85a22f808574fa0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &4298628873098372708 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
@@ -192,6 +309,61 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26b716c41e9b56b4baafaf13a523ba2e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &4721397841650128368 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1555019613777059898, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+  m_PrefabInstance: {fileID: 6057706863010018762}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1242a14260c094d628c79bf04291369f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnWeapon
+--- !u!114 &5727112192058547566 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1975820720333990052, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+  m_PrefabInstance: {fileID: 6057706863010018762}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f237c03b561d243c0be8d830ba9f6946, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnMovementController
+--- !u!114 &6136205221942396423 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 88209868974879693, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+  m_PrefabInstance: {fileID: 6057706863010018762}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9063115212817100350}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c5eed3625f9445eabdae0ad6dfcf3ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnCameraRotation
+--- !u!114 &7564278255855007768 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4389033491855740370, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+  m_PrefabInstance: {fileID: 6057706863010018762}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2ec4658d6b324d4996c38f6c23fab9a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnKnockback
+--- !u!114 &7948966455331646831 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4197683245214701733, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+  m_PrefabInstance: {fileID: 6057706863010018762}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ecc6e2caf251423ca2dc8dbb4875e70, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnInteractionHandler
 --- !u!1 &9063115212817100350 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3015136927240068084, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
@@ -209,8 +381,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac6b0545da28e47ca9fbf7e86da94450, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HumanPawnCamera
-  _componentIndexCache: 255
+  _componentIndexCache: 10
   _addedNetworkObject: {fileID: 4298628873098372708}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 4298628873098372708}
   cameraTransform: {fileID: 2534396703682639389}
   humanPawnInput: {fileID: 6882340550727723747}

@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceed61286e9c648aa81453c54392e198, type: 3}
   m_Name: Devil Daggers Thing
   m_EditorClassIdentifier: 
-  AmmoType: 0
   WeaponName: Devil Daggers Thing
   WeaponPrefab: {fileID: 0}
-  BulletPrefab: {fileID: -339553929967437806, guid: 4f7ecf60ca5624cacb06202b9007a6a7, type: 3}
+  BulletPrefab: {fileID: 1210474361264852817, guid: 7b2ceffd59875469bad13d7538a01f1d, type: 3}
   FireMode: 1
-  FireRate: 0.2
+  FireRate: 0.05
   AmmoPerFire: 0
+  SpawnPositionOffset: {x: 0, y: 0, z: 0}
   ShotsPerFire: 1
   FireDuration: 0
   ProjectilesPerShot: 1

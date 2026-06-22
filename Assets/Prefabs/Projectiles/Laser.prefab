@@ -68,7 +68,6 @@ MonoBehaviour:
   deflectOtherBullets: 0
   MaxHealth: 1
   impactVfx: []
-  spawnOnDamageableImpact: []
   spawnOnAnyImpact: []
   radius: 0.3
   height: 0.2
@@ -110,7 +109,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584260971138902628
+  _initializedTimestamp: -8584240246935650028
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1

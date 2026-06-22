@@ -4,8 +4,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "New Weapon", menuName = "FPS/Weapon Data")]
 public class WeaponData : ScriptableObject
 {
-    public AmmoType AmmoType;
-
     [Header("Visuals")]
     public string WeaponName;
     public GameObject WeaponPrefab;

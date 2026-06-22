@@ -9,18 +9,16 @@ public class TriggerHurt : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!IsServerStarted) return;
-
         if (other.TryGetComponent<IDamageable>(out var damageable))
         {
-            DamageInfo info = new() 
+            DamageInfo info = new()
             {
                 Amount = damage,
                 Attacker = null,
                 HitPoint = other.transform.position,
                 Type = DamageType.Environment
             };
-            damageable.ServerTakeDamage(info);
+            damageable.TakeDamage(info);
         }
     }
 }

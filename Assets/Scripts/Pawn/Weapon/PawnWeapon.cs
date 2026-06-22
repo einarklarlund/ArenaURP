@@ -13,9 +13,8 @@ public class PawnWeapon : NetworkBehaviour
 {
     // Configuration
     [SerializeField] private Pawn pawn;
-    [SerializeField] private PawnInventory inventory;
     [SerializeField] private Transform firePoint;
-    [SerializeField] private PawnAmmo pawnAmmo;
+    [SerializeField] private WeaponData weaponData;
     [SerializeField] private PawnInput input;
     [SerializeField] private Collider pawnCollider;
 
@@ -34,7 +33,7 @@ public class PawnWeapon : NetworkBehaviour
         bool firePressed = fireHeld && !_fireHeldLastFrame;
         _fireHeldLastFrame = fireHeld;
 
-        var currentWeapon = inventory.CurrentWeaponData;
+        var currentWeapon = weaponData;
 
         var config = new WeaponConfig
         {
@@ -48,28 +47,16 @@ public class PawnWeapon : NetworkBehaviour
             SpreadType = currentWeapon.SpreadType,
         };
 
-        bool hasAmmo = pawnAmmo.AmmoPools.TryGetValue(currentWeapon.AmmoType, out int amount)
-                       && amount >= currentWeapon.AmmoPerFire;
-
         var weaponInput = new WeaponInput
         {
             FireHeld = fireHeld,
             FirePressed = firePressed,
-            HasAmmo = hasAmmo,
+            HasAmmo = true,
             Modifiers = Modifiers,
         };
 
-        bool wasBurstActive = _state.IsBurstActive;
-
         _state = WeaponProcessor.Process(
             _state, in config, in weaponInput, Time.deltaTime, out int shotsToFire);
-
-        // Consume ammo once when a new fire event begins (server only)
-        if (shotsToFire > 0 && !wasBurstActive && IsServerInitialized)
-        {
-            if (!pawnAmmo.ConsumeAmmo(currentWeapon.AmmoType, currentWeapon.AmmoPerFire))
-                return;
-        }
 
         if (shotsToFire > 0)
         {
@@ -105,6 +92,11 @@ public class PawnWeapon : NetworkBehaviour
                 state.ID             = Guid.NewGuid().ToString();
                 state.Firer = pawn.ControllingPlayer.Value;
                 state.Health = bullet.MaxHealth;
+            }
+
+            if (nob.TryGetComponent<NetworkPlayerOwnership>(out var ownership))
+            {
+                ownership.AssignOwner(pawn.ControllingPlayer.Value);
             }
 
             if (nob.TryGetComponent<Collider>(out var bulletCollider))

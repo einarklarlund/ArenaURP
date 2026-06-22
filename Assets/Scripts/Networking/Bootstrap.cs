@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using FishNet.Transporting.Tugboat;
 using FishNet.Transporting.CanoeWebRTC;
+using System.Net;
+using System.Net.Sockets;
 
 public class Bootstrap : MonoBehaviour
 {
@@ -68,18 +70,27 @@ public class Bootstrap : MonoBehaviour
         #endif
         
         #if !UNITY_WEBGL || UNITY_EDITOR
-        var serverManager = debugNetworkManagerObject.GetComponent<ServerManager>();
-        serverManager.OnServerConnectionState += (args) =>
+        if (IsPortInUse(7770))
         {
-            if (args.ConnectionState == FishNet.Transporting.LocalConnectionState.Started)
+            Debug.Log("Port 7770 already in use; starting client-only connection.");
+            debugNetworkManagerObject.SetActive(true);
+            debugNetworkManagerObject.GetComponent<ClientManager>().StartConnection();
+        }
+        else
+        {
+            var serverManager = debugNetworkManagerObject.GetComponent<ServerManager>();
+            serverManager.OnServerConnectionState += (args) =>
             {
-                debugNetworkManagerObject
-                    .GetComponent<ClientManager>()
-                    .StartConnection();
-            }
-        };
-        debugNetworkManagerObject.SetActive(true);
-        serverManager.StartConnection();
+                if (args.ConnectionState == FishNet.Transporting.LocalConnectionState.Started)
+                {
+                    debugNetworkManagerObject
+                        .GetComponent<ClientManager>()
+                        .StartConnection();
+                }
+            };
+            debugNetworkManagerObject.SetActive(true);
+            serverManager.StartConnection();
+        }
         #endif
 
         uiManagerObject.SetActive(true);
@@ -105,5 +116,18 @@ public class Bootstrap : MonoBehaviour
         prodNetworkManagerObject.SetActive(true);
         SceneManager.LoadScene(offlineSceneName);
         uiManagerObject.SetActive(true);
+    }
+
+    static bool IsPortInUse(int port)
+    {
+        try
+        {
+            using var udp = new UdpClient(new IPEndPoint(IPAddress.Any, port));
+            return false;
+        }
+        catch (SocketException)
+        {
+            return true;
+        }
     }
 }

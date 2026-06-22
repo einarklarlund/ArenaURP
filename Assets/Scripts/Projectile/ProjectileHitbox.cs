@@ -7,7 +7,8 @@ using System;
 /// <summary>
 /// Exposes a method to check for collisions and call the correct behaviour
 /// depending on what was hit (IDamageable, surface or deflection).
-/// Uses FishNet's NetworkCollision for prediction-safe collision callbacks.
+/// Uses FishNet's NetworkCollision to check for a collision, and call the 
+/// correct behaviour.
 /// </summary>
 public class ProjectileHitbox : NetworkBehaviour
 {
@@ -17,8 +18,6 @@ public class ProjectileHitbox : NetworkBehaviour
     protected ProjectileSurfaceImpact projectileSurfaceImpact;
     protected PriorityQueue<Action> hitQueue;
 
-    private NetworkCollision _networkCollision;
-
     public virtual bool UsesManualCollisionCheck => false;
 
     protected virtual void Awake()
@@ -27,20 +26,31 @@ public class ProjectileHitbox : NetworkBehaviour
         projectileDamageableImpact = GetComponent<ProjectileDamageableImpact>();
         projectileBulletImpact = GetComponent<ProjectileBulletImpact>();
         projectileSurfaceImpact = GetComponent<ProjectileSurfaceImpact>();
-        _networkCollision = GetComponent<NetworkCollision>();
     }
 
     private void OnEnable()
     {
         hitQueue = new();
-        if (_networkCollision != null)
-            _networkCollision.OnEnter += OnNetworkCollisionEnter;
+        var collision = GetComponent<NetworkCollision>();
+        var trigger = GetComponent<NetworkTrigger>();
+
+        if (collision != null)
+            collision.OnEnter += OnNetworkCollisionEnter;
+
+        if (trigger != null)
+            trigger.OnEnter += OnNetworkTriggerEnter;
     }
 
     private void OnDisable()
     {
-        if (_networkCollision != null)
-            _networkCollision.OnEnter -= OnNetworkCollisionEnter;
+        var collision = GetComponent<NetworkCollision>();
+        var trigger = GetComponent<NetworkTrigger>();
+
+        if (collision != null)
+            collision.OnEnter -= OnNetworkCollisionEnter;
+
+        if (trigger != null)
+            trigger.OnEnter -= OnNetworkTriggerEnter;
     }
 
     /// <summary>
@@ -61,6 +71,12 @@ public class ProjectileHitbox : NetworkBehaviour
         EnqueueHit(HitInfo.FromCollider(other, transform));
     }
 
+    private void OnNetworkTriggerEnter(Collider other, uint tick)
+    {
+        EnqueueHit(HitInfo.FromCollider(other, transform));
+    }
+
+
     protected void EnqueueHit(HitInfo hit)
     {
         if (hit.point == Vector3.zero)
@@ -69,25 +85,21 @@ public class ProjectileHitbox : NetworkBehaviour
             hit.point = hit.collider.ClosestPoint(transform.position);
         }
 
-        if (hit.collider.TryGetComponent<ProjectileData>(out var otherBullet))
+        if (projectileBulletImpact != null && hit.collider.TryGetComponent<ProjectileHitbox>(out var otherHitbox))
         {
-            if (otherBullet != data && otherBullet.deflectOtherBullets)
+            hitQueue.Enqueue(() =>
             {
-                hitQueue.Enqueue(() =>
-                {
-                    var otherState = otherBullet.GetComponent<ProjectileState>();
-                    projectileBulletImpact.HandleImpact(otherState, hit);
-                }, 1);
-            }
+                projectileBulletImpact.HandleImpact(otherHitbox, hit);
+            }, 1);
         }
-        else if (hit.collider.TryGetComponent<IDamageable>(out var damageable))
+        else if (projectileDamageableImpact != null && hit.collider.TryGetComponent<IDamageable>(out var damageable))
         {
             hitQueue.Enqueue(() =>
             {
                 projectileDamageableImpact.HandleImpact(hit, damageable);
             }, 2);
         }
-        else
+        else if (projectileSurfaceImpact != null)
         {
             hitQueue.Enqueue(() =>
             {

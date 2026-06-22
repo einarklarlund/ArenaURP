@@ -1,3 +1,5 @@
+using System;
+using System.Data;
 using FishNet;
 using FishNet.Object;
 using FishNet.Object.Prediction;
@@ -53,23 +55,7 @@ public partial class ProjectileMovement : NetworkBehaviour
 
     public virtual void SetInitialMotion(float elapsed)
     {
-        _currentDirection = state.StartDirection;
-
-        Vector3 initialPosition = CalculatePosition(elapsed);
-        Vector3 initialVelocity = CalculateVelocityAtTime(elapsed);
-
-        _rb.freezeRotation = true;
-        _rb.position = initialPosition;
-        transform.position = initialPosition;
-        _predictionRb.Velocity(initialVelocity);
-
-        if (initialVelocity.sqrMagnitude > 0.001f)
-            transform.rotation = Quaternion.LookRotation(initialVelocity);
-    }
-
-    public Vector3 GetVelocity()
-    {
-        return _predictionRb.Rigidbody.linearVelocity;
+        _predictionRb.Velocity(transform.forward * 10);
     }
 
     public void SetVelocity(Vector3 newVelocity)
@@ -98,18 +84,11 @@ public partial class ProjectileMovement : NetworkBehaviour
     [Replicate]
     private void RunReplicate(ReplicateData replicateData, ReplicateState replicateState = ReplicateState.Invalid, Channel channel = Channel.Unreliable)
     {
-        if (state.Health <= 0)
-            return;
-
         ApplyForces();
         _predictionRb.Simulate();
 
         if (_collision != null && _collision.UsesManualCollisionCheck)
             _collision.CheckCollision(_rb.linearVelocity, Time.fixedDeltaTime);
-
-        float elapsed = (float)InstanceFinder.TimeManager.TimePassed(state.PreciseTick);
-        if (elapsed > data.lifetime)
-            _lifecycle.Kill();
 
         Vector3 vel = _rb.linearVelocity;
         if (vel.sqrMagnitude > 0.001f)
@@ -118,8 +97,8 @@ public partial class ProjectileMovement : NetworkBehaviour
 
     protected virtual void ApplyForces()
     {
-        if (data.acceleration != 0f)
-            _predictionRb.AddForce(_currentDirection * data.acceleration, ForceMode.Acceleration);
+        // if (data.acceleration != 0f)
+        //     _predictionRb.AddForce(_currentDirection * data.acceleration, ForceMode.Acceleration);
     }
 
     public override void CreateReconcile()
@@ -127,7 +106,6 @@ public partial class ProjectileMovement : NetworkBehaviour
         var rd = new ReconcileData
         {
             PredictionRigidbody = _predictionRb,
-            Health = state.Health,
             CurrentDirection = _currentDirection
         };
         RunReconcile(rd, Channel.Unreliable);
@@ -137,7 +115,6 @@ public partial class ProjectileMovement : NetworkBehaviour
     private void RunReconcile(ReconcileData reconcileData, Channel channel)
     {
         _predictionRb.Reconcile(reconcileData.PredictionRigidbody);
-        state.Health = reconcileData.Health;
         _currentDirection = reconcileData.CurrentDirection;
     }
 
@@ -157,13 +134,11 @@ public partial class ProjectileMovement : NetworkBehaviour
 
     protected virtual Vector3 CalculatePosition(float time)
     {
-        return state.StartPosition
-             + (data.speed * time * state.StartDirection)
-             + (0.5f * data.acceleration * time * time * state.StartDirection);
+        throw new NotImplementedException();
     }
 
     protected virtual Vector3 CalculateVelocityAtTime(float time)
     {
-        return state.StartDirection * (data.speed + data.acceleration * time);
+        throw new NotImplementedException();
     }
 }

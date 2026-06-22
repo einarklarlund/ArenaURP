@@ -10,10 +10,13 @@ public class ProjectileBulletImpact : ProjectileImpact
         movement = GetComponent<ProjectileMovement>();
     }
 
-    public void HandleImpact(ProjectileState otherState, HitInfo hit)
+    public virtual void HandleImpact(ProjectileHitbox otherHitbox, HitInfo hit)
     {
         if (!IsServerInitialized) return;
-        var newVelocity = otherState.StartDirection * data.speed;
-        movement.SetVelocity(newVelocity);
+        if (otherHitbox.TryGetComponent(out ProjectileState otherState))
+        {
+            var newVelocity = otherState.StartDirection * data.speed;
+            movement.SetVelocity(newVelocity);
+        }
     }
 }

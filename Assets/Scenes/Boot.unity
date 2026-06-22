@@ -15,16 +15,16 @@ RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 10
   m_Fog: 1
-  m_FogColor: {r: 0.8396226, g: 0.8396226, b: 0.8396226, a: 1}
+  m_FogColor: {r: 0, g: 0, b: 0, a: 1}
   m_FogMode: 3
-  m_FogDensity: 0.022
+  m_FogDensity: 0
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 1, g: 1, b: 1, a: 1}
+  m_AmbientSkyColor: {r: 0, g: 0, b: 0, a: 1}
   m_AmbientEquatorColor: {r: 0.9622642, g: 0.9622642, b: 0.9622642, a: 1}
   m_AmbientGroundColor: {r: 1, g: 1, b: 1, a: 1}
   m_AmbientIntensity: 1
-  m_AmbientMode: 1
+  m_AmbientMode: 3
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
   m_SkyboxMaterial: {fileID: 2100000, guid: fd565d8073e344716a59f64527e2a36e, type: 2}
   m_HaloStrength: 0.5
@@ -154,7 +154,7 @@ MonoBehaviour:
   roomManager: {fileID: 1132027635}
   offlineSceneName: Offline
   debugSceneName: Debug
-  EnforceBuildStage: 3
+  EnforceBuildStage: 0
 --- !u!4 &118122607
 Transform:
   m_ObjectHideFlags: 0
@@ -358,7 +358,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4bec66fbf7d47f44383b44eacf394c42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CanoeWebRTC::FishNet.Transporting.CanoeWebRTC.CanoeWebRTC
-  MTU: 1023
+  MTU: 2047
   filterLocalConnections: 0
   onlyAllowRelay: 0
   iceServers:
@@ -981,15 +981,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 785176461237963766, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -9.29
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 785176461237963766, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.58
+      value: 2.71
       objectReference: {fileID: 0}
     - target: {fileID: 785176461237963766, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 13.274
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 785176461237963766, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1043,6 +1043,18 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5900000740303120114, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6616655937303642982, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6895647229512782541, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7545244800630251120, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -1087,6 +1099,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: UIManager
       objectReference: {fileID: 0}
+    - target: {fileID: 8320549360175390663, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8322133912938842077, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_ClearFlags
       value: 2
@@ -1097,15 +1113,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8322133912938842077, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_BackGroundColor.b
-      value: 0.687
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8322133912938842077, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_BackGroundColor.g
-      value: 0.6809995
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8322133912938842077, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_BackGroundColor.r
-      value: 0.560592
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

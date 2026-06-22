@@ -13,6 +13,7 @@
   <Project Path="ParrelSync.csproj" />
   <Project Path="CanoeWebRTC.csproj" />
   <Project Path="Arena.MovementEffects.Core.csproj" />
+  <Project Path="Arena.Steering.Core.csproj" />
   <Project Path="Arena.Knockback.Core.csproj" />
   <Project Path="Arena.Bot.Core.csproj" />
   <Project Path="Arena.Weapon.Core.csproj" />
