@@ -59,4 +59,17 @@ public class KnockbackHelperTests
         Assert.AreEqual(_config.SpeedOnHit, impulse.y, 0.01f,
             "A purely upward hit should have full SpeedOnHit in Y.");
     }
+
+    [Test]
+    public void ComputeImpulse_ZeroDirection_DoesNotProduceNaN()
+    {
+        // A zero hit direction is an edge case (e.g. self-damage at point-blank, or a
+        // bug upstream). Whatever the resulting impulse is, it must not poison the
+        // movement system with NaN components.
+        Vector3 impulse = KnockbackHelper.ComputeImpulse(Vector3.zero, in _config);
+
+        Assert.IsFalse(float.IsNaN(impulse.x), "Impulse.x must not be NaN for zero direction.");
+        Assert.IsFalse(float.IsNaN(impulse.y), "Impulse.y must not be NaN for zero direction.");
+        Assert.IsFalse(float.IsNaN(impulse.z), "Impulse.z must not be NaN for zero direction.");
+    }
 }

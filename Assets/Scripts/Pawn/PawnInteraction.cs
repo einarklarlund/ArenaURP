@@ -9,17 +9,24 @@ public class PawnInteraction : NetworkBehaviour
     [SerializeField] private LayerMask interactableLayer;
     [SerializeField] private Transform cameraTransform;
 
+    private bool _subscribed;
+
     public override void OnStartClient()
     {
         base.OnStartClient();
-        if (!IsOwner) return;
+        if (!IsOwner || !InputManager.HasInstance) return;
 
         InputManager.PawnControls.Interact.performed += TryInteract;
+        _subscribed = true;
     }
 
     private void OnDestroy()
     {
-        InputManager.PawnControls.Interact.performed -= TryInteract;
+        // Only unsubscribe what we actually subscribed, and only if the InputManager is still
+        // around. Guards the previous unconditional deref, which NRE'd for non-owners and during
+        // teardown when the InputManager was already gone (e.g. headless tests, scene unload).
+        if (_subscribed && InputManager.HasInstance)
+            InputManager.PawnControls.Interact.performed -= TryInteract;
     }
 
     private void TryInteract(InputAction.CallbackContext context)

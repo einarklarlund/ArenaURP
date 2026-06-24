@@ -1,13 +1,14 @@
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public sealed class DeathmatchManager : NetworkBehaviour
 {
     public static DeathmatchManager Instance;
+
+    // Test/teardown hook so EditMode tests can reset the static reference between runs.
+    public static void ResetInstance() => Instance = null;
 
     public event Action<NetworkPlayer> OnGameModeEnded;
 
@@ -15,12 +16,10 @@ public sealed class DeathmatchManager : NetworkBehaviour
 
     public readonly SyncVar<NetworkPlayer> leadPlayer = new(); // wish i could keep this private but i'm reading it in PostgameCountdownView
 
-    [SerializeField] private float matchDuration = 600;
-    [SerializeField] private float maxKills = 5;
+    [SerializeField] private MatchTimerConfig timerConfig = MatchTimerConfig.Default;
 
-    private float highScore = 0;
-    private float timeRemaining;
-    private bool isRunning = false;
+    // Pure simulation state. The processor advances this each tick; we only react to transitions.
+    private MatchTimerState timerState = MatchTimerState.Default;
 
     void Awake()
     {
@@ -30,19 +29,26 @@ public sealed class DeathmatchManager : NetworkBehaviour
     [Server]
     public void BeginGame()
     {
-        timeRemaining = matchDuration;
-        isRunning = true;
-        highScore = 0;
+        timerState = MatchTimerState.Begin();
+        leadPlayer.Value = null;
     }
 
     private void Update()
     {
-        if (!IsServerStarted || !isRunning) return;
+        if (!IsServerStarted || !timerState.IsRunning) return;
 
-        timeRemaining -= Time.deltaTime;
-        if (timeRemaining <= 0)
+        var input = new MatchTimerInput
         {
-            ServerEndGame();
+            LeadingScore = leadPlayer.Value != null ? leadPlayer.Value.Score.Value : 0f,
+        };
+
+        var prevIsOver = timerState.IsOver;
+        timerState = MatchTimerProcessor.Process(timerState, in timerConfig, in input, Time.deltaTime);
+
+        // Fire the end-of-match event exactly once, on the IsOver false -> true transition.
+        if (!prevIsOver && timerState.IsOver)
+        {
+            OnGameModeEnded?.Invoke(leadPlayer.Value);
         }
     }
 
@@ -52,12 +58,12 @@ public sealed class DeathmatchManager : NetworkBehaviour
         if (killer != null)
         {
             killer.Score.Value++;
-            if (killer.Score.Value > highScore)
+            // Track the current leader. The processor reads LeadingScore via leadPlayer.Score
+            // each tick, so it will pick up score-threshold wins on the next Update.
+            if (killer.Score.Value > timerState.HighScore)
             {
                 leadPlayer.Value = killer;
-                highScore = killer.Score.Value;
             }
-            CheckGameEnd(killer);
         }
         else
         {
@@ -69,19 +75,5 @@ public sealed class DeathmatchManager : NetworkBehaviour
     public void ResetScore(NetworkPlayer player)
     {
         player.Score.Value = 0;
-    }
-
-    private void CheckGameEnd(NetworkPlayer player)
-    {
-        if (player.Score.Value >= maxKills)
-            ServerEndGame();
-    }
-
-    [Server]
-    private void ServerEndGame()
-    {
-        timeRemaining = 0;
-        isRunning = false;
-        OnGameModeEnded?.Invoke(leadPlayer.Value);
     }
 }

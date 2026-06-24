@@ -14,6 +14,13 @@ public class PawnBodySpawner : NetworkBehaviour
         pawnManager.OnPawnKilled += HandlePawnKilled;
     }
 
+    public override void OnStopClient()
+    {
+        base.OnStopClient();
+        if (pawnManager != null)
+            pawnManager.OnPawnKilled -= HandlePawnKilled;
+    }
+
     private void HandlePawnKilled(Pawn pawn, DamageInfo damageInfo)
     {
         InstantiateBody

@@ -1,0 +1,22 @@
+{
+  "name": "Arena.PlayTests",
+  "rootNamespace": "Arena.PlayTests",
+  "references": [
+    "UnityEngine.TestRunner",
+    "FishNet.Runtime",
+    "Arena.Projectile.Core"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

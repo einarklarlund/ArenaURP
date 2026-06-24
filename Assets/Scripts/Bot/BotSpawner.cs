@@ -104,6 +104,12 @@ public class BotSpawner : NetworkBehaviour
         InstanceFinder.ClientManager.OnAuthenticated += HandleAuthenticated;
     }
 
+    private void OnDestroy()
+    {
+        if (InstanceFinder.ClientManager != null)
+            InstanceFinder.ClientManager.OnAuthenticated -= HandleAuthenticated;
+    }
+
     private void HandleAuthenticated()
     {
         SpawnBots();

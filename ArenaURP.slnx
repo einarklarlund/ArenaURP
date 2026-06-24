@@ -1,4 +1,5 @@
 ﻿<Solution>
+  <Project Path="Arena.PlayTests.csproj" />
   <Project Path="FishNet.Codegen.Cecil.csproj" />
   <Project Path="Arena.Temperature.Core.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
@@ -10,11 +11,18 @@
   <Project Path="Arena.Tests.csproj" />
   <Project Path="FishNet.Demos.csproj" />
   <Project Path="Arena.Movement.Core.csproj" />
+  <Project Path="Arena.Projectile.Core.csproj" />
   <Project Path="ParrelSync.csproj" />
   <Project Path="CanoeWebRTC.csproj" />
   <Project Path="Arena.MovementEffects.Core.csproj" />
   <Project Path="Arena.Steering.Core.csproj" />
   <Project Path="Arena.Knockback.Core.csproj" />
   <Project Path="Arena.Bot.Core.csproj" />
+  <Project Path="Arena.MatchTimer.Core.csproj" />
+  <Project Path="Arena.MatchCountdown.Core.csproj" />
   <Project Path="Arena.Weapon.Core.csproj" />
+  <Project Path="Arena.PawnColor.Core.csproj" />
+  <Project Path="Arena.Input.Core.csproj" />
+  <Project Path="Arena.Respawn.Core.csproj" />
+  <Project Path="Arena.UIFlow.Core.csproj" />
 </Solution>

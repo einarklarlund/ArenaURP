@@ -2354,6 +2354,58 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
+--- !u!1 &1272603136
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1272603138}
+  - component: {fileID: 1272603137}
+  m_Layer: 0
+  m_Name: Projectile World Provider
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1272603137
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1272603136}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c849d29661b4949738afc1ae6b1601d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectileWorldProvider
+  worldMask:
+    serializedVersion: 2
+    m_Bits: 129
+  projectileMask:
+    serializedVersion: 2
+    m_Bits: 0
+  playerManager: {fileID: 3137554222878767908}
+  catalog: []
+--- !u!4 &1272603138
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1272603136}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1446898674
 GameObject:
   m_ObjectHideFlags: 0
@@ -3000,6 +3052,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 844217296461668172, guid: 8d8f6887f8cde42448949849b88ca701, type: 3}
   m_PrefabInstance: {fileID: 3137554222878767905}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &3137554222878767908 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7114079467991808028, guid: 8d8f6887f8cde42448949849b88ca701, type: 3}
+  m_PrefabInstance: {fileID: 3137554222878767905}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67c2637e1a684406c875d0aa2c923958, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkPlayerManager
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -3017,3 +3080,4 @@ SceneRoots:
   - {fileID: 187537319}
   - {fileID: 198159988}
   - {fileID: 1707911024}
+  - {fileID: 1272603138}

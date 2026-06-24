@@ -75,23 +75,28 @@ public class PawnWeapon : NetworkBehaviour
 
         for (int i = 0; i < count; i++)
         {
-            NetworkObject nob = InstanceFinder.NetworkManager.GetPooledInstantiated(
+            var fireDir = WeaponHelper.CalculateSpread(currentWeapon, firePoint, 0, currentWeapon.ProjectilesPerShot);
+            Vector3 spawnPos = firePoint.TransformPoint(currentWeapon.SpawnPositionOffset);
+
+            // Use THIS pawn's own NetworkManager (not InstanceFinder). On the owning client that is the
+            // client's manager, so the spawn below takes FishNet's predicted-spawn path and the bullet
+            // appears locally on the SAME frame; on the server/host it spawns authoritatively. Resolving
+            // a different manager could turn an owning-client shot into a server-only spawn, so the bullet
+            // only appears after a full server round-trip.
+            NetworkObject nob = NetworkManager.GetPooledInstantiated(
                 currentWeapon.BulletPrefab.gameObject,
-                firePoint.position,
-                Quaternion.LookRotation(firePoint.forward),
+                spawnPos,
+                Quaternion.LookRotation(fireDir),
                 false
             );
 
-            if (nob.TryGetComponent<ProjectileData>(out var bullet) &&
-                nob.TryGetComponent<ProjectileState>(out var state))
+            if (nob.TryGetComponent<PawnProjectile>(out var projectile))
             {
-                var fireDir = WeaponHelper.CalculateSpread(currentWeapon, firePoint, 0, currentWeapon.ProjectilesPerShot);
-                state.PreciseTick    = InstanceFinder.TimeManager.GetPreciseTick(TickType.Tick);
-                state.StartDirection = fireDir;
-                state.StartPosition  = firePoint.TransformPoint(currentWeapon.SpawnPositionOffset);
-                state.ID             = Guid.NewGuid().ToString();
-                state.Firer = pawn.ControllingPlayer.Value;
-                state.Health = bullet.MaxHealth;
+                int ownerId = pawn.ControllingPlayer.Value != null ? pawn.ControllingPlayer.Value.ObjectId : -1;
+                PreciseTick tick = TimeManager.GetPreciseTick(TickType.Tick);
+                projectile.SetupSpawn(ownerId, tick, spawnPos, fireDir, health: 0);
+                ServerManager.Spawn(nob, Owner); // own manager: predicted on the owning client, authoritative on the server
+                continue;
             }
 
             if (nob.TryGetComponent<NetworkPlayerOwnership>(out var ownership))

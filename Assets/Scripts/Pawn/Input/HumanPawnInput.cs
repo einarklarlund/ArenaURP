@@ -29,13 +29,15 @@ public sealed class HumanPawnInput : PawnInput
         if (!IsOwner) return;
 
         float sensitivity = SettingsManager.Instance.Settings.MouseSensitivity;
-
-        Vector2 look = InputManager.PawnControls.Look.ReadValue<Vector2>() * sensitivity;
+        Vector2 rawLook = InputManager.PawnControls.Look.ReadValue<Vector2>();
 
         #if UNITY_WEBGL && !UNITY_EDITOR
-            // mouse sensitivity is way too high in web gl builds compared to editor
-            look /= 10;
+            const bool isWebGL = true;
+        #else
+            const bool isWebGL = false;
         #endif
+
+        Vector2 look = HumanInputMath.ApplyLookSensitivity(rawLook, sensitivity, isWebGL);
 
         Data = new PawnInputData
         {

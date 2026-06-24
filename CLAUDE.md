@@ -50,7 +50,6 @@ Server-only flow lives in `Assets/Scripts/Managers/`:
 
 - `MatchMediator` is the central server-side wiring point — it subscribes `NetworkPlayerManager`, `PawnManager`, `MatchFlowManager`, and `DeathmatchManager` to each other. New cross-manager events should be wired here, not inside the managers themselves.
 - `MatchFlowManager.State` is a `SyncVar<MatchState>` (`Pregame` / `During` / `Postgame`) — drive lifecycle changes by mutating it on the server.
-- `ServerEventBus` (`Networking/ServerEventBus.cs`) is a static `[Server]`-only pub/sub for global events (kills, player register/unregister, match begin). Use it to decouple systems that don't already share a serialized reference.
 - UI events are split: `LocalUIEvents` (purely local actions/HUD) and `NetworkUIEvents` (events that originate from synced state).
 
 ### Bootstrap / build stages

@@ -12,7 +12,16 @@ public class DamageIndicator : MonoBehaviour
         pawn.Health.OnChange += OnHealthChanged;
         pawn.MaxHealth.OnChange += OnHealthChanged;
     }
-    
+
+    private void OnDestroy()
+    {
+        if (pawn != null)
+        {
+            pawn.Health.OnChange -= OnHealthChanged;
+            pawn.MaxHealth.OnChange -= OnHealthChanged;
+        }
+    }
+
     private void OnHealthChanged(int prev, int next, bool asServer)
     {
         if(asServer) return;

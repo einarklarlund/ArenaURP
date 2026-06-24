@@ -18,4 +18,19 @@ public static class NetworkUIEvents
     public static Action<int> OnLocalDamageTaken;
     public static Action OnLocalDeath;
     public static Action<double> OnRespawnTimerStarted;
+
+    public static void Reset()
+    {
+        OnClientConnectionChanged = null;
+        OnCurrentRoomChanged = null;
+        OnCountdownChanged = null;
+        OnMatchStateChanged = null;
+        OnGameModeEnded = null;
+        OnLocalReadyStatusChanged = null;
+        OnLocalPawnSpawned = null;
+        OnLocalHealthChanged = null;
+        OnLocalDamageTaken = null;
+        OnLocalDeath = null;
+        OnRespawnTimerStarted = null;
+    }
 }

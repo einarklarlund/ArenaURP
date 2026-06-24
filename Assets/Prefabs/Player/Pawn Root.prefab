@@ -548,7 +548,6 @@ MonoBehaviour:
   _componentIndexCache: 0
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 8049762553664656302}
-  ownership: {fileID: 3229108476807971348}
 --- !u!143 &7538533630776666726
 CharacterController:
   m_ObjectHideFlags: 0
@@ -841,6 +840,9 @@ MonoBehaviour:
   meshRenderers:
   - {fileID: 6453948657391260797}
   pawn: {fileID: 3390302888177528954}
+  config:
+    HitColor: {r: 1, g: 0, b: 0, a: 1}
+    HitDurationSeconds: 0.3
 --- !u!1 &5539008407713458590
 GameObject:
   m_ObjectHideFlags: 0
@@ -890,7 +892,7 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 8049762553664656302}
   pawn: {fileID: 3390302888177528954}
   firePoint: {fileID: 5178310690769963987}
-  weaponData: {fileID: 11400000, guid: f529980797c424fae8e68f48b8716cb7, type: 2}
+  weaponData: {fileID: 11400000, guid: a605a9340871345b48c78d3346b2cabf, type: 2}
   input: {fileID: 0}
   pawnCollider: {fileID: 7538533630776666726}
 --- !u!1 &5972829445371107754

@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0794d882253f44f9a436cc0ea4032a4, type: 3}
+  m_Name: Grenade
+  m_EditorClassIdentifier: Arena.Projectile.Core::Arena.Projectile.ProjectileType
+  Radius: 0.5
+  MaxHealth: 100
+  Damage: 3
+  Speed: 30
+  Acceleration: 0
+  Lifetime: 1.2
+  Movement: 1
+  Gravity: -9.81
+  MaxRange: 100
+  OnSurface:
+  - rid: 6758500579760930897
+  OnEnemy:
+  - rid: 6758500579760930898
+  OnProjectile: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 6758500579760930897
+      type: {class: LoseHealth, ns: Arena.Projectile, asm: Arena.Projectile.Core}
+      data:
+        Amount: 100
+    - rid: 6758500579760930898
+      type: {class: DealDamage, ns: Arena.Projectile, asm: Arena.Projectile.Core}
+      data:
+        Amount: 3
+        DespawnAfter: 1

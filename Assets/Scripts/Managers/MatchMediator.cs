@@ -25,6 +25,23 @@ public class MatchMediator : NetworkBehaviour
         pawnManager.OnPawnKilled += ServerHandlePawnKilled;
     }
 
+    public override void OnStopServer()
+    {
+        base.OnStopServer();
+
+        if (networkPlayerManager != null)
+            networkPlayerManager.OnPlayerRegistered -= ServerHandlePlayerRegistered;
+
+        if (matchFlowManager != null)
+            matchFlowManager.State.OnChange -= ServerHandleMatchStateChanged;
+
+        if (deathmatchManager != null)
+            deathmatchManager.OnGameModeEnded -= ServerHandleGameModeEnded;
+
+        if (pawnManager != null)
+            pawnManager.OnPawnKilled -= ServerHandlePawnKilled;
+    }
+
     /// <summary>
     /// Registers event handlers.
     /// Spawns a pawn if the game is already started.
@@ -33,6 +50,9 @@ public class MatchMediator : NetworkBehaviour
     private void ServerHandlePlayerRegistered(NetworkPlayer networkPlayer)
     {
         networkPlayer.IsReady.OnChange += ServerHandleIsReadyChanged;
+        // Clean up the player's pawn when they leave/disconnect. Without this subscription
+        // ServerHandlePlayerDespawn never ran, so a departing player's pawn was orphaned.
+        networkPlayer.OnDespawn += ServerHandlePlayerDespawn;
 
         if (matchFlowManager.State.Value == MatchState.During)
             pawnManager.SpawnPawnForPlayer(networkPlayer);

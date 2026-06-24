@@ -7,6 +7,20 @@ using FishNet.Transporting.CanoeWebRTC;
 using System.Net;
 using System.Net.Sockets;
 
+/// <summary>
+/// Boot-scene entry point. Selects between Local / Dev / Prod flows and brings the
+/// FishNet NetworkManager online.
+///
+/// **Scene-loading invariant.** FishNet's <c>NetworkObject.Start</c> auto-deactivates
+/// its GameObject if no NetworkManager has started server/client at scene-load time
+/// (see <c>NetworkObject.TryStartDeactivation</c>). Deactivated scene NetworkObjects
+/// don't recover automatically — they silently stay off, and OnStartServer never
+/// fires. Any scene loaded from here MUST therefore have zero scene NetworkObjects.
+/// Gameplay scenes (e.g. Online.unity, which has 7 NOs) load later from the menu
+/// flow after the user clicks Host — at which point the server is started and the
+/// invariant is satisfied. Offline.unity is intentionally empty of NOs for this
+/// reason; if you add one, you must also reorder so the host is started first.
+/// </summary>
 public class Bootstrap : MonoBehaviour
 {
     enum BuildStage
@@ -105,6 +119,8 @@ public class Bootstrap : MonoBehaviour
         DestroyImmediate(tugboat);
         debugNetworkManagerObject.AddComponent<CanoeWebRTC>();
         debugNetworkManagerObject.SetActive(true);
+        // Per scene-loading invariant on this class: offlineSceneName must have zero
+        // scene NetworkObjects, since the server is not started here.
         SceneManager.LoadScene(offlineSceneName);
         uiManagerObject.SetActive(true);
     }
@@ -114,6 +130,8 @@ public class Bootstrap : MonoBehaviour
         Destroy(debugNetworkManagerObject);
         Debug.Log("Start prod bootstrap");
         prodNetworkManagerObject.SetActive(true);
+        // Per scene-loading invariant on this class: offlineSceneName must have zero
+        // scene NetworkObjects, since the server is not started here.
         SceneManager.LoadScene(offlineSceneName);
         uiManagerObject.SetActive(true);
     }

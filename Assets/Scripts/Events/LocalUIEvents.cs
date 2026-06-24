@@ -29,4 +29,22 @@ public static class LocalUIEvents
 
     // In-game HUD events
     public static Action<float> OnTemperatureChanged;
+
+    public static void Reset()
+    {
+        OnPause = null;
+        OnUnpause = null;
+        OnSettingsOpened = null;
+        OnSettingsClosed = null;
+        OnSettingsSaved = null;
+        OnRoomBrowserOpened = null;
+        OnRoomBrowserClosed = null;
+        OnHostOptionsOpened = null;
+        OnHostOptionsClosed = null;
+        OnHostInitiated = null;
+        OnJoinInitiated = null;
+        OnDebugViewOpened = null;
+        OnDebugViewClosed = null;
+        OnTemperatureChanged = null;
+    }
 }

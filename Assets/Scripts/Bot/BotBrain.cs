@@ -79,19 +79,19 @@ public sealed class BotBrain : NetworkBehaviour
         {
             case NavigationIntent.MoveToPosition:
                 currentDestination = decision.MovePosition;
-                agent.SetDestination(currentDestination);
+                if (agent.isOnNavMesh) agent.SetDestination(currentDestination);
                 break;
             case NavigationIntent.FindSearchWaypoint:
                 SetNewSearchWaypoint();
                 break;
             case NavigationIntent.FindCoverPosition:
                 currentDestination = FindCoverPosition();
-                agent.SetDestination(currentDestination);
+                if (agent.isOnNavMesh) agent.SetDestination(currentDestination);
                 break;
         }
 
         // Movement
-        Vector3 desired = agent.desiredVelocity;
+        Vector3 desired = agent.isOnNavMesh ? agent.desiredVelocity : Vector3.zero;
         botInput.SetMoveIntent(desired.magnitude > 0.01f ? desired.normalized : Vector3.zero);
 
         // Look
@@ -108,7 +108,7 @@ public sealed class BotBrain : NetworkBehaviour
 
     private bool IsAtDestination()
     {
-        if (!agent.pathPending && agent.remainingDistance <= arrivalThreshold)
+        if (agent.isOnNavMesh && !agent.pathPending && agent.remainingDistance <= arrivalThreshold)
             return true;
 
         return Vector3.Distance(transform.position, currentDestination) <= arrivalThreshold;
@@ -122,7 +122,7 @@ public sealed class BotBrain : NetworkBehaviour
         if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, waypointSearchRadius, NavMesh.AllAreas))
             currentDestination = hit.position;
 
-        agent.SetDestination(currentDestination);
+        if (agent.isOnNavMesh) agent.SetDestination(currentDestination);
     }
 
     private Vector3 FindCoverPosition()

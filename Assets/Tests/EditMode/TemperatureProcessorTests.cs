@@ -16,13 +16,17 @@ public class TemperatureProcessorTests
         float drain = 20f,
         float regen = 15f,
         float minSpeed = 0.3f,
-        float minAccel = 0.3f) => new()
+        float minAccel = 0.3f,
+        float minJumpForce = 1f,
+        float maxFireRate = 1f) => new()
     {
         MaxTemperature = max,
         DrainRatePerSecond = drain,
         RegenRatePerSecond = regen,
         MinSpeedMultiplier = minSpeed,
         MinAccelerationMultiplier = minAccel,
+        MinJumpForceMultiplier = minJumpForce,
+        MaxFireRateMultiplier = maxFireRate,
     };
 
     private static TemperatureState AtTemp(float temperature) => new() { Temperature = temperature };
@@ -248,5 +252,31 @@ public class TemperatureProcessorTests
         // Negative temperature should yield MinWalkSpeedMultiplier
         var result = ProcessAtTemp(-50f, config);
         Assert.AreEqual(0.3f, result.MovementModifier.WalkSpeedMultiplier, Tolerance);
+    }
+
+    // ------------------------------------------------------------------
+    // Process - MovementModifier (jump force multiplier mapping)
+    // ------------------------------------------------------------------
+
+    [Test]
+    public void GetMovementModifier_JumpForceMultiplier_InterpolatesAtHalfTemperature()
+    {
+        var config = MakeConfig(max: 100f, minJumpForce: 0.5f);
+        // At 50% temperature: Lerp(0.5, 1.0, 0.5) = 0.75
+        var result = ProcessAtTemp(50f, config);
+        Assert.AreEqual(0.75f, result.MovementModifier.JumpForceMultiplier, Tolerance);
+    }
+
+    // ------------------------------------------------------------------
+    // Process - WeaponModifier (fire rate multiplier mapping)
+    // ------------------------------------------------------------------
+
+    [Test]
+    public void GetWeaponModifier_FireRateMultiplier_InterpolatesAtHalfTemperature()
+    {
+        var config = MakeConfig(max: 100f, maxFireRate: 2f);
+        // At 50% temperature: Lerp(2.0, 1.0, 0.5) = 1.5
+        var result = ProcessAtTemp(50f, config);
+        Assert.AreEqual(1.5f, result.WeaponModifier.FireRateMultiplier, Tolerance);
     }
 }

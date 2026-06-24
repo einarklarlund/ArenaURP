@@ -31,59 +31,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 7689909224678790581}
   m_LocalEulerAnglesHint: {x: 0, y: -105.27, z: 0}
---- !u!1 &159904068482959366
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 8786426695154273005}
-  - component: {fileID: 1975876340498481987}
-  m_Layer: 0
-  m_Name: Power Up Manager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &8786426695154273005
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 159904068482959366}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6122284166908164103}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1975876340498481987
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 159904068482959366}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 014745a36ca384df18879bc8b051a8a4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PowerUpManager
-  _componentIndexCache: 2
-  _addedNetworkObject: {fileID: 8126624165769236608}
-  _networkObjectCache: {fileID: 8126624165769236608}
-  powerUpPrefabs:
-  - {fileID: 4926004011689260502, guid: 30004e5ebfa7f428aae6d9a67b6a16fc, type: 3}
-  spawnsPerPrefab: 2
-  spawnInterval: 10
-  sampleRadius: 1
-  maxSampleAttempts: 10
 --- !u!1 &597774286992594480
 GameObject:
   m_ObjectHideFlags: 0
@@ -119,7 +66,6 @@ Transform:
   - {fileID: 5195846278358163903}
   - {fileID: 46578458564483429}
   - {fileID: 2871510170089630124}
-  - {fileID: 8786426695154273005}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7193771989295176734
@@ -162,7 +108,7 @@ MonoBehaviour:
   NetworkBehaviours:
   - {fileID: 7193771989295176734}
   - {fileID: 5403703494097441515}
-  - {fileID: 1975876340498481987}
+  - {fileID: 0}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects:
   - {fileID: 6401056016573493018}
@@ -621,8 +567,9 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 8126624165769236608}
   _networkObjectCache: {fileID: 5282274260030365902}
   RespawnDelay: 3
-  matchDuration: 600
-  maxKills: 4
+  timerConfig:
+    MatchDurationSeconds: 600
+    KillsToWin: 5
 --- !u!114 &5282274260030365902
 MonoBehaviour:
   m_ObjectHideFlags: 0

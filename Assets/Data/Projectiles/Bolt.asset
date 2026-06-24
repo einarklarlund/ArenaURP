@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0794d882253f44f9a436cc0ea4032a4, type: 3}
+  m_Name: Bolt
+  m_EditorClassIdentifier: Arena.Projectile.Core::Arena.Projectile.ProjectileType
+  Radius: 0.2
+  MaxHealth: 1
+  Speed: 160
+  Acceleration: 0
+  Lifetime: 5.15
+  Movement: 0
+  Gravity: -9.81
+  HomingAcceleration: 50
+  MaxRange: 100
+  OnSurface:
+  - rid: 6758500579760930888
+  OnEnemy:
+  - rid: 6758500579760930889
+  OnProjectile:
+  - rid: 6758500579760930890
+  references:
+    version: 2
+    RefIds:
+    - rid: 6758500579760930888
+      type: {class: LoseHealth, ns: Arena.Projectile, asm: Arena.Projectile.Core}
+      data:
+        Amount: 1
+    - rid: 6758500579760930889
+      type: {class: DealDamage, ns: Arena.Projectile, asm: Arena.Projectile.Core}
+      data:
+        Amount: 20
+        DespawnAfter: 1
+    - rid: 6758500579760930890
+      type: {class: DeflectProjectile, ns: Arena.Projectile, asm: Arena.Projectile.Core}
+      data: 

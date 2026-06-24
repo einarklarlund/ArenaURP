@@ -101,17 +101,39 @@ public sealed class UIManager : MonoBehaviour
 
     private void HandleMatchStateChanged(MatchState state)
     {
-        switch (state)
+        var viewKind = UIStateMapper.MatchStateToViewKind(ToUIMatchState(state));
+        switch (viewKind)
         {
-            case MatchState.Pregame:
+            case UIStateMapper.ViewKind.Lobby:
                 Show<LobbyView>();
                 break;
-            case MatchState.PregameCountdown:
+            case UIStateMapper.ViewKind.PregameCountdown:
                 Show<PregameCountdownView>();
                 break;
-            case MatchState.PostgameCountdown:
+            case UIStateMapper.ViewKind.PostgameCountdown:
                 Show<PostgameCountdownView>();
                 break;
+            case UIStateMapper.ViewKind.Main:
+                Show<MainView>();
+                break;
+            case UIStateMapper.ViewKind.None:
+            default:
+                // No view change for this match state (e.g. During / Postgame are
+                // driven by pawn-spawn / death events instead).
+                break;
+        }
+    }
+
+    private static UIStateMapper.UIMatchState ToUIMatchState(MatchState state)
+    {
+        switch (state)
+        {
+            case MatchState.Pregame:           return UIStateMapper.UIMatchState.Pregame;
+            case MatchState.PregameCountdown:  return UIStateMapper.UIMatchState.PregameCountdown;
+            case MatchState.During:            return UIStateMapper.UIMatchState.During;
+            case MatchState.PostgameCountdown: return UIStateMapper.UIMatchState.PostgameCountdown;
+            case MatchState.Postgame:          return UIStateMapper.UIMatchState.Postgame;
+            default:                           return UIStateMapper.UIMatchState.Pregame;
         }
     }
 
@@ -127,8 +149,8 @@ public sealed class UIManager : MonoBehaviour
 
     private void Show<T>() where T : View
     {
-        bool isMenuCameraActive = typeof(T) != typeof(MainView);
-        menuCamera.gameObject.SetActive(isMenuCameraActive);
+        var viewKind = ViewTypeToViewKind(typeof(T));
+        menuCamera.gameObject.SetActive(UIStateMapper.ShouldActivateMenuCamera(viewKind));
         previousView = currentView;
         foreach(var view in views)
         {
@@ -147,5 +169,14 @@ public sealed class UIManager : MonoBehaviour
         currentView.Hide();
         previousView.Show();
         (previousView, currentView) = (currentView, previousView);
+    }
+
+    private static UIStateMapper.ViewKind ViewTypeToViewKind(System.Type viewType)
+    {
+        if (viewType == typeof(MainView))               return UIStateMapper.ViewKind.Main;
+        if (viewType == typeof(LobbyView))              return UIStateMapper.ViewKind.Lobby;
+        if (viewType == typeof(PregameCountdownView))   return UIStateMapper.ViewKind.PregameCountdown;
+        if (viewType == typeof(PostgameCountdownView))  return UIStateMapper.ViewKind.PostgameCountdown;
+        return UIStateMapper.ViewKind.None;
     }
 }
