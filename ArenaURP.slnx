@@ -8,12 +8,12 @@
   <Project Path="Arena.Tests.csproj" />
   <Project Path="GameKit.Dependencies.csproj" />
   <Project Path="SimpleWebTransport.csproj" />
+  <Project Path="Arena.NetworkedMotion.Core.csproj" />
   <Project Path="Unity.FishNet.Codegen.csproj" />
   <Project Path="FishNet.Demos.csproj" />
-  <Project Path="Arena.Ability.Core.csproj" />
   <Project Path="Arena.Movement.Core.csproj" />
-  <Project Path="Arena.Projectile.Core.csproj" />
   <Project Path="ParrelSync.csproj" />
+  <Project Path="Arena.ServerCollision.Core.csproj" />
   <Project Path="CanoeWebRTC.csproj" />
   <Project Path="Arena.MovementEffects.Core.csproj" />
   <Project Path="Arena.Steering.Core.csproj" />
@@ -22,8 +22,11 @@
   <Project Path="Arena.MatchTimer.Core.csproj" />
   <Project Path="Arena.MatchCountdown.Core.csproj" />
   <Project Path="Arena.Weapon.Core.csproj" />
+  <Project Path="Arena.Damage.Core.csproj" />
   <Project Path="Arena.PawnColor.Core.csproj" />
+  <Project Path="Arena.Ability.Core.csproj" />
   <Project Path="Arena.Input.Core.csproj" />
   <Project Path="Arena.Respawn.Core.csproj" />
+  <Project Path="Arena.Health.Core.csproj" />
   <Project Path="Arena.UIFlow.Core.csproj" />
 </Solution>

@@ -1,5 +1,5 @@
 using System;
-using FishNet;
+using FishNet.Managing.Client;
 using FishNet.Object;
 using UnityEngine;
 
@@ -99,15 +99,30 @@ public class BotSpawner : NetworkBehaviour
     
     [SerializeField] private NetworkPlayer botPlayerPrefab;
 
-    private void Start()
+    // ClientManager this object was initialized under, cached at OnStartServer so we can
+    // unsubscribe safely during teardown even after the base reference is cleared.
+    private ClientManager _clientManager;
+
+    // Subscribe on the server, which (on a host) starts before its local client authenticates.
+    // Use this NetworkBehaviour's OWN ClientManager rather than InstanceFinder: the global
+    // accessor logs "Multiple NetworkManagers found" and returns an arbitrary manager whenever
+    // more than one exists in the process (e.g. the PlayMode two-peer test fixture).
+    public override void OnStartServer()
     {
-        InstanceFinder.ClientManager.OnAuthenticated += HandleAuthenticated;
+        base.OnStartServer();
+        _clientManager = ClientManager;
+        if (_clientManager != null)
+            _clientManager.OnAuthenticated += HandleAuthenticated;
     }
 
-    private void OnDestroy()
+    public override void OnStopServer()
     {
-        if (InstanceFinder.ClientManager != null)
-            InstanceFinder.ClientManager.OnAuthenticated -= HandleAuthenticated;
+        base.OnStopServer();
+        if (_clientManager != null)
+        {
+            _clientManager.OnAuthenticated -= HandleAuthenticated;
+            _clientManager = null;
+        }
     }
 
     private void HandleAuthenticated()
@@ -141,7 +156,7 @@ public class BotSpawner : NetworkBehaviour
         bot.Username.Value = $"Bot {name}";
         bot.IsReady.Value = true;
         bot.IsBot = true;
-        Spawn(bot, InstanceFinder.ClientManager.Connection);
+        Spawn(bot, ClientManager.Connection);
         OnSpawned?.Invoke(bot);
     }
 }

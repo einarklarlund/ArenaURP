@@ -62,7 +62,11 @@ public class MatchMediator : NetworkBehaviour
     /// Unregisters the player with other services.
     /// Unregisters player event handlers.
     /// </summary>
-    [Server]
+    // Invoked from NetworkPlayer.OnDespawn, which also fires while the server is shutting
+    // down (every player object deinitializes at once). In that path FishNet is already
+    // despawning everything, so the [Server] guard correctly no-ops here; Logging.Off keeps
+    // that expected teardown case from spamming "server is not active" warnings.
+    [Server(Logging = FishNet.Managing.Logging.LoggingType.Off)]
     private void ServerHandlePlayerDespawn(NetworkPlayer networkPlayer)
     {
         pawnManager.UnregisterPawnForPlayer(networkPlayer);

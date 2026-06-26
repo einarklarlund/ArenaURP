@@ -90,8 +90,19 @@ namespace Arena.PlayTests
             Assert.IsTrue(ClientNM.ClientManager.Started, "client failed to connect");
             Assert.IsNotNull(ClientOnServer, "server never registered the remote client connection");
 
-            // A few frames for authentication / initial sync to settle.
-            for (int i = 0; i < 5; i++) yield return null;
+            // FishNet recommends NOT spawning objects for a connection until it has loaded its
+            // start scenes (otherwise ServerManager.Spawn warns and the client may receive the
+            // object before its scene is ready). Wait for the server to observe that handshake
+            // before any test spawns client-owned objects via ServerSpawnOwnedByClient. This also
+            // covers the authentication/initial-sync settle the old fixed frame-count waited for.
+            t = 0f;
+            while (!ClientOnServer.LoadedStartScenes(true) && t < ConnectionTimeoutSeconds)
+            {
+                t += Time.deltaTime;
+                yield return null;
+            }
+            Assert.IsTrue(ClientOnServer.LoadedStartScenes(true),
+                "remote client never reported loaded start scenes to the server");
 #else
             Assert.Fail("Two-peer PlayMode tests require the Unity Editor.");
             yield break;

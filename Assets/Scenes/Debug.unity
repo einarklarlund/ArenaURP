@@ -1693,6 +1693,7 @@ GameObject:
   - component: {fileID: 507502855}
   - component: {fileID: 507502854}
   - component: {fileID: 507502857}
+  - component: {fileID: 507502858}
   m_Layer: 9
   m_Name: HitHurtbox
   m_TagString: Untagged
@@ -1730,7 +1731,7 @@ MonoBehaviour:
   onHurt:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1707911025}
+      - m_Target: {fileID: 507502858}
         m_TargetAssemblyTypeName: Health, Assembly-CSharp
         m_MethodName: TakeDamage
         m_Mode: 0
@@ -1806,6 +1807,29 @@ MonoBehaviour:
   Layers:
     serializedVersion: 2
     m_Bits: 0
+--- !u!114 &507502858
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 507502852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30372fcaa1ab24f9ea323deaf95fa649, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Health
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 1707911021}
+  _networkObjectCache: {fileID: 0}
+  maxHealth: 1
+  despawnOnDeath: 1
+  onServerDamage:
+    m_PersistentCalls:
+      m_Calls: []
+  onServerDeath:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &584879108
 GameObject:
   m_ObjectHideFlags: 0
@@ -2809,7 +2833,6 @@ GameObject:
   - component: {fileID: 1707911023}
   - component: {fileID: 1707911022}
   - component: {fileID: 1707911021}
-  - component: {fileID: 1707911025}
   m_Layer: 9
   m_Name: Skull I
   m_TagString: Untagged
@@ -2936,29 +2959,6 @@ Transform:
   - {fileID: 507502853}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1707911025
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1707911020}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 30372fcaa1ab24f9ea323deaf95fa649, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Health
-  _componentIndexCache: 255
-  _addedNetworkObject: {fileID: 1707911021}
-  _networkObjectCache: {fileID: 0}
-  maxHealth: 1
-  despawnOnDeath: 1
-  onServerDamage:
-    m_PersistentCalls:
-      m_Calls: []
-  onServerDeath:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!1 &1760191424
 GameObject:
   m_ObjectHideFlags: 0

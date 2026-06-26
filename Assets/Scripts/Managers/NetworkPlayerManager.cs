@@ -29,8 +29,12 @@ public class NetworkPlayerManager : NetworkBehaviour
                 botSpawner = spawner;
         }
 
+        // PlayerSpawner is the human-registration path in real builds. It's optional, though:
+        // PlayMode test harnesses run on a NetworkManager with no PlayerSpawner and register
+        // players directly (see MatchTestRig), so only subscribe when one is present.
         var playerSpawner = InstanceFinder.NetworkManager.GetComponent<PlayerSpawner>();
-        playerSpawner.OnSpawned += ServerHandlePlayerSpawn;
+        if (playerSpawner != null)
+            playerSpawner.OnSpawned += ServerHandlePlayerSpawn;
 
         if (botSpawner == null)
             botSpawner = FindAnyObjectByType<BotSpawner>();
@@ -59,7 +63,11 @@ public class NetworkPlayerManager : NetworkBehaviour
     /// <summary>
     /// Removes player from public registry.
     /// </summary>
-    [Server]
+    // Invoked from NetworkPlayer.OnDespawn, which also fires while the server is shutting
+    // down (every player object deinitializes at once). The [Server] guard correctly no-ops
+    // in that path; Logging.Off keeps that expected teardown case from spamming
+    // "server is not active" warnings.
+    [Server(Logging = FishNet.Managing.Logging.LoggingType.Off)]
     private void ServerUnregisterPlayer(NetworkPlayer player)
     {
         ActivePlayers.Remove(player);

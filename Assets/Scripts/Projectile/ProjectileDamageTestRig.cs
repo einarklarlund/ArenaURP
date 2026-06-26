@@ -1,8 +1,10 @@
 #if UNITY_EDITOR
+using UnityEditor;
+
 /// <summary>
 /// Editor/test-only helper that performs the typed, server-side wiring a projectile-damage PlayMode
 /// test needs. It lives in Assembly-CSharp so it can touch Pawn / NetworkPlayer / NetworkPlayerManager
-/// and their SyncVars directly — the Arena.PlayTests asmdef cannot reference Assembly-CSharp, so the
+/// and their SyncVars directly ??? the Arena.PlayTests asmdef cannot reference Assembly-CSharp, so the
 /// test calls these methods by reflection (one contained seam, per the integration-testing skill).
 ///
 /// Gated by UNITY_EDITOR so it never ships in a player build.
@@ -25,5 +27,8 @@ public static class ProjectileDamageTestRig
     public static int Health(Pawn pawn) => pawn.Health.Value;
 
     public static int PlayerObjectId(NetworkPlayer player) => player.ObjectId;
+
+    /// <summary>The authored Damage of a ProjectileType asset (its own per-hit damage), for exact assertions.</summary>
+    public static int TypeDamageAt(string assetPath) => AssetDatabase.LoadAssetAtPath<ProjectileType>(assetPath).Damage;
 }
 #endif

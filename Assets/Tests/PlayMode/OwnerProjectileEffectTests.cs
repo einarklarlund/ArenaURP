@@ -1,32 +1,29 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Reflection;
-using Arena.Projectile;
 using FishNet.Object;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace Arena.PlayTests
 {
     /// <summary>
     /// Integration test for the owner-lookup projectile-effect path: a bullet finds its OWNER on the
-    /// server and applies the owner's projectile passive (here, bonus damage on enemy hit) — proving the
-    /// full chain Projectile -> owner reactions -> WorldEffect -> World, with NO extra spawn payload. The
+    /// server and applies the owner's projectile passive (here, bonus damage on enemy hit), proving the
+    /// chain Projectile -> owner reactions -> WorldEffect -> target, with NO extra spawn payload. The
     /// owner's effect is read server-side from the live owner, not shipped with the projectile.
+    ///
+    /// The bullet is the REAL authored Bullet type (own damage read from the asset via the rig); the owner
+    /// bonus is a runtime passive granted through AbilityTestRig. The Assembly-CSharp types are
+    /// unreferenceable from this asmdef, so all typed access goes through the rigs by reflection.
     /// </summary>
     public sealed class OwnerProjectileEffectTests : NetworkedPlayModeTestFixture
     {
         const string NpmPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestNpm.prefab";
         const string PlayerPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestPlayer.prefab";
         const string PawnPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestTargetPawn.prefab";
-        const string BulletPrefabPath = "Assets/Prefabs/Projectiles/Bullet Root.prefab";
+        const string BulletTypePath = "Assets/Data/Projectiles/Bullet.asset";
         const int StartHealth = 21;
-        const int TypeDamage = 5;
         const int OwnerBonus = 4;
 
         protected override string ScenePath => "Assets/Tests/PlayMode/Scenes/TestProjectileDamage.unity";
@@ -34,10 +31,9 @@ namespace Arena.PlayTests
         [UnityTest]
         public IEnumerator Owners_projectile_passive_adds_bonus_damage_on_hit_without_payload()
         {
-#if UNITY_EDITOR
-            var npm = SpawnServerPrefab(NpmPrefabPath, Vector3.zero).GetComponent("NetworkPlayerManager");
+            var npmGo = SpawnServerPrefab(NpmPrefabPath, Vector3.zero);
 
-            // Target pawn sits in the bullet's path.
+            // Target pawn sits in the bullet's path (z = +5).
             var targetPlayerGo = SpawnServerPrefab(PlayerPrefabPath, Vector3.zero);
             var targetPawnGo = SpawnServerPrefab(PawnPrefabPath, new Vector3(0, 1, 5));
 
@@ -46,37 +42,28 @@ namespace Arena.PlayTests
             var ownerPawnGo = SpawnServerPrefab(PawnPrefabPath, new Vector3(20, 1, 0));
             for (int i = 0; i < 3; i++) yield return null;
 
+            var npm = npmGo.GetComponent("NetworkPlayerManager");
             Dmg("Wire", npm, targetPlayerGo.GetComponent("NetworkPlayer"), targetPawnGo.GetComponent("Pawn"), StartHealth);
             Dmg("Wire", npm, ownerPlayerGo.GetComponent("NetworkPlayer"), ownerPawnGo.GetComponent("Pawn"), StartHealth);
             int ownerId = (int)Dmg("PlayerObjectId", ownerPlayerGo.GetComponent("NetworkPlayer"));
 
-            // The owner equips "your bullets deal +OwnerBonus on enemy hit" — found server-side at hit time.
+            // The owner equips "your bullets deal +OwnerBonus on enemy hit" ??? found server-side at hit time.
             Ability("GrantProjectilePassive", ownerPawnGo, OwnerBonus);
             for (int i = 0; i < 2; i++) yield return null;
 
             int before = (int)Dmg("Health", targetPawnGo.GetComponent("Pawn"));
+            int typeDamage = (int)Dmg("TypeDamageAt", BulletTypePath);
 
-            // A bullet OWNED BY the owner; its type deals TypeDamage and despawns on hit.
-            var type = ScriptableObject.CreateInstance<ProjectileType>();
-            type.Movement = MovementKind.Linear; type.Speed = 60f; type.Lifetime = 5f; type.MaxHealth = 1; type.Radius = 0.2f;
-            type.OnSurface = new List<IHitReaction>();
-            type.OnEnemy = new List<IHitReaction> { new DealDamage { Amount = TypeDamage, DespawnAfter = true } };
-            type.OnProjectile = new List<IHitReaction>();
-
-            var bullet = SpawnProjectile(BulletPrefabPath, new Vector3(0, 1, 0), Vector3.forward, ownerId: ownerId, typeOverride: type);
+            // A bullet OWNED BY the owner; the real Bullet type deals its own damage and despawns on hit.
+            var bullet = SpawnProjectile(BulletTypePath, new Vector3(0, 1, 0), Vector3.forward, ownerId: ownerId);
             var nob = bullet.GetComponent<NetworkObject>();
             float t = 0f;
             while (nob != null && nob.IsSpawned && t < 2f) { t += Time.deltaTime; yield return null; }
             yield return null;
 
             int after = (int)Dmg("Health", targetPawnGo.GetComponent("Pawn"));
-            Assert.AreEqual(TypeDamage + OwnerBonus, before - after,
+            Assert.AreEqual(typeDamage + OwnerBonus, before - after,
                 "the bullet's own damage PLUS the owner's looked-up projectile passive should both land");
-
-            UnityEngine.Object.DestroyImmediate(type);
-#else
-            yield break;
-#endif
         }
 
         static readonly Type DmgRigType = Type.GetType("ProjectileDamageTestRig, Assembly-CSharp");
@@ -87,7 +74,7 @@ namespace Arena.PlayTests
         static object Invoke(Type t, string m, object[] a)
         {
             Assert.IsNotNull(t, "rig type not found in Assembly-CSharp");
-            var mi = t.GetMethod(m, BindingFlags.Public | BindingFlags.Static);
+            var mi = t.GetMethod(m, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
             Assert.IsNotNull(mi, $"{t.Name}.{m} not found");
             return mi.Invoke(null, a);
         }

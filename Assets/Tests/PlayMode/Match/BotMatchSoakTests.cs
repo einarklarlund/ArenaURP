@@ -9,7 +9,7 @@ namespace Arena.PlayTests
 {
     /// <summary>
     /// Tier-A "soak": spin up a small bot deathmatch with the REAL Bot Pawn prefab and let the whole
-    /// server stack run for several seconds, then assert invariants. This is automated playtesting —
+    /// server stack run for several seconds, then assert invariants. This is automated playtesting ???
     /// it replaces the manual "start a bot match and watch nothing explode" ritual.
     ///
     /// What it exercises at once: BotSpawner-style registration, MatchMediator wiring, PawnManager spawn
@@ -20,6 +20,15 @@ namespace Arena.PlayTests
     /// log, so a NullReferenceException from any bot subsystem during the run fails this automatically.
     /// On top of that we assert: pawns spawn, scripted kills under load produce respawns, health never
     /// goes negative, and the match stays live.
+    ///
+    /// EXPECTED CHURN (warnings, not errors ??? do NOT chase or globally suppress these): the deliberate
+    /// kill/respawn loop despawns Bot Pawns mid-tick, so FishNet's own NetworkTransform fires one last
+    /// post-tick "Action cannot be completed as object Bot Pawn(Clone) [Id N] is not spawned." for the
+    /// tick after a pawn despawns (the queued transform RPC is simply dropped), and a freshly respawned
+    /// pawn can land a frame off the baked NavMesh ("Failed to create agent because it is not close
+    /// enough to the NavMesh" ??? BotBrain already guards every agent read with isOnNavMesh). Both are
+    /// benign byproducts of the churn this test exists to stress, not assertions and not bugs. The
+    /// meaningful contract is "no ERROR logs"; tolerate these warnings.
     /// </summary>
     public sealed class BotMatchSoakTests : NetworkedPlayModeTestFixture
     {
@@ -55,7 +64,7 @@ namespace Arena.PlayTests
 
             Assert.AreEqual(BotCount, (int)Rig("ActivePawnCount"),
                 $"all {BotCount} real Bot Pawns should spawn headless. Fewer means a subsystem on the " +
-                "Bot Pawn NRE'd on spawn — check the console for the offending component.");
+                "Bot Pawn NRE'd on spawn ??? check the console for the offending component.");
             Assert.IsFalse((bool)Rig("AnyPawnHealthNegative"));
 
             Rig("BeginCapture");

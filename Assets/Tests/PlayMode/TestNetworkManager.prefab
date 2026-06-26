@@ -18,7 +18,6 @@ GameObject:
   - component: {fileID: 5301889369555724878}
   - component: {fileID: 3713992704522141671}
   - component: {fileID: 202728538908540166}
-  - component: {fileID: 3634740733231389312}
   m_Layer: 0
   m_Name: TestNetworkManager
   m_TagString: Untagged
@@ -214,18 +213,3 @@ MonoBehaviour:
   _port: 7770
   _maximumClients: 4095
   _clientAddress: localhost
---- !u!114 &3634740733231389312
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9165027478082184811}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 211a9f6ec51ddc14f908f5acc0cd0423, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.Spawning.PlayerSpawner
-  _playerPrefab: {fileID: 0}
-  _addToDefaultScene: 1
-  Spawns: []

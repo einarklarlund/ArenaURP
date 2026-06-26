@@ -42,7 +42,7 @@ namespace Arena.PlayTests
                 yield return null;
             }
             Assert.IsNotNull(clientShooter, "shooter should replicate to the client NM");
-            Assert.AreEqual(0, CountSpawnedWithComponent(ClientNM, "PawnProjectile"),
+            Assert.AreEqual(0, CountSpawnedWithComponent(ClientNM, "NetworkedMotion"),
                 "precondition: no projectile on the client before firing");
 
             // Fire on the client's OWNED shooter (PawnWeapon.Update runs because IsOwner on the client).
@@ -55,7 +55,7 @@ namespace Arena.PlayTests
             int onClient = 0;
             while (window < 0.12f) // 120ms << 300ms one-way latency
             {
-                onClient = CountSpawnedWithComponent(ClientNM, "PawnProjectile");
+                onClient = CountSpawnedWithComponent(ClientNM, "NetworkedMotion");
                 if (onClient > 0) break;
                 window += Time.deltaTime;
                 yield return null;
@@ -68,7 +68,7 @@ namespace Arena.PlayTests
                 $"arrived yet). 0 here means the client waited for server replication — the bug.");
 
             // ...and it must be POSITIONED at the fire point, not flashing at the origin.
-            var bullet = FindFirstWithComponent(ClientNM, "PawnProjectile");
+            var bullet = FindFirstWithComponent(ClientNM, "NetworkedMotion");
             Assert.IsNotNull(bullet, "predicted projectile should be findable on the client");
             var firePoint = clientShooter.transform.Find("FirePoint");
             Assert.Greater(Vector3.Distance(bullet.transform.position, Vector3.zero), 5f,

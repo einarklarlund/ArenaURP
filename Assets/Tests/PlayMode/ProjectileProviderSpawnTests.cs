@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Reflection;
-using Arena.Projectile;
 using FishNet.Object;
 using NUnit.Framework;
 using UnityEngine;
@@ -13,48 +12,36 @@ using UnityEditor;
 namespace Arena.PlayTests
 {
     /// <summary>
-    /// Integration test for the SECOND projectile spawner: a projectile spawning a CHILD projectile
-    /// through <c>ProjectileWorldProvider.Spawn</c> (the path the SpawnProjectiles reaction drives). It
-    /// pins that this spawner produces a COMPLETE payload ??? owner, position, forward, and crucially
-    /// <c>SpawnTick</c>. SpawnTick is the basis for the child's deterministic age; if a spawner forgets it
-    /// (the bug this fixes), the child computes its age from tick 0 and despawns the instant it ticks.
+    /// Integration test for the child-projectile spawn path ??? <c>ProjectileSpawner.Spawn</c>, the path the
+    /// SpawnProjectiles reaction/ability drives. It pins that this spawner produces a COMPLETE payload:
+    /// owner, position, forward, and crucially <c>SpawnTick</c>. SpawnTick is the basis for the child's
+    /// deterministic age; if a spawner forgets it (the bug this guards), the child computes its age from
+    /// tick 0 and despawns the instant it ticks.
     ///
-    /// Runs through the live FishNet host so the real GetPooledInstantiated + ServerManager.Spawn +
-    /// OnStartNetwork path executes ??? EditMode cannot reach it (PawnProjectile/ProjectileWorldProvider
-    /// live in Assembly-CSharp). Typed access to those goes through ProjectileSpawnTestRig by reflection.
+    /// Runs through the live FishNet host so the real <c>ProjectileType.Create</c> + ServerManager.Spawn +
+    /// OnStartNetwork path executes ??? EditMode cannot reach it. Typed access goes through
+    /// ProjectileSpawnTestRig by reflection (it lives in Assembly-CSharp, unreferenceable from this asmdef).
     /// </summary>
     public sealed class ProjectileProviderSpawnTests : NetworkedPlayModeTestFixture
     {
-        const string BulletPrefabPath = "Assets/Prefabs/Projectiles/Bullet Root.prefab";
         const string BulletTypePath = "Assets/Data/Projectiles/Bullet.asset";
 
         protected override string ScenePath => "Assets/Tests/PlayMode/Scenes/TestProjectile.unity";
 
         [UnityTest]
-        public IEnumerator Provider_child_spawn_sets_full_payload_including_current_tick()
+        public IEnumerator Child_spawn_sets_full_payload_including_current_tick()
         {
 #if UNITY_EDITOR
-            var provider = RigInvoke("FindProvider");
-            Assert.IsNotNull(provider, "TestProjectile scene must contain a ProjectileWorldProvider");
-
-            var type = AssetDatabase.LoadAssetAtPath<ProjectileType>(BulletTypePath);
-            var prefabGo = AssetDatabase.LoadAssetAtPath<GameObject>(BulletPrefabPath);
+            var type = AssetDatabase.LoadMainAssetAtPath(BulletTypePath);
             Assert.IsNotNull(type, $"missing {BulletTypePath}");
-            Assert.IsNotNull(prefabGo, $"missing {BulletPrefabPath}");
-            var prefab = prefabGo.GetComponent<NetworkObject>();
-            Assert.IsNotNull(prefab, "Bullet Root prefab has no NetworkObject");
-
-            // Wire the provider's catalog so the type resolves to the bullet prefab (the SpawnProjectiles
-            // reaction looks the child type up here).
-            RigInvoke("ConfigureCatalog", provider, type, prefab);
 
             var pos = new Vector3(1f, 2f, 3f);
             var dir = Vector3.forward;
             const int ownerId = 777;
 
             uint tickBefore = (uint)RigInvoke("CurrentTick");
-            int id = (int)RigInvoke("Spawn", provider, type, pos, dir, ownerId);
-            Assert.Greater(id, 0, "provider.Spawn should spawn the child and return its ObjectId");
+            int id = (int)RigInvoke("SpawnViaType", type, pos, dir, ownerId);
+            Assert.Greater(id, 0, "SpawnViaType should spawn the child and return its ObjectId");
 
             yield return null; // let the network spawn register
             var child = (GameObject)RigInvoke("FindSpawned", id);

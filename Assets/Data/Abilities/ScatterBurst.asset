@@ -15,15 +15,6 @@ MonoBehaviour:
   DisplayName: Scatter Burst
   Icon: {fileID: 10911, guid: 0000000000000000f000000000000000, type: 0}
   Effects:
-  - rid: 6758500622026932294
+  - {fileID: 11400000, guid: 237e6d3cf32d7400db10426ec2664e7e, type: 2}
   Uses: 3
   Cooldown: 0.5
-  references:
-    version: 2
-    RefIds:
-    - rid: 6758500622026932294
-      type: {class: SpawnProjectilesEffect, ns: Arena.Ability, asm: Arena.Ability.Core}
-      data:
-        Type: {fileID: 11400000, guid: 34c1cca6fdf4841b2aa97487481889b8, type: 2}
-        Count: 12
-        SpreadDegrees: 360
