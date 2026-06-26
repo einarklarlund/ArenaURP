@@ -1,0 +1,16 @@
+{
+  "name": "Arena.Ability.Core",
+  "rootNamespace": "",
+  "references": [
+    "GUID:33941a34036849e085e97da74af9e19f"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

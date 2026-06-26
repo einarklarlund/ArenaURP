@@ -11,9 +11,9 @@ namespace Arena.Projectile
     {
         public ProjectileType Type; // may be null; the shell tolerates a null vfx type
 
-        public void Apply(in HitInfo hit, ref ProjectileState self, List<ProjectileEffect> effects)
+        public void Apply(in HitInfo hit, ref ProjectileState self, List<WorldEffect> effects)
         {
-            effects.Add(ProjectileEffect.Vfx(Type, hit.Point, hit.Normal));
+            effects.Add(WorldEffect.Vfx(Type, hit.Point, hit.Normal));
         }
     }
 }

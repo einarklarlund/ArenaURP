@@ -9,11 +9,11 @@ namespace Arena.Projectile
         public ProjectileType Type;
         public int Count = 1;
 
-        public void Apply(in HitInfo hit, ref ProjectileState self, List<ProjectileEffect> effects)
+        public void Apply(in HitInfo hit, ref ProjectileState self, List<WorldEffect> effects)
         {
             if (Type == null || Count <= 0)
                 return;
-            effects.Add(ProjectileEffect.Spawn(Type, Count, hit.Point, self.OriginForward, self.OwnerId));
+            effects.Add(WorldEffect.Spawn(Type, Count, hit.Point, self.OriginForward, self.OwnerId));
         }
     }
 }

@@ -58,7 +58,7 @@ namespace Arena.Tests.Projectile
             type.OnEnemy.Add(new DealDamage { Amount = 10, DespawnAfter = true });
             var s = NewState(ownerId: 5);
             Vector3 originBefore = s.OriginPos;
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             var hit = new WorldHit { Point = new Vector3(9f, 9f, 9f), Normal = Vector3.up, PlayerId = 5 };
             ProjectileState result = ProjectileStepProcessor.ResolveWorldHit(s, type, in hit, effects);
@@ -75,7 +75,7 @@ namespace Arena.Tests.Projectile
             type.OnEnemy.Add(new DealDamage { Amount = 15, DespawnAfter = true });
             type.OnSurface.Add(new SpawnImpactVfx()); // present but must NOT run for an enemy hit
             var s = NewState(ownerId: 1);
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             var point = new Vector3(2f, 0f, 4f);
             var hit = new WorldHit { Point = point, Normal = Vector3.up, PlayerId = 2 };
@@ -97,7 +97,7 @@ namespace Arena.Tests.Projectile
             type.OnSurface.Add(new SpawnImpactVfx());
             type.OnEnemy.Add(new DealDamage()); // present but must NOT run for a surface hit
             var s = NewState(ownerId: 1);
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             var point = new Vector3(1f, 1f, 1f);
             var hit = new WorldHit { Point = point, Normal = Vector3.up, PlayerId = -1 };
@@ -120,7 +120,7 @@ namespace Arena.Tests.Projectile
             var self = NewState(ownerId: 10, id: 1, health: 3);
             var other = NewState(ownerId: 10, id: 2, health: 3); // same owner
             var overlaps = new[] { other };
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             ProjectileState result =
                 ProjectileStepProcessor.ResolveProjectileHits(self, type, overlaps, effects);
@@ -137,7 +137,7 @@ namespace Arena.Tests.Projectile
             var self = NewState(ownerId: 10, id: 1, health: 3);
             var other = NewState(ownerId: 20, id: 2, health: 3);
             var overlaps = new[] { other };
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             ProjectileState result =
                 ProjectileStepProcessor.ResolveProjectileHits(self, type, overlaps, effects);
@@ -155,7 +155,7 @@ namespace Arena.Tests.Projectile
             self.LastHitProjectileId = 2; // already handled this pair last tick
             var other = NewState(ownerId: 20, id: 2, health: 3);
             var overlaps = new[] { other };
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             ProjectileState result =
                 ProjectileStepProcessor.ResolveProjectileHits(self, type, overlaps, effects);
@@ -174,7 +174,7 @@ namespace Arena.Tests.Projectile
             self.LastHitProjectileId = 2; // guarding a previous projectile
             var newOther = NewState(ownerId: 20, id: 3, health: 3); // a NEW projectile
             var overlaps = new[] { newOther };
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             ProjectileState result =
                 ProjectileStepProcessor.ResolveProjectileHits(self, type, overlaps, effects);
@@ -190,13 +190,13 @@ namespace Arena.Tests.Projectile
         [Test]
         public void Pipeline_IsDeterministic()
         {
-            ProjectileState Run(out List<ProjectileEffect> effects)
+            ProjectileState Run(out List<WorldEffect> effects)
             {
                 var type = MakeType(speed: 20f, acceleration: 5f, lifetime: 10f);
                 type.OnEnemy.Add(new DealDamage { Amount = 7, DespawnAfter = false });
                 var s = NewState(ownerId: 1, id: 1, health: 3);
                 s.Age = 0.1f; // the shell derives Age from the spawn tick; here we set it directly
-                effects = new List<ProjectileEffect>();
+                effects = new List<WorldEffect>();
                 var hit = new WorldHit { Point = new Vector3(3f, 0f, 5f), Normal = Vector3.up, PlayerId = 2 };
                 return ProjectileStepProcessor.ResolveWorldHit(s, type, in hit, effects);
             }

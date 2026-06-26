@@ -18,7 +18,7 @@ namespace Arena.Tests.Integration
     ///   * the world channel chaining into the projectile channel within one tick;
     ///   * the ProjectileType flyweight staying immutable across many bullets of the same kind.
     ///
-    /// All assertions are on observable state + the emitted ProjectileEffect list — no engine, no
+    /// All assertions are on observable state + the emitted WorldEffect list — no engine, no
     /// FishNet, so they stay in EditMode. The handful of things these CANNOT reach (the real
     /// Physics.SphereCast, collider->playerId resolution, OnTick ordering, Despawn) are engine glue in
     /// ProjectileWorldProvider/PawnProjectile and belong to a PlayMode smoke, not here.
@@ -84,7 +84,7 @@ namespace Arena.Tests.Integration
             for (int shot = 1; shot <= 3; shot++)
             {
                 var s = SpawnForward(ownerId: 1, id: shot);
-                var effects = new List<ProjectileEffect>();
+                var effects = new List<WorldEffect>();
 
                 ProjectileStepProcessor.ResolveWorldHit(s, type, in enemyHit, effects);
 
@@ -111,7 +111,7 @@ namespace Arena.Tests.Integration
             {
                 var self = SpawnForward(ownerId: 10, id: 1, health: 9);
                 var other = SpawnForward(ownerId: 20, id: 100 + tick); // different owner, fresh id each tick
-                var effects = new List<ProjectileEffect>();
+                var effects = new List<WorldEffect>();
 
                 ProjectileStepProcessor.ResolveProjectileHits(self, type,
                     new System.ReadOnlySpan<ProjectileState>(new[] { other }), effects);
@@ -137,7 +137,7 @@ namespace Arena.Tests.Integration
             type.OnSurface.Add(new LoseHealth { Amount = 99 });                   // ...then die
 
             var s = SpawnForward();
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             var hit = new WorldHit { Point = new Vector3(0f, 0f, 5f), Normal = Vector3.back, PlayerId = -1 };
 
             ProjectileState result = ProjectileStepProcessor.ResolveWorldHit(s, type, in hit, effects);
@@ -157,7 +157,7 @@ namespace Arena.Tests.Integration
             type.OnSurface.Add(new SpawnProjectiles { Type = child, Count = 2 }); // ...spawn never reached
 
             var s = SpawnForward();
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             var hit = new WorldHit { Point = new Vector3(0f, 0f, 5f), Normal = Vector3.back, PlayerId = -1 };
 
             ProjectileState result = ProjectileStepProcessor.ResolveWorldHit(s, type, in hit, effects);
@@ -187,7 +187,7 @@ namespace Arena.Tests.Integration
 
             // Wall facing back along -Z (normal = (0,0,-1)).
             var hit = new WorldHit { Point = new Vector3(0f, -5f, 10f), Normal = Vector3.back, PlayerId = -1 };
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             ProjectileState result = ProjectileStepProcessor.ResolveWorldHit(s, type, in hit, effects);
 
@@ -213,7 +213,7 @@ namespace Arena.Tests.Integration
             type.OnProjectile.Add(new LoseHealth { Amount = 1 });         // would fire if reached
 
             var s = SpawnForward(ownerId: 10, id: 1, health: 3);
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             // World channel: a surface hit that kills.
             var surface = new WorldHit { Point = new Vector3(0f, 0f, 5f), Normal = Vector3.back, PlayerId = -1 };

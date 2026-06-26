@@ -13,11 +13,11 @@ namespace Arena.Projectile
         public int Amount = 10;
         public bool DespawnAfter = true;
 
-        public void Apply(in HitInfo hit, ref ProjectileState self, List<ProjectileEffect> effects)
+        public void Apply(in HitInfo hit, ref ProjectileState self, List<WorldEffect> effects)
         {
             if (hit.OtherPlayerId >= 0 && hit.OtherPlayerId != self.OwnerId)
             {
-                effects.Add(ProjectileEffect.Damage(hit.OtherPlayerId, Amount, self.OwnerId, hit.Point, hit.Direction));
+                effects.Add(WorldEffect.Damage(hit.OtherPlayerId, Amount, self.OwnerId, hit.Point, hit.Direction));
                 if (DespawnAfter)
                     self.Health = 0; // death is intrinsic to Health (ProjectileState.Alive => Health > 0)
             }

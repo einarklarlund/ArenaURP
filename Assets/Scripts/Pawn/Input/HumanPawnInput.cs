@@ -45,6 +45,9 @@ public sealed class HumanPawnInput : PawnInput
             Jump = InputManager.PawnControls.Jump.IsPressed(),
             Look = look,
             Fire = InputManager.PawnControls.Attack.IsPressed(),
+            CycleAbilityPrev = InputManager.PawnControls.CycleAbilityPrev.WasPressedThisFrame(),
+            CycleAbilityNext = InputManager.PawnControls.CycleAbilityNext.WasPressedThisFrame(),
+            UseAbility = InputManager.PawnControls.UseAbility.WasPressedThisFrame(),
         };
     }
 }

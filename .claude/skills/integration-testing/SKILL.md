@@ -20,6 +20,8 @@ Honor these standing biases in every recommendation:
 
 **Capture the manual check.** The test to write next is the one that automates something you currently verify by hand. If you can describe a manual playtest — *"start a match, let two bots fight, confirm someone wins and the match resets"* — that description **is** the test's spec. Write it.
 
+**Non-negotiable floor: every networked change gets a PlayMode test.** Whenever you touch networked behaviour — a SyncVar/SyncList/RPC, a spawn payload, a server tick, collision detection, ownership, anything FishNet — add or extend a PlayMode test that exercises it on a live host (`NetworkedPlayModeTestFixture` + an editor-only `*TestRig` reached by reflection). EditMode structurally cannot reach the FishNet seam where these bugs live. As always, push the deterministic *decision* logic down into a `Core` processor and EditMode-test it there; the PlayMode test then covers only the live-engine glue. See the [[fishnet-conventions]] skill (Rule 5) for the networking side of this.
+
 This is not licence to write careless tests. Two disciplines bound the work, and the rest of this skill is mostly about them:
 
 - **Push each test as far down the pyramid as it will go.** The cheapest test that catches a given bug is the right one. If the logic lives in a `Core` processor, an EditMode test owns it — don't re-verify it through a live GameObject. PlayMode is for what EditMode structurally cannot reach: lifecycle, wiring, SyncVar replication, real physics, multi-frame timing.

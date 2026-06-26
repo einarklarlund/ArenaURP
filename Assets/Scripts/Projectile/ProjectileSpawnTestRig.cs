@@ -83,5 +83,29 @@ public static class ProjectileSpawnTestRig
                 n++;
         return n;
     }
+
+    // ---- WorldEffect execution (the shared provider path used by projectiles AND abilities) ----
+
+    /// <summary>Run one WorldEffect through the production executor (the only place effect kinds act).</summary>
+    public static void Execute(ProjectileWorldProvider provider, WorldEffect e) => provider.Execute(in e);
+
+    /// <summary>Like ConfigureCatalog, but also wires a cosmetic impact-VFX prefab for the type.</summary>
+    public static void ConfigureCatalogVfx(ProjectileWorldProvider provider, ProjectileType type, NetworkObject prefab, GameObject vfx)
+    {
+        var entry = new ProjectileWorldProvider.TypePrefab { Type = type, Prefab = prefab, ImpactVfx = vfx };
+        var field = typeof(ProjectileWorldProvider).GetField("catalog", BindingFlags.Instance | BindingFlags.NonPublic);
+        var list = (List<ProjectileWorldProvider.TypePrefab>)field.GetValue(provider);
+        list.Clear();
+        list.Add(entry);
+    }
+
+    /// <summary>Count live GameObjects whose name starts with <paramref name="namePrefix"/> (e.g. "Foo(Clone)").</summary>
+    public static int CountClones(string namePrefix)
+    {
+        int n = 0;
+        foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
+            if (t.name.StartsWith(namePrefix)) n++;
+        return n;
+    }
 }
 #endif

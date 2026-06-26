@@ -12,7 +12,7 @@ namespace Arena.Projectile
     {
         public int Amount = 1;
 
-        public void Apply(in HitInfo hit, ref ProjectileState self, List<ProjectileEffect> effects)
+        public void Apply(in HitInfo hit, ref ProjectileState self, List<WorldEffect> effects)
         {
             self.Health -= Amount;
         }

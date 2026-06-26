@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4839381579409733303}
   - component: {fileID: 8655286835245024968}
   - component: {fileID: 6860923914512931884}
+  - component: {fileID: 4918558804734965292}
   m_Layer: 7
   m_Name: TestTargetPawn
   m_TagString: Untagged
@@ -127,3 +128,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2, y: 2, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &4918558804734965292
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3646564636390950492}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53ad5b457cf474dec85c77b9d2a3d50c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnAbilities
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4839381579409733303}
+  _networkObjectCache: {fileID: 0}
+  pawn: {fileID: 8655286835245024968}
+  input: {fileID: 0}
+  movement: {fileID: 0}
+  weapon: {fileID: 0}
+  aimSource: {fileID: 0}

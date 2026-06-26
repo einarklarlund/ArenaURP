@@ -10,7 +10,7 @@ namespace Arena.Projectile
     [System.Serializable]
     public sealed class DeflectProjectile : IHitReaction
     {
-        public void Apply(in HitInfo hit, ref ProjectileState self, List<ProjectileEffect> effects)
+        public void Apply(in HitInfo hit, ref ProjectileState self, List<WorldEffect> effects)
         {
             Vector3 dir = hit.OtherForward.sqrMagnitude > 0.0001f ? hit.OtherForward : hit.OtherVelocity;
             if (dir.sqrMagnitude < 0.0001f)

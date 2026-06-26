@@ -181,6 +181,33 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""CycleAbilityPrev"",
+                    ""type"": ""Button"",
+                    ""id"": ""19d943db-afee-45ec-8630-a78a667d8e8d"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""CycleAbilityNext"",
+                    ""type"": ""Button"",
+                    ""id"": ""552856d4-0d66-4f05-9558-c26928dc45e8"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""UseAbility"",
+                    ""type"": ""Button"",
+                    ""id"": ""1e443703-1235-4d66-8abb-07b1830809aa"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -528,7 +555,7 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""1c04ea5f-b012-41d1-a6f7-02e963b52893"",
-                    ""path"": ""<Keyboard>/e"",
+                    ""path"": ""<Keyboard>/g"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": ""Keyboard&Mouse"",
@@ -588,6 +615,39 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
                     ""action"": ""Pause"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""322abfd7-468e-476e-893a-a6944d4f570c"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""CycleAbilityPrev"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""aaa80466-aaba-4277-b664-8c350327d7da"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""CycleAbilityNext"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""43266ae4-a8f8-42a7-825b-6d7c3819e35b"",
+                    ""path"": ""<Keyboard>/f"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""UseAbility"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1185,6 +1245,9 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         m_PawnControls_Next = m_PawnControls.FindAction("Next", throwIfNotFound: true);
         m_PawnControls_Sprint = m_PawnControls.FindAction("Sprint", throwIfNotFound: true);
         m_PawnControls_Pause = m_PawnControls.FindAction("Pause", throwIfNotFound: true);
+        m_PawnControls_CycleAbilityPrev = m_PawnControls.FindAction("CycleAbilityPrev", throwIfNotFound: true);
+        m_PawnControls_CycleAbilityNext = m_PawnControls.FindAction("CycleAbilityNext", throwIfNotFound: true);
+        m_PawnControls_UseAbility = m_PawnControls.FindAction("UseAbility", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1288,6 +1351,9 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_PawnControls_Next;
     private readonly InputAction m_PawnControls_Sprint;
     private readonly InputAction m_PawnControls_Pause;
+    private readonly InputAction m_PawnControls_CycleAbilityPrev;
+    private readonly InputAction m_PawnControls_CycleAbilityNext;
+    private readonly InputAction m_PawnControls_UseAbility;
     /// <summary>
     /// Provides access to input actions defined in input action map "PawnControls".
     /// </summary>
@@ -1339,6 +1405,18 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "PawnControls/Pause".
         /// </summary>
         public InputAction @Pause => m_Wrapper.m_PawnControls_Pause;
+        /// <summary>
+        /// Provides access to the underlying input action "PawnControls/CycleAbilityPrev".
+        /// </summary>
+        public InputAction @CycleAbilityPrev => m_Wrapper.m_PawnControls_CycleAbilityPrev;
+        /// <summary>
+        /// Provides access to the underlying input action "PawnControls/CycleAbilityNext".
+        /// </summary>
+        public InputAction @CycleAbilityNext => m_Wrapper.m_PawnControls_CycleAbilityNext;
+        /// <summary>
+        /// Provides access to the underlying input action "PawnControls/UseAbility".
+        /// </summary>
+        public InputAction @UseAbility => m_Wrapper.m_PawnControls_UseAbility;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -1395,6 +1473,15 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Pause.started += instance.OnPause;
             @Pause.performed += instance.OnPause;
             @Pause.canceled += instance.OnPause;
+            @CycleAbilityPrev.started += instance.OnCycleAbilityPrev;
+            @CycleAbilityPrev.performed += instance.OnCycleAbilityPrev;
+            @CycleAbilityPrev.canceled += instance.OnCycleAbilityPrev;
+            @CycleAbilityNext.started += instance.OnCycleAbilityNext;
+            @CycleAbilityNext.performed += instance.OnCycleAbilityNext;
+            @CycleAbilityNext.canceled += instance.OnCycleAbilityNext;
+            @UseAbility.started += instance.OnUseAbility;
+            @UseAbility.performed += instance.OnUseAbility;
+            @UseAbility.canceled += instance.OnUseAbility;
         }
 
         /// <summary>
@@ -1436,6 +1523,15 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Pause.started -= instance.OnPause;
             @Pause.performed -= instance.OnPause;
             @Pause.canceled -= instance.OnPause;
+            @CycleAbilityPrev.started -= instance.OnCycleAbilityPrev;
+            @CycleAbilityPrev.performed -= instance.OnCycleAbilityPrev;
+            @CycleAbilityPrev.canceled -= instance.OnCycleAbilityPrev;
+            @CycleAbilityNext.started -= instance.OnCycleAbilityNext;
+            @CycleAbilityNext.performed -= instance.OnCycleAbilityNext;
+            @CycleAbilityNext.canceled -= instance.OnCycleAbilityNext;
+            @UseAbility.started -= instance.OnUseAbility;
+            @UseAbility.performed -= instance.OnUseAbility;
+            @UseAbility.canceled -= instance.OnUseAbility;
         }
 
         /// <summary>
@@ -1806,6 +1902,27 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnPause(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "CycleAbilityPrev" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnCycleAbilityPrev(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "CycleAbilityNext" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnCycleAbilityNext(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "UseAbility" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnUseAbility(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

@@ -144,6 +144,10 @@ PrefabInstance:
       propertyPath: _componentIndexCache
       value: 12
       objectReference: {fileID: 0}
+    - target: {fileID: 1153593232723923867, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: input
+      value: 
+      objectReference: {fileID: 4460883532456950215}
     - target: {fileID: 1555019613777059898, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: input
       value: 

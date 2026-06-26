@@ -7,7 +7,7 @@ namespace Arena.Projectile
     [System.Serializable]
     public sealed class Ricochet : IHitReaction
     {
-        public void Apply(in HitInfo hit, ref ProjectileState self, List<ProjectileEffect> effects)
+        public void Apply(in HitInfo hit, ref ProjectileState self, List<WorldEffect> effects)
         {
             Vector3 reflected = Vector3.Reflect(hit.IncomingVelocity, hit.Normal);
             if (reflected.sqrMagnitude < 0.0001f)

@@ -67,7 +67,7 @@ namespace Arena.Tests.Projectile
         static ProjectileState Fresh(ProjectileType type, int ownerId = 1, int id = 1) =>
             ProjectileState.Spawn(ownerId, id, Vector3.zero, Vector3.forward, type.Speed, type.MaxHealth);
 
-        static int DamageCount(List<ProjectileEffect> e) => e.FindAll(x => x.Kind == EffectKind.Damage).Count;
+        static int DamageCount(List<WorldEffect> e) => e.FindAll(x => x.Kind == EffectKind.Damage).Count;
 
         // ------------------------------------------------------------------
         // Shipped Primary Bullet: correct list per hit category.
@@ -77,7 +77,7 @@ namespace Arena.Tests.Projectile
         public void PrimaryBullet_SurfaceHit_RunsOnSurface_DiesWithoutDamage()
         {
             var type = LoadBullet();
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             var hit = new WorldHit { Point = new Vector3(0, 0, 5), Normal = Vector3.back, PlayerId = -1 };
 
             var result = ProjectileStepProcessor.ResolveWorldHit(Fresh(type), type, in hit, effects);
@@ -92,7 +92,7 @@ namespace Arena.Tests.Projectile
         public void PrimaryBullet_EnemyHit_RunsOnEnemy_DealsDamageAndDies()
         {
             var type = LoadBullet();
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             const int owner = 1, victim = 2;
             var hit = new WorldHit { Point = new Vector3(0, 0, 5), Normal = Vector3.back, PlayerId = victim };
 
@@ -111,7 +111,7 @@ namespace Arena.Tests.Projectile
         public void PrimaryBullet_OwnerHit_IsIgnored()
         {
             var type = LoadBullet();
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             const int owner = 7;
             var hit = new WorldHit { Point = new Vector3(0, 0, 5), Normal = Vector3.back, PlayerId = owner };
 
@@ -125,7 +125,7 @@ namespace Arena.Tests.Projectile
         public void PrimaryBullet_ProjectileHit_RunsOnProjectile_AndInteracts()
         {
             var type = LoadBullet();
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             var self = Fresh(type, ownerId: 1, id: 1);
             var other = ProjectileState.Spawn(99, 2, new Vector3(0, 0, 0.1f), Vector3.back, type.Speed, type.MaxHealth);
 
@@ -147,7 +147,7 @@ namespace Arena.Tests.Projectile
         sealed class DrainHealth : IHitReaction
         {
             public int Amount;
-            public void Apply(in HitInfo hit, ref ProjectileState self, List<ProjectileEffect> effects)
+            public void Apply(in HitInfo hit, ref ProjectileState self, List<WorldEffect> effects)
                 => self.Health -= Amount; // intentionally does NOT touch self.Alive
         }
 
@@ -157,7 +157,7 @@ namespace Arena.Tests.Projectile
             var type = MakeType(maxHealth: 4,
                 onSurface: new List<IHitReaction> { new DrainHealth { Amount = 2 } });
             var surface = new WorldHit { Point = new Vector3(0, 0, 5), Normal = Vector3.back, PlayerId = -1 };
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             var s = Fresh(type);
             s = ProjectileStepProcessor.ResolveWorldHit(s, type, in surface, effects);
@@ -176,7 +176,7 @@ namespace Arena.Tests.Projectile
             // A ricochet changes direction but doesn't touch health: the invariant must NOT over-kill.
             var type = MakeType(maxHealth: 1, onSurface: new List<IHitReaction> { new Ricochet() });
             var surface = new WorldHit { Point = new Vector3(0, 0, 5), Normal = Vector3.back, PlayerId = -1 };
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             var s = ProjectileStepProcessor.ResolveWorldHit(Fresh(type), type, in surface, effects);
 

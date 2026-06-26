@@ -8,7 +8,7 @@ namespace Arena.Projectile
     /// The functional core of the projectile system: pure, deterministic functions the imperative
     /// shell (PawnProjectile) drives in phases each tick. The shell does ALL I/O — it casts, overlaps,
     /// and looks up targets, passing the RESULTS in as data, and it reads the emitted
-    /// <see cref="ProjectileEffect"/> list back out and performs the effects (with gating). The core
+    /// <see cref="WorldEffect"/> list back out and performs the effects. The core
     /// never touches Physics, FishNet, or the engine, which is what keeps it EditMode-testable and
     /// reconcile-correct.
     ///
@@ -32,6 +32,19 @@ namespace Arena.Projectile
         public static Vector3 VelocityAt(in ProjectileState s, ProjectileType type) =>
             MovementSelector.For(type.Movement).VelocityAt(in s, in type, s.SegmentElapsed);
 
+        /// <summary>
+        /// Whether the projectile channel is worth running this tick — the type or the owner contributes
+        /// OnProjectile reactions. Lets the shell skip the overlap query without itself reasoning about
+        /// which reactions exist.
+        /// </summary>
+        public static bool WantsProjectileChannel(ProjectileType type, in OwnerReactions owner)
+        {
+            if (type.OnProjectile != null && type.OnProjectile.Count > 0)
+                return true;
+            var op = owner.For(HitCategory.Projectile);
+            return op != null && op.Count > 0;
+        }
+
         // ---- world channel ----
 
         /// <summary>
@@ -39,7 +52,7 @@ namespace Arena.Projectile
         /// overlap). Otherwise the projectile is snapped to the impact point (a zero-length segment)
         /// and the matching reaction list runs — OnEnemy if a player was hit, else OnSurface.
         /// </summary>
-        public static ProjectileState ResolveWorldHit(ProjectileState s, ProjectileType type, in WorldHit hit, List<ProjectileEffect> effects)
+        public static ProjectileState ResolveWorldHit(ProjectileState s, ProjectileType type, in WorldHit hit, List<WorldEffect> effects, in OwnerReactions owner = default)
         {
             if (!s.Alive)
                 return s;
@@ -75,6 +88,13 @@ namespace Arena.Projectile
             // appends to it (that shared flyweight list is one asset for every bullet of this kind).
             RunReactions(isPlayer ? type.OnEnemy : type.OnSurface, in info, ref s, effects);
 
+            // Owner-contributed reactions for THIS hit's category (e.g. a passive that makes the owner's
+            // bullets do extra damage / a debuff on enemy hit). The owner's reactions arrive as data; the
+            // processor — which already decided the category above — selects the matching list. They run
+            // for this hit even if the type's reactions already despawned the projectile (the hit occurred,
+            // so the owner's on-hit effect should still land). Same shared <see cref="WorldEffect"/> vocab.
+            RunReactions(owner.For(info.Category), in info, ref s, effects);
+
             return s;
         }
 
@@ -85,9 +105,12 @@ namespace Arena.Projectile
         /// different owners, dedupes each pair to one-shot-on-enter via <see cref="ProjectileState.LastHitProjectileId"/>
         /// (matching the old NetworkCollision OnEnter), and runs OnProjectile reactions.
         /// </summary>
-        public static ProjectileState ResolveProjectileHits(ProjectileState s, ProjectileType type, ReadOnlySpan<ProjectileState> overlaps, List<ProjectileEffect> effects)
+        public static ProjectileState ResolveProjectileHits(ProjectileState s, ProjectileType type, ReadOnlySpan<ProjectileState> overlaps, List<WorldEffect> effects, in OwnerReactions owner = default)
         {
-            if (!s.Alive || type.OnProjectile == null || type.OnProjectile.Count == 0)
+            List<IHitReaction> ownerReactions = owner.For(HitCategory.Projectile);
+            bool hasTypeReactions = type.OnProjectile != null && type.OnProjectile.Count > 0;
+            bool hasOwnerReactions = ownerReactions != null && ownerReactions.Count > 0;
+            if (!s.Alive || (!hasTypeReactions && !hasOwnerReactions))
                 return s;
 
             Vector3 selfPos = PositionAt(in s, type);
@@ -133,6 +156,7 @@ namespace Arena.Projectile
                 // type.OnProjectile — same shared-flyweight hazard as ResolveWorldHit above; and damage
                 // here is a no-op anyway since the projectile channel carries no OtherPlayerId.)
                 RunReactions(type.OnProjectile, in info, ref s, effects);
+                RunReactions(ownerReactions, in info, ref s, effects); // owner-contributed, server-side lookup; runs for this hit
                 if (firstHandled < 0)
                     firstHandled = other.Id;
                 if (!s.Alive)
@@ -147,7 +171,7 @@ namespace Arena.Projectile
             return s;
         }
 
-        private static void RunReactions(List<IHitReaction> reactions, in HitInfo hit, ref ProjectileState s, List<ProjectileEffect> effects)
+        private static void RunReactions(List<IHitReaction> reactions, in HitInfo hit, ref ProjectileState s, List<WorldEffect> effects)
         {
             if (reactions == null)
                 return;

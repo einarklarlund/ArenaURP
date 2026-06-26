@@ -1,6 +1,6 @@
 ---
 name: functional-core-imperative-shell
-description: How to structure a Unity gameplay/networked system as a pure "functional core" of plain functions wrapped by a thin MonoBehaviour "imperative shell" that does all I/O — and specifically how to avoid the trap of inventing an interface seam whose only second implementation is a test double. Biased for a SOLO Unity dev using the Processor + thin-MonoBehaviour pattern (logic in Arena.*.Core, glue in Pawn<X>) over FishNet prediction. Use this whenever a Core processor needs to read the world (raycasts, neighbor queries, player lookups) or cause world side effects (damage, spawn, despawn, VFX); when deciding between an injected `IWorld`-style seam and a data boundary; or when you catch yourself adding an interface "so it's testable." Consult BEFORE introducing a service interface that will only ever have one real implementation.
+description: Where gameplay logic GOES — in a pure "functional core" of plain functions (Arena.*.Core processors), NOT in the thin MonoBehaviour "imperative shell" (Pawn<X>) that only does I/O. Covers the default rule (any new or edited gameplay logic belongs in the Core processor; the MonoBehaviour stays a thin shell that builds an input struct, calls Process, and applies the result) AND the harder case of a core that must read the world or cause side effects without injecting an `IWorld` seam whose only second implementation is a test double. Biased for a SOLO Unity dev using the Processor + thin-MonoBehaviour pattern over FishNet prediction. Use this BEFORE adding or modifying ANY gameplay behavior in a Pawn<X> / NetworkBehaviour / MonoBehaviour — decide where the logic lives first, and default to the Core processor, not the shell. Also use whenever a Core processor needs to read the world (raycasts, neighbor queries, lookups) or cause side effects (damage, spawn, despawn, VFX); when deciding between an injected `IWorld`-style seam and a data boundary; or when you catch yourself adding an interface "so it's testable."
 ---
 
 # Functional Core, Imperative Shell (curated for a solo, code-first, test-driven Unity dev)
@@ -11,6 +11,11 @@ Pawn movement is easy to keep pure — its input is a struct and its output is a
 abilities, AOE, sensors, and anything that casts rays / deals damage / spawns objects are harder,
 because the obvious move is to inject a `IWorld` service into the Core so it can "ask the engine
 things." That move is usually a mistake. This skill says what to do instead.
+
+This skill governs the **vertical** boundary (a shell and its own pure processor). The **horizontal**
+boundary — how one system passes data to *another* system without coupling to its behavior — is
+[[cross-component-communication]]; reach for that when the question is "how does A talk to B," not "where
+does this logic go."
 
 Honor the same standing biases as [[game-programming-patterns]] and [[integration-testing]]:
 

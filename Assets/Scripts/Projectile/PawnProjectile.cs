@@ -45,7 +45,7 @@ public sealed class PawnProjectile : NetworkBehaviour
     private ProjectileWorldProvider _world;
     private bool _initialized;
 
-    private readonly List<ProjectileEffect> _effects = new(8);
+    private readonly List<WorldEffect> _effects = new(8);
     private readonly CoreState[] _overlaps = new CoreState[32];
 
     public int Id => (int)ObjectId;
@@ -205,14 +205,19 @@ public sealed class PawnProjectile : NetworkBehaviour
             from = newPos;
             to = newPos + _state.OriginForward * _type.MaxRange;
         }
-        if (_world.CastWorld(from, to, _type.Radius, out WorldHit hit))
-            _state = ProjectileStepProcessor.ResolveWorldHit(_state, _type, in hit, _effects);
+        // Resolve the owner's projectile reactions ONCE on the server (no payload). The shell only hands
+        // this bundle to the processor as data — it does NOT decide which category applies to a hit; the
+        // processor does that (it already determines the hit category for the type's own reactions).
+        OwnerReactions owner = _world.GetOwnerReactions(SpawnOwnerId);
 
-        // Projectile channel.
-        if (_state.Alive && _type.OnProjectile != null && _type.OnProjectile.Count > 0)
+        if (_world.CastWorld(from, to, _type.Radius, out WorldHit hit))
+            _state = ProjectileStepProcessor.ResolveWorldHit(_state, _type, in hit, _effects, in owner);
+
+        // Projectile channel: ask the processor whether the overlap query is worth running.
+        if (_state.Alive && ProjectileStepProcessor.WantsProjectileChannel(_type, in owner))
         {
             int n = _world.OverlapProjectileStates(newPos, _type.Radius, _overlaps, Id);
-            _state = ProjectileStepProcessor.ResolveProjectileHits(_state, _type, new ReadOnlySpan<CoreState>(_overlaps, 0, n), _effects);
+            _state = ProjectileStepProcessor.ResolveProjectileHits(_state, _type, new ReadOnlySpan<CoreState>(_overlaps, 0, n), _effects, in owner);
         }
 
         ApplyEffects();
@@ -222,28 +227,21 @@ public sealed class PawnProjectile : NetworkBehaviour
             ServerDespawn();
     }
 
-    /// <summary>Perform the core's emitted effects. Server-only context, so no gating is needed.</summary>
+    /// <summary>
+    /// Perform the core's emitted effects. Server-only context, so no gating is needed. The
+    /// authoritative kinds (Damage/Spawn/Debuff) go through the shared
+    /// <see cref="ProjectileWorldProvider.Execute"/> so projectiles and abilities perform effects via
+    /// the SAME code path. Vfx stays here because it is cosmetic and broadcast via this shell's RPC.
+    /// </summary>
     private void ApplyEffects()
     {
         for (int i = 0; i < _effects.Count; i++)
         {
             var e = _effects[i];
-            switch (e.Kind)
-            {
-                case EffectKind.Damage:
-                    _world.ApplyDamage(e.TargetPlayerId, e.Amount, e.AttackerPlayerId, e.Point, e.Dir);
-                    break;
-                case EffectKind.Spawn:
-                    for (int n = 0; n < e.Count; n++)
-                        _world.Spawn(e.Type, e.Point, e.Dir, e.AttackerPlayerId);
-                    break;
-                case EffectKind.Debuff:
-                    _world.ApplyDebuff(e.TargetPlayerId, e.Debuff);
-                    break;
-                case EffectKind.Vfx:
-                    RpcImpactVfx(e.Point, e.Normal); // cosmetic; broadcast to clients (+ runs on server)
-                    break;
-            }
+            if (e.Kind == EffectKind.Vfx)
+                RpcImpactVfx(e.Point, e.Normal); // cosmetic; broadcast to clients (+ runs on server)
+            else
+                _world.Execute(in e);
         }
     }
 

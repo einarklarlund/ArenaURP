@@ -32,6 +32,8 @@ This skill distills Robert Nystrom's *Game Programming Patterns* and filters it 
 
 **Edit-mode testable.** Construct a command against a plain model object (not a GameObject), call `Execute()` then `Undo()`, and assert the model returns to its prior state. No play mode, because a well-built command holds no engine reference.
 
+**Authoring swappable behaviour as data → [[scriptableobject-commands]].** When you have a *family* of interchangeable variants sharing one context (hit reactions, ability effects, movement strategies, target providers) and want to swap them as assets rather than write a script per variant, that skill is the house standard — SO-per-behaviour over `[SerializeReference]`/enum, stateless-call vs `CreateRuntime()` factory, per-context typing, and the data-seam-vs-direct-I/O call.
+
 ### State (finite state machines)
 **When to reach for it.** Anything with clear modes: enemy AI, input/control modes, game-flow screens, interaction or ability logic. Prefer this the moment a single object grows mutually-exclusive boolean flags (`isJumping`, `isAttacking`, `isStunned`).
 
@@ -53,12 +55,16 @@ This skill distills Robert Nystrom's *Game Programming Patterns* and filters it 
 
 **Edit-mode testable.** Subscribe a test handler, raise the event, assert the handler fired with the right payload — pure C#, no play mode. Keep observers synchronous and simple; if you need to defer in time, that's Event Queue (Tier 2), not Observer.
 
+**House conventions for component-to-component data flow** (modifier lists, Observer events, the MatchMediator, static UI buses) and the standing goal of keeping those mechanisms *few* live in [[cross-component-communication]]. Consult it before adding any new pub/sub channel between systems.
+
 ### Type Object
 **When to reach for it.** You have many *kinds* of a thing (enemy types, item types, spell types) that differ by **data**, not by behavior, and you want to add new kinds without writing a new class each time. Prefer this over a subclass-per-kind explosion.
 
 **Unity form.** A `ScriptableObject` per type holding the data; each instance references its type asset and reads stats/config from it. ScriptableObjects are the best bridge for a code-first dev: the *class* is code, the data is plain serializable fields, and you can create them in code. If you want zero editor footprint, define the type as a plain serializable C# class loaded from JSON instead — same pattern, no assets.
 
 **Edit-mode testable.** `ScriptableObject.CreateInstance<T>()` (or just `new` the data class), set fields in code, run the behavior that consumes the type data, and assert — ScriptableObjects instantiate fine in edit mode, so no play mode needed.
+
+**This project's house rules for Type Object live in [[type-object-pattern]]** — consult it whenever you apply this pattern here: the SO holds per-kind config + intrinsic resources (sprites/sounds) + a prefab field for the in-game instance; per-instance state stays on the instance, never the SO; and how to split a type's instance into thin components. Note the house version **relaxes the "differ by data, not behaviour" restriction above** — kinds here may differ in behaviour too, supplied by the instance prefab's components and by pluggable command/strategy assets, so the pattern's real job is avoiding a class-per-kind explosion rather than forbidding behaviour variation. For authoring those pluggable behaviours (hit reactions, movement strategies as SO commands/strategies), see [[scriptableobject-commands]].
 
 ---
 

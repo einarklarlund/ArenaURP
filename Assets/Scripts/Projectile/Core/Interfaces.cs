@@ -22,12 +22,56 @@ namespace Arena.Projectile
 
     /// <summary>
     /// A composable reaction to a hit. Reactions mutate the reacting projectile's own state directly
-    /// (Health/Alive/segment) and emit world side effects by APPENDING <see cref="ProjectileEffect"/>
-    /// to <paramref name="effects"/>. They never call the engine and never gate — gating is the shell's
-    /// job (see <see cref="EffectGate"/>). This is what removes the wide injected-world seam.
+    /// (Health/Alive/segment) and emit world side effects by APPENDING <see cref="WorldEffect"/>
+    /// to <paramref name="effects"/>. They never call the engine and never gate — the server-only shell
+    /// performs the effects. This is what removes the wide injected-world seam, and the same
+    /// <see cref="WorldEffect"/> vocabulary is reused by player abilities.
     /// </summary>
     public interface IHitReaction
     {
-        void Apply(in HitInfo hit, ref ProjectileState self, List<ProjectileEffect> effects);
+        void Apply(in HitInfo hit, ref ProjectileState self, List<WorldEffect> effects);
+    }
+
+    /// <summary>
+    /// The extra hit reactions a projectile's OWNER contributes, split by hit category — passed into the
+    /// pure processor as DATA so the processor (not the shell) decides which category applies to a given
+    /// hit. Any list may be null/empty. The shell resolves the owner and hands over this bundle; it never
+    /// reasons about which reactions go where.
+    /// </summary>
+    public readonly struct OwnerReactions
+    {
+        public readonly List<IHitReaction> OnEnemy;
+        public readonly List<IHitReaction> OnSurface;
+        public readonly List<IHitReaction> OnProjectile;
+
+        public OwnerReactions(List<IHitReaction> onEnemy, List<IHitReaction> onSurface, List<IHitReaction> onProjectile)
+        {
+            OnEnemy = onEnemy;
+            OnSurface = onSurface;
+            OnProjectile = onProjectile;
+        }
+
+        /// <summary>The owner's reactions for a hit category (the processor's category decision picks this).</summary>
+        public List<IHitReaction> For(HitCategory category) => category switch
+        {
+            HitCategory.Enemy => OnEnemy,
+            HitCategory.Surface => OnSurface,
+            HitCategory.Projectile => OnProjectile,
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// Implemented by a pawn-side component (e.g. PawnAbilities) that contributes EXTRA hit reactions to
+    /// the projectiles a player owns — a passive that makes your bullets do bonus damage / apply a debuff
+    /// on hit, etc. The projectile shell resolves its owner SERVER-SIDE (collision is server-authoritative)
+    /// and reads this bundle; the reactions are NEVER sent on the spawn payload. This is the "find the
+    /// owner's effects instead of shipping them" rule: don't pay network bytes for state already known on
+    /// the server (see the fishnet-conventions skill).
+    /// </summary>
+    public interface IProjectileEffectProvider
+    {
+        /// <summary>The owner's per-category projectile reactions, as data for the processor to select from.</summary>
+        OwnerReactions GetReactions();
     }
 }

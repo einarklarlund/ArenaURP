@@ -8,10 +8,10 @@ namespace Arena.Projectile
     {
         public DebuffType Debuff = DebuffType.Slow;
 
-        public void Apply(in HitInfo hit, ref ProjectileState self, List<ProjectileEffect> effects)
+        public void Apply(in HitInfo hit, ref ProjectileState self, List<WorldEffect> effects)
         {
             if (hit.OtherPlayerId >= 0)
-                effects.Add(ProjectileEffect.Debuff_(hit.OtherPlayerId, Debuff));
+                effects.Add(WorldEffect.Debuff_(hit.OtherPlayerId, Debuff));
         }
     }
 }

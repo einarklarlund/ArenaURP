@@ -87,6 +87,35 @@ public sealed class ProjectileWorldProvider : MonoBehaviour
         return written;
     }
 
+    // ---- effect execution (the shared imperative shell) ----
+
+    /// <summary>
+    /// Perform one <see cref="WorldEffect"/> in an authoritative (server) context. This is the single
+    /// place effect kinds are turned into world mutations, reused by BOTH the projectile shell
+    /// (<see cref="PawnProjectile"/>) and the ability system (PawnAbilities) — so a new effect kind is
+    /// added in exactly one switch. Vfx falls back to a local (non-networked) spawn here; emitters that
+    /// need it broadcast to observers do so via their own ObserversRpc instead of routing it here.
+    /// </summary>
+    public void Execute(in WorldEffect e)
+    {
+        switch (e.Kind)
+        {
+            case EffectKind.Damage:
+                ApplyDamage(e.TargetPlayerId, e.Amount, e.AttackerPlayerId, e.Point, e.Dir);
+                break;
+            case EffectKind.Spawn:
+                for (int n = 0; n < e.Count; n++)
+                    Spawn(e.Type, e.Point, e.Dir, e.AttackerPlayerId);
+                break;
+            case EffectKind.Debuff:
+                ApplyDebuff(e.TargetPlayerId, e.Debuff);
+                break;
+            case EffectKind.Vfx:
+                SpawnVfx(e.Type, e.Point, e.Normal);
+                break;
+        }
+    }
+
     // ---- authoritative effects (server) ----
 
     public void ApplyDamage(int targetPlayerId, int amount, int attackerPlayerId, Vector3 point, Vector3 dir)
@@ -137,6 +166,22 @@ public sealed class ProjectileWorldProvider : MonoBehaviour
             return;
         Quaternion rot = normal.sqrMagnitude > 0.0001f ? Quaternion.LookRotation(normal) : Quaternion.identity;
         Instantiate(entry.ImpactVfx, pos, rot); // non-networked, cosmetic
+    }
+
+    /// <summary>
+    /// Resolve the projectile's OWNER on the server and return the bundle of extra reactions they
+    /// contribute (passives that buff the player's projectiles). The owner is resolved from the id already
+    /// carried in the spawn payload — the reactions are never sent over the network, only read here on the
+    /// authoritative server. The shell hands the bundle to the processor, which selects the category;
+    /// returns default (all null) if the owner has no effect source.
+    /// </summary>
+    public OwnerReactions GetOwnerReactions(int ownerId)
+    {
+        var player = ResolvePlayer(ownerId);
+        var pawn = player != null ? player.ControlledPawn.Value : null;
+        if (pawn != null && pawn.TryGetComponent<IProjectileEffectProvider>(out var source))
+            return source.GetReactions();
+        return default;
     }
 
     // ---- helpers ----

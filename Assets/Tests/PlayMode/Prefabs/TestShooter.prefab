@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 6102058889812717513}
   - component: {fileID: 2891595811883332153}
   - component: {fileID: 3687710493089903596}
+  - component: {fileID: 7203102847299850223}
   m_Layer: 0
   m_Name: TestShooter
   m_TagString: Untagged
@@ -125,6 +126,7 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 0}
   Move: {x: 0, y: 0}
   Jump: 0
+  Fire: 0
 --- !u!114 &3687710493089903596
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -145,6 +147,26 @@ MonoBehaviour:
   weaponData: {fileID: 11400000, guid: f803806807cea44688ba2252c9e2f7d9, type: 2}
   input: {fileID: 2891595811883332153}
   pawnCollider: {fileID: 0}
+--- !u!114 &7203102847299850223
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 396719437415316231}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53ad5b457cf474dec85c77b9d2a3d50c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnAbilities
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4030238958585574595}
+  _networkObjectCache: {fileID: 0}
+  pawn: {fileID: 6102058889812717513}
+  input: {fileID: 2891595811883332153}
+  movement: {fileID: 0}
+  weapon: {fileID: 3687710493089903596}
+  aimSource: {fileID: 0}
 --- !u!1 &1694214989659911869
 GameObject:
   m_ObjectHideFlags: 0

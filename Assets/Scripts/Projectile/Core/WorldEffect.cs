@@ -11,14 +11,17 @@ namespace Arena.Projectile
     }
 
     /// <summary>
-    /// A world side effect the pure core wants performed, expressed as data. The core appends these
-    /// to a reused buffer; the imperative shell (PawnProjectile) reads them, applies authority/replay
-    /// gating via <see cref="EffectGate"/>, and executes them through its concrete services. The core
-    /// never performs an effect itself — that's what keeps it pure and deterministic.
+    /// A world side effect the pure core wants performed, expressed as data. This is the SHARED effect
+    /// vocabulary: both projectile reactions (<see cref="IHitReaction"/>) and player abilities
+    /// (<c>IAbilityEffect</c>) append these to a reused buffer, and the same imperative shell executes
+    /// them through concrete services (<see cref="ProjectileWorldProvider.Execute"/>). The producer
+    /// never performs an effect itself — that's what keeps the core pure and deterministic.
     ///
-    /// Despawn is NOT an effect: the shell despawns when <see cref="ProjectileState.Alive"/> is false.
+    /// (Named WorldEffect rather than ProjectileEffect because it is no longer projectile-specific.)
+    /// Despawn is NOT an effect: the projectile shell despawns when <see cref="ProjectileState.Alive"/>
+    /// is false.
     /// </summary>
-    public struct ProjectileEffect
+    public struct WorldEffect
     {
         public EffectKind Kind;
 
@@ -34,7 +37,7 @@ namespace Arena.Projectile
         public ProjectileType Type;   // Spawn / Vfx
         public DebuffType Debuff;     // Debuff
 
-        public static ProjectileEffect Damage(int target, int amount, int attacker, Vector3 point, Vector3 dir) => new()
+        public static WorldEffect Damage(int target, int amount, int attacker, Vector3 point, Vector3 dir) => new()
         {
             Kind = EffectKind.Damage,
             TargetPlayerId = target,
@@ -44,7 +47,7 @@ namespace Arena.Projectile
             Dir = dir,
         };
 
-        public static ProjectileEffect Spawn(ProjectileType type, int count, Vector3 point, Vector3 dir, int ownerId) => new()
+        public static WorldEffect Spawn(ProjectileType type, int count, Vector3 point, Vector3 dir, int ownerId) => new()
         {
             Kind = EffectKind.Spawn,
             Type = type,
@@ -54,14 +57,14 @@ namespace Arena.Projectile
             AttackerPlayerId = ownerId,
         };
 
-        public static ProjectileEffect Debuff_(int target, DebuffType debuff) => new()
+        public static WorldEffect Debuff_(int target, DebuffType debuff) => new()
         {
             Kind = EffectKind.Debuff,
             TargetPlayerId = target,
             Debuff = debuff,
         };
 
-        public static ProjectileEffect Vfx(ProjectileType type, Vector3 point, Vector3 normal) => new()
+        public static WorldEffect Vfx(ProjectileType type, Vector3 point, Vector3 normal) => new()
         {
             Kind = EffectKind.Vfx,
             Type = type,

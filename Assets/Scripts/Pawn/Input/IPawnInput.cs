@@ -21,6 +21,15 @@ public struct PawnInputData
 
     /// <summary>Whether the fire action is currently held (true every frame the trigger is down).</summary>
     public bool Fire;
+
+    /// <summary>Edge-triggered: cycle the selected active ability to the previous slot (Q). True only on the press frame.</summary>
+    public bool CycleAbilityPrev;
+
+    /// <summary>Edge-triggered: cycle the selected active ability to the next slot (E). True only on the press frame.</summary>
+    public bool CycleAbilityNext;
+
+    /// <summary>Edge-triggered: use the selected active ability (F). True only on the press frame.</summary>
+    public bool UseAbility;
 }
 
 /// <summary>

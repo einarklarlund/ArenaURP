@@ -43,7 +43,7 @@ namespace Arena.Tests.Projectile
         public void Ricochet_ReflectsVelocityAcrossNormal()
         {
             var self = NewSelf();
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             // Incoming (1,-1,0) off a floor normal (0,1,0) reflects to (1,1,0).
             var hit = new HitInfo
             {
@@ -72,7 +72,7 @@ namespace Arena.Tests.Projectile
         public void DeflectProjectile_RedirectsAlongOtherForwardPreservingSpeed()
         {
             var self = NewSelf();
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             var hit = new HitInfo
             {
                 Category = HitCategory.Projectile,
@@ -98,7 +98,7 @@ namespace Arena.Tests.Projectile
         public void LoseHealth_DecrementsButStaysAliveAboveZero()
         {
             var self = NewSelf(health: 2);
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             new LoseHealth { Amount = 1 }.Apply(default(HitInfo), ref self, effects);
 
@@ -112,7 +112,7 @@ namespace Arena.Tests.Projectile
             // LoseHealth only subtracts; death is intrinsic to Health (ProjectileState.Alive => Health > 0),
             // so draining the last point of health makes the projectile not-alive with no separate flag.
             var self = NewSelf(health: 1);
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             new LoseHealth { Amount = 1 }.Apply(default(HitInfo), ref self, effects);
 
@@ -128,7 +128,7 @@ namespace Arena.Tests.Projectile
         public void DealDamage_EnemyHit_EmitsDamageWithAttackerOwnerAndKills()
         {
             var self = NewSelf(ownerId: 7);
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             var hit = new HitInfo
             {
                 Category = HitCategory.Enemy,
@@ -151,7 +151,7 @@ namespace Arena.Tests.Projectile
         public void DealDamage_DespawnAfterFalse_KeepsProjectileAlive()
         {
             var self = NewSelf(ownerId: 7);
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             var hit = new HitInfo { Category = HitCategory.Enemy, OtherPlayerId = 9 };
 
             new DealDamage { Amount = 5, DespawnAfter = false }.Apply(in hit, ref self, effects);
@@ -164,7 +164,7 @@ namespace Arena.Tests.Projectile
         public void DealDamage_IgnoresOwnerHit()
         {
             var self = NewSelf(ownerId: 7);
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             var hit = new HitInfo { Category = HitCategory.Enemy, OtherPlayerId = 7 }; // own player id
 
             new DealDamage { Amount = 5 }.Apply(in hit, ref self, effects);
@@ -177,7 +177,7 @@ namespace Arena.Tests.Projectile
         public void DealDamage_IgnoresNonPlayerHit()
         {
             var self = NewSelf(ownerId: 7);
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             var hit = new HitInfo { Category = HitCategory.Surface, OtherPlayerId = -1 };
 
             new DealDamage { Amount = 5 }.Apply(in hit, ref self, effects);
@@ -194,7 +194,7 @@ namespace Arena.Tests.Projectile
         {
             var childType = MakeType();
             var self = NewSelf(ownerId: 3);
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             var hit = new HitInfo { Point = new Vector3(1f, 2f, 3f) };
 
             new SpawnProjectiles { Type = childType, Count = 4 }.Apply(in hit, ref self, effects);
@@ -211,7 +211,7 @@ namespace Arena.Tests.Projectile
         public void SpawnProjectiles_NullTypeEmitsNothing()
         {
             var self = NewSelf();
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
 
             new SpawnProjectiles { Type = null, Count = 4 }.Apply(default(HitInfo), ref self, effects);
 
@@ -227,7 +227,7 @@ namespace Arena.Tests.Projectile
         {
             var vfxType = MakeType();
             var self = NewSelf();
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             var hit = new HitInfo { Point = new Vector3(4f, 0f, 4f), Normal = Vector3.up };
 
             new SpawnImpactVfx { Type = vfxType }.Apply(in hit, ref self, effects);
@@ -247,7 +247,7 @@ namespace Arena.Tests.Projectile
         public void ApplyDebuff_PlayerHit_EmitsDebuffEffect()
         {
             var self = NewSelf();
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             var hit = new HitInfo { Category = HitCategory.Enemy, OtherPlayerId = 8 };
 
             new ApplyDebuff { Debuff = DebuffType.Burn }.Apply(in hit, ref self, effects);
@@ -262,7 +262,7 @@ namespace Arena.Tests.Projectile
         public void ApplyDebuff_NonPlayerHit_EmitsNothing()
         {
             var self = NewSelf();
-            var effects = new List<ProjectileEffect>();
+            var effects = new List<WorldEffect>();
             var hit = new HitInfo { Category = HitCategory.Surface, OtherPlayerId = -1 };
 
             new ApplyDebuff { Debuff = DebuffType.Slow }.Apply(in hit, ref self, effects);
