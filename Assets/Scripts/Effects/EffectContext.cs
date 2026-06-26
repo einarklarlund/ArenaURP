@@ -36,7 +36,10 @@ public readonly struct EffectContext
     /// <summary>NetworkPlayer.ObjectId of the invoker's owner (the firer / caster), or -1.</summary>
     public readonly int InvokerPlayerId;
 
-    public EffectContext(GameObject invoker, GameObject target, Vector3 point, Vector3 normal, Vector3 direction, int invokerPlayerId)
+    /// <summary>The resolved owner NetworkPlayer (for damage attribution), or null. Resolved by the shell.</summary>
+    public readonly NetworkPlayer InvokerPlayer;
+
+    public EffectContext(GameObject invoker, GameObject target, Vector3 point, Vector3 normal, Vector3 direction, int invokerPlayerId, NetworkPlayer invokerPlayer = null)
     {
         Invoker = invoker;
         Target = target;
@@ -44,5 +47,6 @@ public readonly struct EffectContext
         Normal = normal;
         Direction = direction;
         InvokerPlayerId = invokerPlayerId;
+        InvokerPlayer = invokerPlayer;
     }
 }
