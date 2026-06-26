@@ -136,44 +136,29 @@ namespace Arena.PlayTests
         }
 
         /// <summary>
-        /// Server-spawns a PawnProjectile prefab and seeds its spawn payload exactly as a shooter would
-        /// before ServerManager.Spawn (which must happen before OnStartNetwork reads it). PawnProjectile
-        /// lives in Assembly-CSharp — unreferenceable from this asmdef — so the payload is set by
-        /// reflection. Pass <paramref name="typeOverride"/> (a ProjectileType) to swap the prefab's wired
-        /// _type for a test-authored one; leave it null to use the prefab's own type.
+        /// Server-spawns a projectile through the PRODUCTION path: a real authored <c>ProjectileType</c>
+        /// asset's <c>Create</c> (which initializes the instance's generic components) + the spawn payload,
+        /// driven by <c>ProjectileSpawnTestRig.SpawnViaType</c>. The rig lives in Assembly-CSharp
+        /// (unreferenceable from this asmdef), so it's invoked by reflection — contained to this one helper.
+        /// <paramref name="typeAssetPath"/> is a `.asset` ProjectileType (e.g. Assets/Data/Projectiles/Bullet.asset).
         /// </summary>
-        protected GameObject SpawnProjectile(string prefabPath, Vector3 position, Vector3 forward,
-            int ownerId = 999, Object typeOverride = null)
+        protected GameObject SpawnProjectile(string typeAssetPath, Vector3 position, Vector3 forward,
+            int ownerId = 999)
         {
 #if UNITY_EDITOR
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            Assert.IsNotNull(prefab, $"Projectile prefab missing at {prefabPath}");
-            var instance = Object.Instantiate(prefab, position, Quaternion.identity);
+            var type = AssetDatabase.LoadMainAssetAtPath(typeAssetPath);
+            Assert.IsNotNull(type, $"ProjectileType asset missing at {typeAssetPath}");
 
-            var pp = instance.GetComponent("PawnProjectile");
-            Assert.IsNotNull(pp, $"prefab at {prefabPath} has no PawnProjectile component");
-            if (typeOverride != null)
-                SetProjectileField(pp, "_type", typeOverride);
-            SetProjectileField(pp, "SpawnOwnerId", ownerId);
-            SetProjectileField(pp, "SpawnTick", NetworkManager.TimeManager.GetPreciseTick(TickType.Tick));
-            SetProjectileField(pp, "SpawnPosition", position);
-            SetProjectileField(pp, "SpawnForward", forward);
-            SetProjectileField(pp, "SpawnHealth", 0); // 0 -> ProjectileType.MaxHealth
-
-            NetworkManager.ServerManager.Spawn(instance);
-            return instance;
+            var rig = System.Type.GetType("ProjectileSpawnTestRig, Assembly-CSharp");
+            Assert.IsNotNull(rig, "ProjectileSpawnTestRig not found in Assembly-CSharp");
+            int id = (int)rig.GetMethod("SpawnViaType").Invoke(null, new object[] { type, position, forward, ownerId });
+            var go = (GameObject)rig.GetMethod("FindSpawned").Invoke(null, new object[] { id });
+            Assert.IsNotNull(go, $"spawned projectile (id {id}) not found after SpawnViaType");
+            return go;
 #else
             Assert.Fail("SpawnProjectile requires the Unity Editor (uses AssetDatabase).");
             return null;
 #endif
-        }
-
-        static void SetProjectileField(object component, string name, object value)
-        {
-            var field = component.GetType().GetField(name,
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            Assert.IsNotNull(field, $"PawnProjectile has no field '{name}' (renamed?)");
-            field.SetValue(component, value);
         }
 
         /// <summary>

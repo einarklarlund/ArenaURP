@@ -20,7 +20,7 @@ namespace Arena.PlayTests
     /// </summary>
     public sealed class ProjectileServerTickSmokeTests : NetworkedPlayModeTestFixture
     {
-        const string BulletPrefabPath = "Assets/Prefabs/Projectiles/Bullet Root.prefab";
+        const string BulletTypePath = "Assets/Data/Projectiles/Bullet.asset";
 
         protected override string ScenePath
             => "Assets/Tests/PlayMode/Scenes/TestProjectile.unity";
@@ -48,7 +48,7 @@ namespace Arena.PlayTests
         public IEnumerator Bullet_spawns_at_position_and_moves_along_forward(
             [ValueSource(nameof(FlightCases))] Flight f)
         {
-            var bullet = SpawnProjectile(BulletPrefabPath, f.Pos, f.Dir);
+            var bullet = SpawnProjectile(BulletTypePath, f.Pos, f.Dir);
 
             // Captured on the spawn frame (before any tick advances it): it must appear at its origin.
             Vector3 startPos = bullet.transform.position;

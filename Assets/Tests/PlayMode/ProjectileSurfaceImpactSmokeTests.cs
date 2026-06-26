@@ -19,7 +19,7 @@ namespace Arena.PlayTests
     /// </summary>
     public sealed class ProjectileSurfaceImpactSmokeTests : NetworkedPlayModeTestFixture
     {
-        const string BulletPrefabPath = "Assets/Prefabs/Projectiles/Bullet Root.prefab";
+        const string BulletTypePath = "Assets/Data/Projectiles/Bullet.asset";
 
         protected override string ScenePath
             => "Assets/Tests/PlayMode/Scenes/TestProjectileWall.unity";
@@ -29,7 +29,7 @@ namespace Arena.PlayTests
         {
             // Fire from the origin straight at the wall (front face z ~4.5 in TestProjectileWall.unity).
             var spawnPos = new Vector3(0f, 1f, 0f);
-            var bullet = SpawnProjectile(BulletPrefabPath, spawnPos, Vector3.forward);
+            var bullet = SpawnProjectile(BulletTypePath, spawnPos, Vector3.forward);
             var nob = bullet.GetComponent<NetworkObject>();
             Assert.IsNotNull(nob, "spawned bullet has no NetworkObject");
 

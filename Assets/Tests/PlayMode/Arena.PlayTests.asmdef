@@ -14,8 +14,7 @@
   ],
   "autoReferenced": false,
   "defineConstraints": [
-    "UNITY_INCLUDE_TESTS",
-    "ARENA_PLAYMODE_TESTS_WIP"
+    "UNITY_INCLUDE_TESTS"
   ],
   "versionDefines": [],
   "noEngineReferences": false
