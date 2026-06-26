@@ -15,13 +15,14 @@ rules keep this codebase fast, deterministic, and debuggable.
 or look this up from state it already has?** If yes, don't send it.
 
 The decisive case in this codebase is **projectile effects**. A projectile carries the bare minimum on
-its spawn payload — owner id, spawn tick, origin position/forward, health (see
-`PawnProjectile.WritePayload`). It does **not** carry the effects/modifiers its owner's abilities
-contribute. Instead, collisions are resolved **server-side**, and there the projectile **looks up its
-owner** (`ProjectileWorldProvider.CollectOwnerReactions(ownerId, category, buffer)` → resolve player →
-`ControlledPawn` → `IProjectileEffectProvider`) and applies the owner's reactions as data passed into the
-pure processor. The owner's loadout already lives on the server; shipping it on every bullet would be
-bytes spent to send state the authoritative peer can read for free.
+its spawn payload — owner id (on `NetPlayerOwnership.WritePayload`), spawn tick + origin pose + motion
+config (on `NetworkedMotion.WritePayload`). It does **not** carry the effects/modifiers its owner's
+abilities contribute. Instead, collisions are resolved **server-side**, and there `ServerCollision`
+**looks up its owner** (owner id → player via `NetworkPlayerManager` → `ControlledPawn` →
+`IProjectileEffectProvider.GetReactions()`) and runs the owner's reactions alongside the type's. The
+owner's loadout already lives on the server; shipping it on every bullet would be bytes spent to send
+state the authoritative peer can read for free. (This used to route through `ProjectileWorldProvider`,
+since deleted — `ServerCollision` resolves the owner itself now.)
 
 The pattern, generalized:
 - **Identity in, state looked-up.** Send a small stable id (owner id, a database index). Resolve the rich
@@ -33,19 +34,24 @@ The pattern, generalized:
 Smell: you're widening a `WritePayload`/RPC signature to carry gameplay config that the owning player's
 components already hold. Stop — resolve it server-side from an id instead.
 
-(Closed-form motion is the exception that proves the rule: size/speed that affect the trajectory every
-peer renders DO need to be known everywhere, so they live on the immutable type asset resolved locally
-from the prefab — still not sent per-instance. Send nothing you can resolve locally either.)
+(Closed-form motion config — speed/accel/gravity/etc. that every peer needs to render the trajectory — is
+a deliberate, eyes-open **exception**. It currently rides the `NetworkedMotion` spawn payload (a handful
+of floats per spawn), set by the type's `Initialize`, because we chose to make `NetworkedMotion`
+**type-agnostic** (no `ProjectileType` ref) and all kinds share one prefab — so it can't resolve the
+config locally. The cheaper alternative is to bake the config on a **per-type prefab** (then every peer
+has it for free and it drops off the payload); take that the day kinds get distinct prefabs. The point
+stands: prefer resolving locally; if you must send, know why — here it bought a fully-generic component.)
 
 ## Rule 2 — Collision/detection is server-authoritative and cast-based, not trigger callbacks
 
 Resolve "did X touch Y" on the **server tick** with an explicit physics query, not `OnTriggerEnter`/
 `OnCollisionEnter` (which fire on every peer off client-side physics and aren't authoritative).
 
-- Projectiles: `PawnProjectile.ServerTick` runs only on the server, sweeps `CastWorld` (SphereCast) and
-  `OverlapProjectileStates` (OverlapSphere), maps colliders to entities via `GetComponentInParent<Pawn>`,
-  then performs effects. No `[Replicate]`/`[Reconcile]` — motion is closed-form/deterministic so only the
-  server needs to tick collisions.
+- Projectiles: `ServerCollision.ServerTick` runs only on the server, sweeps a SphereCast against the world
+  and an OverlapSphere against other projectiles (the physics is inline now that `ProjectileWorldProvider`
+  is gone), maps colliders to entities via `GetComponentInParent<Pawn>`/`<NetworkedMotion>`, then runs the
+  hit reactions. No `[Replicate]`/`[Reconcile]` — motion is closed-form/deterministic so only the server
+  needs to tick collisions.
 - Pickups follow the same shape: `AbilityPickup` subscribes `TimeManager.OnTick` in `OnStartServer`, does
   a server-side `Physics.OverlapSphereNonAlloc`, and grants on overlap. It deliberately does NOT use
   `OnTriggerEnter`.

@@ -57,11 +57,15 @@ The call arrow points **shell → core** only. The core never holds, calls, or k
 the engine. This is what makes the core trivially unit-testable with plain structs **and** keeps it
 deterministic for FishNet prediction/reconcile (same inputs → same outputs, replayable).
 
-This codebase's reference implementation is the projectile system: `PawnProjectile` (the shell) casts,
-overlaps, finds targets, and applies damage/spawns; `Arena.Projectile.Core` (the functions) takes
-`WorldHit`/overlap states in and returns a list of `ProjectileEffect` out. The shell decides *whether*
-each effect runs (server vs client, fresh tick vs reconcile replay); the core just decides *what*
-should happen.
+This codebase's reference implementation is the projectile system. The shell components (`NetworkedMotion`,
+`ServerCollision`) cast, overlap, and resolve GameObjects; the pure cores (`Arena.NetworkedMotion.Core`,
+`Arena.ServerCollision.Core`, …) take `WorldHit`/overlap states in and return motion + a hit
+*classification* (`HitInfo`: owner-safe, enemy/surface/projectile) out. The shell then runs the
+Unity-coupled `WorldEffect` commands that the classification routes to — the core decides *what kind of
+hit happened*; the shell decides *what to do about it* and performs the I/O. (We did **not** inject a
+"world" into the core — see the anti-pattern below; and we did **not** keep an effect-DATA list either —
+the shell runs the effect commands directly, see [[scriptableobject-commands]]. Collision is server-only,
+so there's no client/reconcile gating to apply.)
 
 ---
 
@@ -105,8 +109,8 @@ EditMode-testable, and the shell is the one concrete thing — tested (if at all
 tests against the *real* engine, per [[integration-testing]]'s "test the seam you don't trust" rule.
 
 **When an interface IS earned here:** genuine polymorphism with multiple *real* implementations. The
-projectile *movement* strategies (`Linear`/`Arc`/`Homing`/`Laser`) are a legitimate `IProjectileMovement`
-Strategy — four real behaviors selected at runtime, not one impl plus a mock. That interface stays.
+motion strategies (`LinearMotion`/`ArcMotion`/`LaserMotion`) are a legitimate `IMotionStrategy`
+Strategy — three real behaviors selected at runtime, not one impl plus a mock. That interface stays.
 The distinction: an interface earns its place when you'd have ≥2 production implementations even if you
 never wrote a single test.
 
@@ -119,12 +123,19 @@ never wrote a single test.
 2. **Split the data dependency into phases if needed.** Sometimes a query depends on a result the core
    just computed (e.g. you can't cast the collision ray until movement has produced the new position).
    Don't smuggle a callback in to bridge it — *phase* the core into functions the shell drives in order:
-   `AdvanceMovement` → (shell casts) → `ResolveWorldHit` → (shell overlaps) → `ResolveProjectileHits`.
+   `PositionAtAge` → (shell casts) → `TryClassifyWorldHit` → (shell overlaps) → `TryClassifyProjectileHit`.
    One wide `Step(world)` becomes a slightly chattier pure API plus orchestration in the shell. That's
    the trade, and it's a good one: the chatter is all pure and testable.
-3. **Return effects as value structs.** A small tagged struct (`ProjectileEffect { Kind, Target, Amount,
-   Type, ... }`) accumulated into a reused `List<>`/buffer (no per-tick GC). The core appends; it never
-   executes.
+3. **Decide how writes leave the core — as data, or as a decision the shell acts on.** Two shapes, both
+   keep the core pure:
+   - **Return effects as value structs** — a small tagged struct accumulated into a reused buffer; the
+     core appends, never executes. Use this when the effect *decision* must stay pure/gateable — notably
+     predicted `[Replicate]` code that re-runs on reconcile and must execute once.
+   - **Return a classification/decision and let the shell run a Unity-coupled command** — what this
+     project's server-only projectile collision does: the core returns a `HitInfo` (*what kind* of hit),
+     and the shell runs `WorldEffect` command objects that do the I/O directly. No effect-data list, no
+     executor switch (see [[scriptableobject-commands]]). Prefer this when the effects are server-only and
+     want the freedom to touch many systems; reserve the value-struct boundary for the predicted case.
 4. **Prefer making side effects unnecessary-to-gate over building a gate.** Gating only exists because
    the effect-producing code runs on more than one peer or re-runs during a reconcile replay. If you
    can make that code run in exactly ONE authoritative context, the gate disappears entirely — which is
@@ -163,4 +174,4 @@ never wrote a single test.
 - A "pure" Core processor takes a service parameter it *calls*? It isn't pure, and it can't stay in `Arena.*.Core`. Invert it: pass query results in, return effects out.
 - An interface keeps growing methods as the system grows? It's a Facade over "the world" in disguise — the boundary belongs as data, not behavior.
 - Reaching for PlayMode to test branchy decision logic (owner-safety, dedupe, any gating you kept)? That logic should be in the pure core and covered in EditMode; PlayMode is for the engine glue only.
-- Conversely: about to collapse four real runtime behaviors into one class with a `switch` *just* to avoid an interface? An interface with ≥2 real implementations is earned — keep it (see `IProjectileMovement`).
+- Conversely: about to collapse four real runtime behaviors into one class with a `switch` *just* to avoid an interface? An interface with ≥2 real implementations is earned — keep it (see `IMotionStrategy`).

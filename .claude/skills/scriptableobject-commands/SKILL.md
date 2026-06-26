@@ -1,6 +1,6 @@
 ---
 name: scriptableobject-commands
-description: A general encapsulation tool — author a single piece of SWAPPABLE BEHAVIOUR as a ScriptableObject COMMAND/STRATEGY asset whenever you have many interchangeable variants of one behaviour that share a common context/signature and you don't want to write a whole script per variant. Applies far beyond the Type Object pattern: hit reactions, ability effects, movement strategies, target providers, AI behaviours, scoring/win rules — anything with a fixed shape and many variants. The house default is SO-per-behaviour (referenced/swapped by whoever runs it), over [SerializeReference] inline objects or an enum+switch. Covers why; the stateless-vs-stateful split (call the SO directly when stateless; make it a CreateRuntime() factory when it needs per-instance runtime state, like MovementStrategySO); per-context typing (a HitReaction base with ProjectileHitReaction/SurfaceHitReaction/PlayerHitReaction subclasses each taking a typed context, so variants can't be mis-slotted); the flyweight discipline (never store per-invocation state on the SO); where parameters live (shared/derived via the context, behaviour-specific tuning on the asset); and the DATA-SEAM vs DIRECT-I/O decision (default: a thin command calls the world provider's typed methods directly; reserve emitting effects as data for predicted [Replicate] code that must gate execution to authoritative ticks). Biased for a SOLO, code-first Unity dev using the Processor + thin-MonoBehaviour pattern over FishNet. Use this BEFORE adding a new behaviour variant, choosing between SO / [SerializeReference] / enum, or deciding whether a behaviour emits effect-data or calls the world directly. Pairs with [[type-object-pattern]] (a common consumer of these) and [[functional-core-imperative-shell]] (where the pure computation goes).
+description: A general encapsulation tool — author a single piece of SWAPPABLE BEHAVIOUR as a ScriptableObject COMMAND/STRATEGY asset whenever you have many interchangeable variants of one behaviour that share a common context/signature and you don't want to write a whole script per variant. Applies far beyond the Type Object pattern: hit reactions, ability effects, movement strategies, target providers, AI behaviours, scoring/win rules — anything with a fixed shape and many variants. The house default is SO-per-behaviour (referenced/swapped by whoever runs it), over [SerializeReference] inline objects or an enum+switch. Covers why; the stateless-vs-stateful split (call the SO directly when stateless; make it a CreateRuntime() factory when it needs per-instance runtime state, like MovementStrategySO); per-context typing (typed HitReaction marker subclasses that own a list of context-agnostic WorldEffects sharing ONE EffectContext, so the markers stop mis-slotting while the effects stay reusable across categories AND abilities); the flyweight discipline (never store per-invocation state on the SO); where parameters live (shared/derived via the context, behaviour-specific tuning on the asset); and the decision about WHO touches the Unity API — effects are the deliberate engine-coupling layer doing direct I/O on the context's GameObjects (we DELETED the old WorldEffect-data-struct + ProjectileWorldProvider.Execute seam; cores stay pure with non-trivial math extracted to *.Core helpers; reserve emitting effects as data only for predicted [Replicate] code). Biased for a SOLO, code-first Unity dev using the Processor + thin-MonoBehaviour pattern over FishNet. Use this BEFORE adding a new behaviour variant, choosing between SO / [SerializeReference] / enum, or deciding whether a behaviour emits effect-data or calls the world directly. Pairs with [[type-object-pattern]] (a common consumer of these) and [[functional-core-imperative-shell]] (where the pure computation goes).
 ---
 
 # ScriptableObject commands & strategies (curated for a solo, code-first Unity dev)
@@ -35,7 +35,7 @@ Three ways to make behaviour pluggable in the inspector; the house default is **
 | Reuse across consumers | none (private copy per list) | **one asset reused, tuned once** | n/a |
 | Refactor safety | fragile (managed-ref breakage) | **GUID-stable** | brittle switch |
 | Tooling | dropdown, no preview | first-class asset; MCP `find_references` | — |
-| Per-context typing | flat `List<IHitReaction>` | **typed lists, no mis-slot** | — |
+| Per-context typing | flat `List<HitReaction>` | **typed lists, no mis-slot** | — |
 | Add a variant | a class | a class + `[CreateAssetMenu]` + an asset | class + enum + switch case |
 | Per-instance config | trivial inline | needs a variant asset or context | n/a |
 
@@ -56,27 +56,37 @@ as reusable, centrally tunable building blocks rather than fighting the prolifer
 
 ## Per-context typing — variants that can't be mis-slotted
 
-When variants run in *different* contexts (each carrying different data), type the variant to its context.
-A base plus a subclass per context lets typed lists/slots on the consumer reject the wrong kind at author
-time. The projectile's three hit categories are the example:
+Put the mis-slot typing on a **grouping** layer, and keep the actual behaviour units **context-agnostic**
+so one asset is reusable everywhere. The projectile shows the split we landed on — a typed `HitReaction`
+that *owns a list of* `WorldEffect`s, where the `WorldEffect`s share **one** `EffectContext`:
 
 ```csharp
-public abstract class HitReaction : ScriptableObject {
-    public abstract void React(in HitInfo hit, IReactionContext ctx);
-}
-public abstract class SurfaceHitReaction   : HitReaction { /* ctx is SurfaceReactionContext */ }
-public abstract class ProjectileHitReaction: HitReaction { /* ctx is ProjectileReactionContext */ }
-public abstract class PlayerHitReaction    : HitReaction { /* ctx is PlayerReactionContext */ }
+// The reusable behaviour unit — ONE shared context, so the same asset works for a projectile hit
+// reaction AND an ability use. Not per-category-typed.
+public abstract class WorldEffect : ScriptableObject { public abstract void Apply(in EffectContext ctx); }
+public abstract class SingleTargetEffect : WorldEffect { /* base no-ops when ctx.Target is null */ }
 
-// On the consumer — you literally cannot drop a surface reaction in the enemy slot:
-[SerializeField] List<SurfaceHitReaction>    OnSurface;
-[SerializeField] List<ProjectileHitReaction> OnProjectile;
-[SerializeField] List<PlayerHitReaction>     OnEnemy;
+// The grouping layer carries the typing — empty marker subclasses, just to make slots un-mis-fillable:
+public abstract class HitReaction : ScriptableObject {
+    [SerializeField] List<WorldEffect> effects;          // runs them on a hit, given the context
+}
+public sealed class SurfaceHitReaction    : HitReaction {}
+public sealed class ProjectileHitReaction : HitReaction {}
+public sealed class EnemyHitReaction      : HitReaction {}
+
+// On the consumer (ProjectileType) — you literally cannot drop a surface reaction in the enemy slot:
+public List<SurfaceHitReaction>    OnSurface;
+public List<EnemyHitReaction>      OnEnemy;
+public List<ProjectileHitReaction> OnProjectile;
 ```
 
-(Keep context/variant names aligned to the categories — `Projectile` / `Surface` / `Player`(`Enemy`).) The
-cost: a variant useful in *every* context must be written per context (or kept behind a context-agnostic
-base) — the price of the mis-slot safety. When all variants share one context, skip the subclassing.
+Why this shape, not per-context-typed `React` methods: a single `EffectContext` (carrying both colliding
+GameObjects + point/normal/dir/owner) means a `DealDamage` or `SpawnProjectiles` effect authored once is
+reused by every category **and** by abilities (which build the same context from the caster's aim). The
+typing that prevents mis-slotting lives on the cheap `HitReaction` marker subclasses; the valuable,
+numerous units (`WorldEffect`s) stay context-agnostic and maximally reusable. `SingleTargetEffect` is the
+one sanctioned refinement — it pulls `ctx.Target` and skips when null, so target-needing effects don't each
+re-check.
 
 ## Flyweight discipline
 
@@ -92,39 +102,48 @@ instance (or in a `CreateRuntime` runtime object). Same rule as the type SO in [
   variant asset when you need two values. Don't push every variant's params onto the consumer's config —
   that re-creates the bloat that splitting `AbilityType` into Passive/Active was meant to kill.
 
-## Data seam vs. direct I/O — the call to make per command
+## Effects are the Unity-API coupling layer — direct I/O, no provider, no data seam
 
-**What a data seam is.** Instead of *performing* a side effect, a command emits a *description* of the
-intended effect as plain data; a separate executor reads the data and performs it. `WorldEffect` +
-`ProjectileWorldProvider.Execute(in WorldEffect)` is exactly this — commands append `WorldEffect`s to a
-buffer; the shell executes them in one place. It **separates the decision (what should happen) from the
-execution (the I/O)**, which is what makes the decision unit-testable, gateable, and replayable.
+This is a deliberate architectural decision about **who is allowed to touch the engine.** A `WorldEffect`
+is **shell, and pointedly Unity-coupled**: its whole job is to *do something to the world*, so its `Apply`
+reaches the engine **directly** — `GetComponent` on `ctx.Invoker`/`ctx.Target`, `Instantiate`, FishNet
+spawn (`type.Create()` + `ServerManager.Spawn`), `IDamageable.TakeDamage`, anything. The
+`EffectContext` hands it the two colliding GameObjects (+ point/normal/dir/owner) precisely so it can.
 
-**The house default is DIRECT I/O for thin commands.** A command that just deals damage or spawns has no
-decision worth separating — the decision *is* the call. Have it call the world provider's **typed methods
-directly** (`ctx.World.DealDamage(...)`, `ctx.World.Spawn(...)`). This is less ceremony than a data struct
-+ `EffectKind` + factory + switch case, and you **keep the single I/O surface** — the provider is still the
-one place the world is mutated, just with typed methods instead of a dispatch switch. The SO command is
-**shell**, not core (it's a Unity object doing I/O), so this respects [[functional-core-imperative-shell]]
-— with one rider:
+```csharp
+public sealed class DealDamage : SingleTargetEffect {                 // a thin, Unity-coupled command
+    protected override void ApplyToTarget(in EffectContext ctx, GameObject target) {
+        if (target.GetComponentInParent<IDamageable>() is {} d)
+            d.TakeDamage(new DamageInfo { Amount = DamageProcessor.Resolve(...), Attacker = ctx.InvokerPlayer, ... });
+    }
+}
+```
 
-> **Extract non-trivial computation into pure static helpers** (a ricochet's new trajectory, a spawn fan's
-> directions, a conditional check) and unit-test *those*; let the thin command do the I/O with the result.
-> Direct I/O is fine for thin commands; it must not swallow logic that deserves a test.
+We previously had a **data seam** here — effects emitted a `WorldEffect` *struct* and
+`ProjectileWorldProvider.Execute(in WorldEffect)` performed it as the single world surface — and we
+**deleted the struct, the `Execute` switch, and the provider entirely.** Why we dropped the
+single-I/O-surface for direct coupling: the game's depth *is* effects interacting with many systems in
+open-ended ways (damage, knockback, debuff, spawn, ricochet, AoE, pickups, level-ups). A provider with
+typed methods becomes a god-object that must grow a method per interaction; letting each effect reach the
+engine itself is what keeps the family open-ended. So **concentrate the broad engine coupling in the
+effect/reaction/ability layer on purpose** — that is the one place we embrace "touch anything."
 
-**Reserve the data seam (emit effects as data) for two cases:**
-1. **Predicted `[Replicate]` code** (the Rigidbody/prediction layer — `MovementController`,
-   `ProjectileMovement`, `SkullPowerup`). Replicate re-runs during reconcile, so any *direct* side effect
-   re-fires per resimulation (double-spawn, double-damage). Emitting effects as data lets you **gate
-   execution to the authoritative (non-replayed) tick**. Projectile collision is server-only and *not*
-   predicted, so this doesn't apply there — direct I/O is safe.
-2. **Heavy decision logic** you specifically want pure, testable, recordable, or collected-then-executed
-   for consistency (effects that must not interfere with each other mid-computation).
+That freedom is bounded by two standing rules:
 
-**Migration note:** projectile reactions and ability effects currently both go through the `WorldEffect →
-Execute` data seam. Move the thin ones to direct provider calls so the codebase tells one story; keep the
-provider as the single world surface (typed methods). Keep the data seam only where one of the two cases
-above genuinely applies.
+> **Keep the cores pure and push the engine to the edges.** The broad coupling lives *only* in effects/
+> abilities. The processors, state, and config (`*.Core`) stay engine-free and tested; the components stay
+> thin. Don't let Unity-API calls leak into a processor because an effect made it feel normal.
+
+> **Extract non-trivial computation into pure static helpers** (a ricochet's reflected trajectory, a spawn
+> fan's directions, an owner-safety check) into a `*.Core` assembly and unit-test *those*; the effect is a
+> thin Unity wrapper that calls the helper then does the I/O. Direct I/O is fine; it must not swallow logic
+> that deserves a test. (`Ricochet` → `RicochetMath.TryReflect`, `SpawnProjectiles` → `SpawnFanMath`.)
+
+**Reserve emitting effects as DATA (collect-then-execute) for one case that genuinely remains:** predicted
+`[Replicate]` code (the Rigidbody/prediction layer — `MovementController`, `ProjectileMovement`,
+`SkullPowerup`). Replicate re-runs during reconcile, so a *direct* side effect re-fires per resimulation
+(double-spawn, double-damage); there you emit data and gate execution to the authoritative tick. Projectile
+collision is **server-only and not predicted**, so direct I/O is correct there.
 
 ## Networking & determinism
 
@@ -142,6 +161,7 @@ raw object reference.
 3. Do variants run in different contexts? → subclass a typed base so they can't be mis-slotted.
 4. Per-invocation state on the SO? → **no** — flyweight; push it to the instance/runtime object.
 5. Params: shared → **context**; behaviour-specific → **asset field** (variant asset if needed).
-6. Effect: thin + server-only? → **call the provider directly**, computation in pure helpers. Inside
-   predicted `[Replicate]`, or need testable/gated/recordable decisions? → **emit `WorldEffect` data** and
-   execute in the shell.
+6. Effect doing world I/O? → it's the Unity-coupling layer: **direct engine I/O on the context's
+   GameObjects** (no provider, no data struct), with non-trivial computation extracted to a pure `*.Core`
+   helper and tested. Keep that coupling *only* in effects/abilities — cores stay pure. Inside predicted
+   `[Replicate]`? → **emit effect data** and execute on the authoritative tick.

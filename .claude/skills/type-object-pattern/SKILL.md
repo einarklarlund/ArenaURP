@@ -1,6 +1,6 @@
 ---
 name: type-object-pattern
-description: This project's house rules for the Nystrom / Gang-of-Four TYPE OBJECT pattern — the per-kind ScriptableObject (ProjectileType, AbilityType, WeaponType). Reach for this whenever you have, or expect, a FAMILY of many kinds of one conceptual thing (projectile/ability/enemy/item/spell types) that share a common runtime shape, and you want to add new kinds by AUTHORING AND COMPOSING an asset rather than writing a bespoke subclass per kind — and you're deciding how to structure that type. Kinds here MAY differ in behaviour, not just data: behaviour comes from the kind's instance prefab (any MonoBehaviour components) and from pluggable command/strategy SO assets on its config. A type is a ScriptableObject holding the type's shared CONFIGURATION (immutable-at-runtime per-kind data) AND whatever visual/resource data it needs directly (UI sprites, sounds), plus a prefab field that is the template for the in-game instance. Per-INSTANCE state never lives on the SO — it lives on the instantiated prefab (graphics, runtime state, thin behaviour components). Processor purity is preserved by feeding the pure core a plain config struct, NOT by stripping asset refs off the SO. Also covers splitting a type's instance into reusable thin components that read their slice of the type SO and communicate via typed C# events (UnityEvents only for the view layer). Biased for a SOLO, code-first Unity dev using the Processor + thin-MonoBehaviour pattern over FishNet. Use this BEFORE creating or extending a ScriptableObject "type", applying the Type Object pattern, modeling an in-game instance of one, or splitting a fat NetworkBehaviour into components. The general pattern catalogue is [[game-programming-patterns]]; this is the concrete house implementation of its Type Object entry. Pairs with [[scriptableobject-commands]] for authoring the pluggable behaviours themselves.
+description: This project's house rules for the Nystrom / Gang-of-Four TYPE OBJECT pattern — the per-kind ScriptableObject (ProjectileType, AbilityType, WeaponType). Reach for this whenever you have, or expect, a FAMILY of many kinds of one conceptual thing (projectile/ability/enemy/item/spell types) that share a common runtime shape, and you want to add new kinds by AUTHORING AND COMPOSING an asset rather than writing a bespoke subclass per kind — and you're deciding how to structure that type. Kinds here MAY differ in behaviour, not just data: behaviour comes from the kind's instance prefab (any MonoBehaviour components) and from pluggable command/strategy SO assets on its config. A type is a ScriptableObject holding the type's shared CONFIGURATION (immutable-at-runtime per-kind data) AND whatever visual/resource data it needs directly (UI sprites, sounds), plus a prefab field that is the template for the in-game instance. Per-INSTANCE state never lives on the SO — it lives on the instantiated prefab (graphics, runtime state, thin behaviour components). Processor purity is preserved by feeding the pure core a plain config struct, NOT by stripping asset refs off the SO. Also covers an abstract ScriptableTypeObject base (instance prefab + a Create/Initialize method) and splitting a type's instance into reusable, type-agnostic components that the type's initializer configures by pushing config in — the components never reference the type — wired in code (UnityEvents only for the view layer). Biased for a SOLO, code-first Unity dev using the Processor + thin-MonoBehaviour pattern over FishNet. Use this BEFORE creating or extending a ScriptableObject "type", applying the Type Object pattern, modeling an in-game instance of one, or splitting a fat NetworkBehaviour into components. The general pattern catalogue is [[game-programming-patterns]]; this is the concrete house implementation of its Type Object entry. Pairs with [[scriptableobject-commands]] for authoring the pluggable behaviours themselves.
 ---
 
 # The Type Object pattern, the house way: SO config + prefab instances (curated for a solo, code-first Unity dev)
@@ -68,23 +68,55 @@ The SO holds **whatever visual/resource data it needs directly** — UI sprites,
 self-contained, previewable unit. To spawn the thing, instantiate its `InstancePrefab`; the prefab is
 where graphics, colliders, per-instance state, and behaviour components live.
 
-We are **not** introducing resource catalogs / lookup tables right now — don't add that indirection
-preemptively. The one situation that can force it is a hard assembly constraint: a pure-Core SO can't hold
-an engine/FishNet reference (e.g. `ProjectileType` in `Arena.Projectile.Core` can't reference a
-`NetworkObject` prefab — which is why `ProjectileWorldProvider` maps that one today). Solve that case if
-and when you hit it; everything else keeps its sprites/prefab on the SO.
+No resource catalogs / lookup tables. The type holds its `NetworkObject` instance prefab (plus impact
+VFX, sprites, sounds) **directly**. We tried the catalog indirection once — `ProjectileWorldProvider`
+mapped `ProjectileType → NetworkObject` because the type lived in a *pure-Core* assembly that couldn't
+reference FishNet — and **deleted both the catalog and the provider**. The fix wasn't a catalog: it was to
+put the **type itself in the shell assembly** (Assembly-CSharp), where it can hold engine/FishNet refs
+freely. Purity is preserved by the *processors* taking a config struct (Rule 4), **never** by keeping the
+SO pure. So: a type lives wherever it must to own its own resources — anything with a networked prefab
+belongs in the shell, not a pure-Core assembly. (See [[scriptableobject-commands]] for the provider's
+removal.)
 
-## Rule 3 — initialize instance scripts FROM the config
+## Rule 3 — the TYPE configures the instance; components never reference the type
 
-A spawned instance's scripts read shared parameters from the type's config. Hand the SO (or a config
-struct built from it) to the instance right after instantiation:
+The instantiation + initialization lives on the type, behind a shared base — `ScriptableTypeObject`:
 
 ```csharp
-var instance = Instantiate(type.InstancePrefab, pos, rot);
-instance.GetComponent<TurretBehaviour>().Initialize(type);   // reads type.FireRate, type.Range, ...
+public abstract class ScriptableTypeObject : ScriptableObject {
+    [SerializeField] NetworkObject instancePrefab;          // the type owns its prefab
+    public NetworkObject InstancePrefab => instancePrefab;
+
+    // pooled-instantiate + initialize from this type's data; caller does the network Spawn
+    public NetworkObject Create(NetworkManager m, Vector3 pos, Quaternion rot, bool asServer) {
+        var nob = m.GetPooledInstantiated(instancePrefab, pos, rot, asServer);
+        Initialize(nob.gameObject);
+        return nob;
+    }
+    protected abstract void Initialize(GameObject instance);
+}
 ```
 
-The instance holds the config for its lifetime; per-instance state stays on the instance.
+The concrete type's `Initialize` **pushes** each component's config in — the type knows the composition:
+
+```csharp
+protected override void Initialize(GameObject instance) {              // ProjectileType
+    if (instance.TryGetComponent<NetworkedMotion>(out var m)) m.Configure(ToMotionConfig(), Speed);
+    if (instance.TryGetComponent<ServerCollision>(out var c)) c.Configure(Radius, OnSurface, OnEnemy, OnProjectile);
+    if (instance.TryGetComponent<Health>(out var h))          h.ConfigureMax(MaxHealth);
+    if (instance.TryGetComponent<Damage>(out var d))          d.Amount = Damage;
+}
+```
+
+This inverts the obvious-but-wrong instinct: **components do NOT hold a `type` reference and do NOT read
+"their slice" of the SO.** They are generic and type-agnostic (`NetworkedMotion` knows nothing about
+projectiles); the type is the single place that knows the whole composition and wires it. The *spawner*
+(a weapon, an effect) just calls `type.Create(...)` and never learns what components the instance has —
+funnel every spawn through one helper (we use `ProjectileSpawner`) so no field is forgotten.
+
+**Why push, not read:** centralizing in `Initialize` keeps each component reusable across kinds (and
+across entirely different type families later), and removes the circular `prefab ⇄ SO` reference that a
+`type` field on the prefab creates. Per-instance state still stays on the instance for its lifetime.
 
 ## Rule 4 — processor purity ≠ SO purity
 
@@ -100,27 +132,32 @@ refs — they resolve locally per peer and are never serialized; see [[fishnet-c
 A type's instance prefab can be **one** thin shell or **several** focused components — and giving different
 kinds different components is exactly how kinds differ in behaviour. Decompose when you want heterogeneous
 prefabs (a laser has no `Health`; a grenade adds a `Timer`) or component reuse across archetypes (pawns,
-destructibles, projectiles all want `Health`). The projectile breaks into thin components that each read
-**their slice of the type SO**:
+destructibles, projectiles all want `Health`). The projectile splits into **generic, type-agnostic**
+components, each configured by `ProjectileType.Initialize` (Rule 3) — none holds a `ProjectileType`:
 
-- **`NetworkedMotion`** — reads `type.Movement` (a strategy; see [[scriptableobject-commands]]). Motion is
-  **deterministic / closed-form** (`PositionAt(age)`), so it runs on every peer with nothing synced per
-  tick.
-- **`ServerCollision`** — server-only. Casts each tick, classifies the hit category, and raises **typed
-  C# events**: `OnEnemyHit` / `OnSurfaceHit` / `OnProjectileHit`. On a hit it iterates the matching
-  reaction list from the SO and runs each reaction (no separate "reactions" dispatcher component).
-- **`Health`** — reads `type.MaxHealth`; holds the per-instance health (`SyncVar`); subscribes to the
-  projectile-hit event.
+- **`NetworkedMotion`** — generic deterministic closed-form motion (`PositionAt(age)`); runs on every peer
+  with nothing synced per tick. It holds a `MotionConfig` *value*, assigned via `Configure(config, speed)`.
+- **`ServerCollision`** — server-only. Casts each tick, classifies the hit (owner-safe enemy/surface/
+  projectile via a pure processor), and runs the matching **injected** reaction list directly. Its radius +
+  reaction lists are pushed in via `Configure(...)`.
+- **`Health`** / **`Damage`** — data holders (`SyncVar<int> Hp` / `int Amount`), seeded via
+  `ConfigureMax` / `Amount`. Reactions read/write them.
 
-**Wire the gameplay/networked layer with typed C# events, NOT inspector UnityEvents.** Code wiring is
-compile-checked, refactor-safe, testable, and respects the server-authoritative boundary (the component
-raising the event gates on `IsServerInitialized`). UnityEvents have none of those guarantees and no notion
-of "server-only" or "don't re-run during reconcile." **Reserve inspector UnityEvents for the VIEW layer**
-— VFX/sound/animation subscribing to an `OnHit` — where none of those concerns apply and Unity's
-composition genuinely is better. (The repo's own predicted-movement layer, `MovementController`, wires
-behaviour with SO strategy objects in code, not UnityEvents — follow that precedent for logic.)
+**The networking sub-rule — push config so it reaches the right peers:** state that *every peer* needs to
+render deterministically (the motion config) is written into the **spawn payload** by `Initialize` on the
+server/predicting peer, so observers receive it with the spawn — the component never reads the SO per-peer.
+State that is *server-only* (collision radius + reaction lists) is simply injected; it needs no payload
+because only the server collides. This is why `NetworkedMotion` carries a `MotionConfig` it can serialize
+rather than a `ProjectileType` reference: a generic component + a paid-for-once payload beats every peer
+resolving a type.
 
-The split must respect the existing networking model: **motion runs on all peers; collision/damage runs
+**Wire gameplay in code, NOT inspector UnityEvents.** Direct calls / injected lists / typed C# delegates
+are compile-checked, refactor-safe, testable, and respect the server-authoritative boundary. **Reserve
+inspector UnityEvents for the pure VIEW layer** (VFX/sound/animation) where none of those concerns apply.
+Even cosmetics here went through code, not UnityEvents: impact VFX is a `SpawnVfx` `WorldEffect` in a
+reaction list, not an `OnHit` UnityEvent (see [[scriptableobject-commands]]).
+
+The split must respect the networking model: **motion runs on all peers; collision/damage runs
 server-only.** For a *predicted* (Rigidbody/`[Replicate]`) entity the constraints are harder — see
 [[fishnet-conventions]] and the data-seam section of [[scriptableobject-commands]].
 
@@ -130,8 +167,11 @@ server-only.** For a *predicted* (Rigidbody/`[Replicate]`) entity the constraint
    kinds, or wholly-bespoke behaviour? → just write the class/prefab.
 2. Per-kind, immutable at runtime? → config field on the SO. Per-instance, mutable? → on the instance
    prefab or in a `State` struct, never the SO.
-3. Needs visuals (sprite/sound)? → **directly on the SO**. Needs to exist in the world? → a **prefab field
-   on the SO**; instantiate it; `Initialize` its scripts from the config. No catalogs yet.
-4. Splitting the instance into components? → each reads its slice of the SO; wire gameplay with **typed C#
-   events**, view with UnityEvents; keep the server/everyone boundary the current code draws.
+3. Needs visuals (sprite/sound)? → **directly on the SO**. Needs to exist in the world? → a **`NetworkObject`
+   prefab field on the SO** (put the type in the shell so it can hold it); spawn via `type.Create()`, whose
+   `Initialize` **pushes** config into the instance's components. No catalogs, no provider.
+4. Splitting the instance into components? → make them **generic and type-agnostic** and have the type's
+   `Initialize` configure them (they never reference the type); wire gameplay in code, view via UnityEvents;
+   put all-peer deterministic state on the payload, server-only state injected; keep the server/everyone
+   boundary the current code draws.
 5. Pure processor involved? → it gets a **config struct**, not the SO. Don't strip the SO to get purity.
