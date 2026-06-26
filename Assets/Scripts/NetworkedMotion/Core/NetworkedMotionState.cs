@@ -16,16 +16,15 @@ namespace Arena.NetworkedMotion
     /// and every tick for homing) via <see cref="BeginSegment"/>. A mover that dies on contact never opens
     /// a second segment.
     ///
-    /// <see cref="Id"/>/<see cref="OwnerId"/> are identity fields (network object id + firing player) the
-    /// motion math itself ignores; they ride along here because the collision system reads them off the
-    /// states it gathers from an overlap query.
+    /// <see cref="Id"/> is an identity field (network object id) the motion math itself ignores; it rides
+    /// along here because the collision system reads it off the states it gathers from an overlap query to
+    /// dedupe hits. Ownership is NOT here — it lives on a separate NetPlayerOwnership component.
     ///
     /// A value type with no behaviour and no engine deps beyond <see cref="Vector3"/>.
     /// </summary>
     [System.Serializable]
     public struct NetworkedMotionState
     {
-        public int OwnerId;   // NetworkPlayer.ObjectId of the firer (identity; motion ignores it)
         public int Id;        // resolves a cast/overlap hit back to this mover (identity; motion ignores it)
 
         // ---- Current trajectory segment ----
@@ -41,12 +40,11 @@ namespace Arena.NetworkedMotion
         public readonly float SegmentElapsed => Age - OriginAge;
 
         /// <summary>A freshly-spawned mover at the origin pose.</summary>
-        public static NetworkedMotionState Spawn(int ownerId, int id, Vector3 pos, Vector3 forward, float speed)
+        public static NetworkedMotionState Spawn(int id, Vector3 pos, Vector3 forward, float speed)
         {
             Vector3 fwd = forward.sqrMagnitude > 0.0001f ? forward.normalized : Vector3.forward;
             return new NetworkedMotionState
             {
-                OwnerId = ownerId,
                 Id = id,
                 OriginPos = pos,
                 OriginForward = fwd,

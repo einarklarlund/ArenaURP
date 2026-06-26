@@ -28,10 +28,10 @@ namespace Arena.ServerCollision
         /// owner — owner safety + muzzle overlap). Otherwise fills <paramref name="info"/> with the
         /// Enemy/Surface classification and impact geometry.
         /// </summary>
-        public static bool TryClassifyWorldHit(in NetworkedMotionState self, Vector3 incomingVelocity, in WorldHit hit, out HitInfo info)
+        public static bool TryClassifyWorldHit(in NetworkedMotionState self, int selfOwnerId, Vector3 incomingVelocity, in WorldHit hit, out HitInfo info)
         {
             info = default;
-            bool hitOwner = hit.PlayerId >= 0 && hit.PlayerId == self.OwnerId;
+            bool hitOwner = hit.PlayerId >= 0 && hit.PlayerId == selfOwnerId;
             if (hitOwner)
                 return false;
 
@@ -59,14 +59,14 @@ namespace Arena.ServerCollision
         /// hasn't separated since the last shot). When it is the guarded id,
         /// <paramref name="stillGuarded"/> is set so the caller keeps suppressing until they separate.
         /// </summary>
-        public static bool TryClassifyProjectileHit(in NetworkedMotionState self, Vector3 selfPos, Vector3 incomingVelocity, in NetworkedMotionState other, int guard, out HitInfo info, out bool stillGuarded)
+        public static bool TryClassifyProjectileHit(in NetworkedMotionState self, int selfOwnerId, Vector3 selfPos, Vector3 incomingVelocity, in NetworkedMotionState other, int otherOwnerId, int guard, out HitInfo info, out bool stillGuarded)
         {
             info = default;
             stillGuarded = false;
 
             if (other.Id == self.Id)
                 return false;
-            if (other.OwnerId == self.OwnerId)
+            if (otherOwnerId == selfOwnerId)
                 return false; // only across different owners
             if (other.Id == guard)
             {
@@ -88,7 +88,7 @@ namespace Arena.ServerCollision
                 Direction = dir,
                 OtherPlayerId = -1,
                 OtherProjectileId = other.Id,
-                OtherOwnerId = other.OwnerId,
+                OtherOwnerId = otherOwnerId,
                 OtherForward = other.OriginForward,
                 OtherVelocity = other.OriginForward * other.OriginSpeed,
             };

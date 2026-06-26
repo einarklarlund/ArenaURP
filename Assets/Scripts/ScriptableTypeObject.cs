@@ -10,7 +10,7 @@ using UnityEngine;
 /// components stay decoupled from the type. (The networked Spawn is left to the caller so it can choose
 /// the predicting vs. authoritative path.)
 /// </summary>
-public abstract class TypeScriptableObject : ScriptableObject
+public abstract class ScriptableTypeObject : ScriptableObject
 {
     [Header("Instance")]
     [Tooltip("The networked prefab instantiated for this type.")]

@@ -28,11 +28,7 @@ public sealed class SpawnProjectiles : WorldEffect
         for (int i = 0; i < Count; i++)
         {
             Vector3 dir = SpawnFanMath.Direction(ctx.Direction, i, Count, SpreadDegrees, Vector3.up);
-            Quaternion rot = dir.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(dir) : Quaternion.identity;
-            var nob = Type.Create(manager, ctx.Point, rot, asServer: true);
-            if (nob.TryGetComponent<NetworkedMotion>(out var motion))
-                motion.SetupSpawn(ctx.InvokerPlayerId, tick, ctx.Point, dir);
-            manager.ServerManager.Spawn(nob);
+            ProjectileSpawner.Spawn(Type, manager, ctx.InvokerPlayerId, tick, ctx.Point, dir, asServer: true);
         }
     }
 }

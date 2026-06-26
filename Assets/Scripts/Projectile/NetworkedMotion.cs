@@ -31,7 +31,7 @@ public sealed class NetworkedMotion : NetworkBehaviour
     private readonly SyncVar<float> _segAge = new();
 
     // Spawn parameters carried via the (predicted-)spawn payload; set by the spawner before Spawn.
-    public int SpawnOwnerId;
+    // Ownership is NOT here — it lives on the sibling NetPlayerOwnership component.
     public PreciseTick SpawnTick;
     public Vector3 SpawnPosition;
     public Vector3 SpawnForward;
@@ -53,9 +53,8 @@ public sealed class NetworkedMotion : NetworkBehaviour
     /// before <c>ServerManager.Spawn</c> so no field — notably <see cref="SpawnTick"/>, the basis for
     /// deterministic age — is ever forgotten.
     /// </summary>
-    public void SetupSpawn(int ownerId, PreciseTick tick, Vector3 pos, Vector3 dir)
+    public void SetupSpawn(PreciseTick tick, Vector3 pos, Vector3 dir)
     {
-        SpawnOwnerId = ownerId;
         SpawnTick = tick;
         SpawnPosition = pos;
         SpawnForward = dir;
@@ -74,7 +73,6 @@ public sealed class NetworkedMotion : NetworkBehaviour
     public override void WritePayload(NetworkConnection connection, Writer writer)
     {
         base.WritePayload(connection, writer);
-        writer.WriteInt32(SpawnOwnerId);
         writer.WritePreciseTick(SpawnTick);
         writer.WriteVector3(SpawnPosition);
         writer.WriteVector3(SpawnForward);
@@ -83,7 +81,6 @@ public sealed class NetworkedMotion : NetworkBehaviour
     public override void ReadPayload(NetworkConnection connection, Reader reader)
     {
         base.ReadPayload(connection, reader);
-        SpawnOwnerId = reader.ReadInt32();
         SpawnTick = reader.ReadPreciseTick();
         SpawnPosition = reader.ReadVector3();
         SpawnForward = reader.ReadVector3();
@@ -96,7 +93,7 @@ public sealed class NetworkedMotion : NetworkBehaviour
 
         _config = _type != null ? _type.ToMotionConfig() : default;
         float speed = _type != null ? _type.Speed : 0f;
-        _state = MotionCoreState.Spawn(SpawnOwnerId, Id, SpawnPosition, SpawnForward, speed);
+        _state = MotionCoreState.Spawn(Id, SpawnPosition, SpawnForward, speed);
         _initialized = _type != null;
 
         _segPos.OnChange += OnSegPosChanged;
@@ -202,7 +199,6 @@ public sealed class NetworkedMotion : NetworkBehaviour
         base.ResetState(asServer);
         _state = default;
         _initialized = false;
-        SpawnOwnerId = 0;
         SpawnTick = default;
         SpawnPosition = Vector3.zero;
         SpawnForward = Vector3.zero;

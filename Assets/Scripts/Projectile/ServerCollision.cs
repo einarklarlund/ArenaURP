@@ -24,6 +24,7 @@ public sealed class ServerCollision : NetworkBehaviour
 
     private NetworkedMotion _motion;
     private Health _health;
+    private NetPlayerOwnership _ownership;
     private NetworkPlayerManager _players;
 
     // Projectile-channel one-shot-on-enter dedupe guard (was ProjectileState.LastHitProjectileId).
@@ -37,6 +38,7 @@ public sealed class ServerCollision : NetworkBehaviour
     {
         _motion = GetComponent<NetworkedMotion>();
         _health = GetComponent<Health>();
+        _ownership = GetComponent<NetPlayerOwnership>();
     }
 
     public override void OnStartServer()
@@ -78,7 +80,7 @@ public sealed class ServerCollision : NetworkBehaviour
         var state = _motion.State;
         MotionConfig config = _motion.Config;
         Vector3 vel = NetworkedMotionProcessor.VelocityAt(in state, in config);
-        int ownerId = state.OwnerId;
+        int ownerId = _ownership != null ? _ownership.SpawnOwnerId : -1;
         NetworkPlayer owner = ResolvePlayer(ownerId);
         OwnerReactions ownerReactions = GetOwnerReactions(owner);
 
@@ -91,7 +93,7 @@ public sealed class ServerCollision : NetworkBehaviour
         }
 
         if (CastWorld(from, to, type.Radius, out SC.WorldHit hit, out GameObject hitObject) &&
-            SC.ServerCollisionProcessor.TryClassifyWorldHit(in state, vel, in hit, out SC.HitInfo worldInfo))
+            SC.ServerCollisionProcessor.TryClassifyWorldHit(in state, ownerId, vel, in hit, out SC.HitInfo worldInfo))
         {
             var ctx = new EffectContext(gameObject, hitObject, worldInfo.Point, worldInfo.Normal, worldInfo.Direction, ownerId, owner);
             if (worldInfo.Category == SC.HitCategory.Enemy)
@@ -108,13 +110,13 @@ public sealed class ServerCollision : NetworkBehaviour
 
         // ---- projectile channel ----
         if (!IsDead() && WantsProjectileChannel(type, in ownerReactions))
-            ResolveProjectileChannel(newPos, vel, in state, owner, in ownerReactions);
+            ResolveProjectileChannel(newPos, vel, in state, ownerId, owner, in ownerReactions);
 
         if (IsDead())
             ServerDespawn();
     }
 
-    private void ResolveProjectileChannel(Vector3 selfPos, Vector3 vel, in NetworkedMotionState self, NetworkPlayer owner, in OwnerReactions ownerReactions)
+    private void ResolveProjectileChannel(Vector3 selfPos, Vector3 vel, in NetworkedMotionState self, int selfOwnerId, NetworkPlayer owner, in OwnerReactions ownerReactions)
     {
         ProjectileType type = _motion.Type;
         int n = OverlapProjectiles(selfPos, type.Radius, _overlaps, self.Id);
@@ -127,13 +129,14 @@ public sealed class ServerCollision : NetworkBehaviour
             if (other == null)
                 continue;
             var otherState = other.State;
-            if (!SC.ServerCollisionProcessor.TryClassifyProjectileHit(in self, selfPos, vel, in otherState, _guard, out SC.HitInfo info, out bool stillGuardedThis))
+            int otherOwnerId = other.TryGetComponent<NetPlayerOwnership>(out var otherOwnership) ? otherOwnership.SpawnOwnerId : -1;
+            if (!SC.ServerCollisionProcessor.TryClassifyProjectileHit(in self, selfOwnerId, selfPos, vel, in otherState, otherOwnerId, _guard, out SC.HitInfo info, out bool stillGuardedThis))
             {
                 stillGuarded |= stillGuardedThis;
                 continue;
             }
 
-            var ctx = new EffectContext(gameObject, other.gameObject, info.Point, info.Normal, info.Direction, self.OwnerId, owner);
+            var ctx = new EffectContext(gameObject, other.gameObject, info.Point, info.Normal, info.Direction, selfOwnerId, owner);
             RunReactions(type.OnProjectile, in ctx);
             RunReactions(ownerReactions.OnProjectile, in ctx);
 

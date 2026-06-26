@@ -81,18 +81,13 @@ public class PawnWeapon : NetworkBehaviour
             if (currentWeapon.Projectile == null)
                 continue;
 
-            // The projectile TYPE builds + initializes its own instance (it knows its composition); we
-            // only set the per-spawn payload and spawn it. Use THIS pawn's own NetworkManager (not
-            // InstanceFinder): on the owning client that is the client's manager, so the spawn takes
-            // FishNet's predicted-spawn path and the bullet appears locally on the SAME frame; on the
-            // server/host it spawns authoritatively.
-            NetworkObject nob = currentWeapon.Projectile.Create(
-                NetworkManager, spawnPos, Quaternion.LookRotation(fireDir), asServer: false);
-
+            // Shared spawn path. Use THIS pawn's own NetworkManager (not InstanceFinder): on the owning
+            // client that is the client's manager, so the spawn takes FishNet's predicted-spawn path and the
+            // bullet appears locally on the SAME frame; on the server/host it spawns authoritatively. Owner
+            // = this pawn's connection so the predicting client owns its bullet.
             int ownerId = pawn.ControllingPlayer.Value != null ? pawn.ControllingPlayer.Value.ObjectId : -1;
             PreciseTick tick = TimeManager.GetPreciseTick(TickType.Tick);
-            nob.GetComponent<NetworkedMotion>().SetupSpawn(ownerId, tick, spawnPos, fireDir);
-            ServerManager.Spawn(nob, Owner);
+            ProjectileSpawner.Spawn(currentWeapon.Projectile, NetworkManager, ownerId, tick, spawnPos, fireDir, asServer: false, Owner);
         }
     }
 }

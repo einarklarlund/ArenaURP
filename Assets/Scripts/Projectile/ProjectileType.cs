@@ -16,7 +16,7 @@ using UnityEngine;
 /// be dropped into the enemy slot. Each reaction owns a reusable list of <see cref="WorldEffect"/>s.
 /// </summary>
 [CreateAssetMenu(menuName = "Projectiles/Type", fileName = "ProjectileType")]
-public sealed class ProjectileType : TypeScriptableObject
+public sealed class ProjectileType : ScriptableTypeObject
 {
     [Header("Cosmetic")]
     [Tooltip("Optional non-networked impact VFX prefab spawned on a hit.")]

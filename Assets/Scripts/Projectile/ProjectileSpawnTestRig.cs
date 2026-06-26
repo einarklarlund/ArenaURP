@@ -14,16 +14,9 @@ public static class ProjectileSpawnTestRig
     /// <summary>Build + initialize + authoritatively spawn a child projectile via its type. Returns the ObjectId, or -1.</summary>
     public static int SpawnViaType(ProjectileType type, Vector3 pos, Vector3 dir, int ownerId)
     {
-        var manager = InstanceFinder.NetworkManager;
-        if (type == null || manager == null) return -1;
-
-        Quaternion rot = dir.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(dir) : Quaternion.identity;
-        var nob = type.Create(manager, pos, rot, asServer: true);
         PreciseTick tick = InstanceFinder.TimeManager.GetPreciseTick(TickType.Tick);
-        if (nob.TryGetComponent<NetworkedMotion>(out var motion))
-            motion.SetupSpawn(ownerId, tick, pos, dir);
-        manager.ServerManager.Spawn(nob);
-        return nob.ObjectId;
+        var nob = ProjectileSpawner.Spawn(type, InstanceFinder.NetworkManager, ownerId, tick, pos, dir, asServer: true);
+        return nob != null ? nob.ObjectId : -1;
     }
 
     public static GameObject FindSpawned(int objectId)
@@ -37,7 +30,7 @@ public static class ProjectileSpawnTestRig
     public static uint CurrentTick() => InstanceFinder.TimeManager.Tick;
 
     // ---- NetworkedMotion payload getters (typed; keeps reflection out of the tests) ----
-    public static int SpawnOwnerId(GameObject go) => go.GetComponent<NetworkedMotion>().SpawnOwnerId;
+    public static int SpawnOwnerId(GameObject go) => go.GetComponent<NetPlayerOwnership>().SpawnOwnerId;
     public static uint SpawnTickValue(GameObject go) => go.GetComponent<NetworkedMotion>().SpawnTick.Tick;
     public static Vector3 SpawnPosition(GameObject go) => go.GetComponent<NetworkedMotion>().SpawnPosition;
     public static Vector3 SpawnForward(GameObject go) => go.GetComponent<NetworkedMotion>().SpawnForward;
