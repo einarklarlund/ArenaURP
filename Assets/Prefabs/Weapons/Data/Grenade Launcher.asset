@@ -12,10 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceed61286e9c648aa81453c54392e198, type: 3}
   m_Name: Grenade Launcher
   m_EditorClassIdentifier: 
-  AmmoType: 4
   WeaponName: Grenade Launcher
   WeaponPrefab: {fileID: 0}
-  BulletPrefab: {fileID: -339553929967437806, guid: cc8838ea6d3f54bb785b2c13f2b03ab0, type: 3}
+  Projectile: {fileID: 11400000, guid: b8681b3f8a1f246b9855bc05b54f2bfb, type: 2}
   FireMode: 0
   FireRate: 0.4
   AmmoPerFire: 1

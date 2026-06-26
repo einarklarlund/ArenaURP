@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0794d882253f44f9a436cc0ea4032a4, type: 3}
   m_Name: Primary Bullet
   m_EditorClassIdentifier: Arena.Projectile.Core::Arena.Projectile.ProjectileType
+  instancePrefab: {fileID: -339553929967437806, guid: aa3d85febce664e4d819df64022d1735, type: 3}
   Radius: 0.15
   MaxHealth: 1
   Damage: 3
@@ -22,24 +23,7 @@ MonoBehaviour:
   Gravity: -9.81
   MaxRange: 100
   OnSurface:
-  - rid: 6758500579760930899
+  - {fileID: 11400000, guid: d75b57faa35694d17b203652b59e96b7, type: 2}
   OnEnemy:
-  - rid: 6758500579760930900
-  OnProjectile:
-  - rid: 6758500622026932293
-  references:
-    version: 2
-    RefIds:
-    - rid: 6758500579760930899
-      type: {class: LoseHealth, ns: Arena.Projectile, asm: Arena.Projectile.Core}
-      data:
-        Amount: 1
-    - rid: 6758500579760930900
-      type: {class: DealDamage, ns: Arena.Projectile, asm: Arena.Projectile.Core}
-      data:
-        Amount: 3
-        DespawnAfter: 1
-    - rid: 6758500622026932293
-      type: {class: LoseHealth, ns: Arena.Projectile, asm: Arena.Projectile.Core}
-      data:
-        Amount: 1
+  - {fileID: 11400000, guid: 1fd591dd3df804f22a2901ae89a3fb40, type: 2}
+  OnProjectile: []

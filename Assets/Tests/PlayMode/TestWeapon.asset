@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   WeaponName: TestWeapon
   WeaponPrefab: {fileID: 0}
-  BulletPrefab: {fileID: -339553929967437806, guid: aa3d85febce664e4d819df64022d1735, type: 3}
+  Projectile: {fileID: 11400000, guid: 39387121012ec49e8b787ad217870377, type: 2}
   FireMode: 1
   FireRate: 0.1
   AmmoPerFire: 1

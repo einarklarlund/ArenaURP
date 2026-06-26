@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceed61286e9c648aa81453c54392e198, type: 3}
   m_Name: Triple Machine Gun
   m_EditorClassIdentifier: 
-  AmmoType: 0
   WeaponName: Triple Machine Gun
   WeaponPrefab: {fileID: 0}
-  BulletPrefab: {fileID: -339553929967437806, guid: 164b8b9452ca940c2a473af8f100df1d, type: 3}
+  Projectile: {fileID: 11400000, guid: 39387121012ec49e8b787ad217870377, type: 2}
   FireMode: 1
   FireRate: 0.13
   AmmoPerFire: 3
+  SpawnPositionOffset: {x: 0, y: 0, z: 0}
   ShotsPerFire: 1
   FireDuration: 0
   ProjectilesPerShot: 3

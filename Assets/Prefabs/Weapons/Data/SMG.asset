@@ -14,10 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   WeaponName: SMG
   WeaponPrefab: {fileID: 0}
-  BulletPrefab: {fileID: -339553929967437806, guid: 164b8b9452ca940c2a473af8f100df1d, type: 3}
+  Projectile: {fileID: 11400000, guid: 39387121012ec49e8b787ad217870377, type: 2}
   FireMode: 1
   FireRate: 0.1
   AmmoPerFire: 1
+  SpawnPositionOffset: {x: 0, y: 0, z: 0}
   ShotsPerFire: 1
   FireDuration: 0
   ProjectilesPerShot: 1

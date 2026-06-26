@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceed61286e9c648aa81453c54392e198, type: 3}
   m_Name: Gatling Slugger
   m_EditorClassIdentifier: 
-  AmmoType: 1
   WeaponName: Gatling Slugger
   WeaponPrefab: {fileID: 0}
-  BulletPrefab: {fileID: -339553929967437806, guid: f19d2df6c831c4345a5bb706449c89cb, type: 3}
+  Projectile: {fileID: 11400000, guid: 18ad228b80aba4577994d56d98075ed1, type: 2}
   FireMode: 1
   FireRate: 0.23
   AmmoPerFire: 1
+  SpawnPositionOffset: {x: 0, y: 0, z: 0}
   ShotsPerFire: 1
   FireDuration: 0
   ProjectilesPerShot: 1

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   WeaponName: Devil Daggers Thing
   WeaponPrefab: {fileID: 0}
-  BulletPrefab: {fileID: 1210474361264852817, guid: 7b2ceffd59875469bad13d7538a01f1d, type: 3}
+  Projectile: {fileID: 11400000, guid: 1a5e722edb1e34ad19d6f0d014657e16, type: 2}
   FireMode: 1
   FireRate: 0.05
   AmmoPerFire: 0

@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceed61286e9c648aa81453c54392e198, type: 3}
   m_Name: Shotgun
   m_EditorClassIdentifier: 
-  AmmoType: 1
   WeaponName: Shotgun
   WeaponPrefab: {fileID: 0}
-  BulletPrefab: {fileID: -339553929967437806, guid: 1995925cf0239489f94d81a3ae198b80, type: 3}
+  Projectile: {fileID: 11400000, guid: 18ad228b80aba4577994d56d98075ed1, type: 2}
   FireMode: 0
   FireRate: 0.57
   AmmoPerFire: 1
+  SpawnPositionOffset: {x: 0, y: 0, z: 0}
   ShotsPerFire: 1
   FireDuration: 0
   ProjectilesPerShot: 7

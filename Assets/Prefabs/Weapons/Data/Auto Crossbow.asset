@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceed61286e9c648aa81453c54392e198, type: 3}
   m_Name: Auto Crossbow
   m_EditorClassIdentifier: 
-  AmmoType: 3
   WeaponName: Auto Crossbow
   WeaponPrefab: {fileID: 0}
-  BulletPrefab: {fileID: -339553929967437806, guid: 440cd3bd3ec014bab95436303bbdd5e5, type: 3}
+  Projectile: {fileID: 11400000, guid: b34ccf9d369584372a4e2ce12e028ced, type: 2}
   FireMode: 1
   FireRate: 0.27
   AmmoPerFire: 1
+  SpawnPositionOffset: {x: 0, y: 0, z: 0}
   ShotsPerFire: 1
   FireDuration: 0
   ProjectilesPerShot: 1

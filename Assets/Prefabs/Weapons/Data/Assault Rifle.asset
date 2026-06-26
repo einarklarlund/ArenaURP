@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceed61286e9c648aa81453c54392e198, type: 3}
   m_Name: Assault Rifle
   m_EditorClassIdentifier: 
-  AmmoType: 0
   WeaponName: Assault Rifle
   WeaponPrefab: {fileID: 0}
-  BulletPrefab: {fileID: -339553929967437806, guid: 164b8b9452ca940c2a473af8f100df1d, type: 3}
+  Projectile: {fileID: 11400000, guid: 39387121012ec49e8b787ad217870377, type: 2}
   FireMode: 0
   FireRate: 0.37
   AmmoPerFire: 3
+  SpawnPositionOffset: {x: 0, y: 0, z: 0}
   ShotsPerFire: 3
   FireDuration: 0.15
   ProjectilesPerShot: 1

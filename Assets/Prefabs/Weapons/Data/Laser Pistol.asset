@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceed61286e9c648aa81453c54392e198, type: 3}
   m_Name: Laser Pistol
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
-  AmmoType: 2
   WeaponName: Laser Pistol
   WeaponPrefab: {fileID: 0}
-  BulletPrefab: {fileID: 4168753386286655588, guid: 796b68a5a523a49ab908234aaa7a2418, type: 3}
+  Projectile: {fileID: 11400000, guid: 39387121012ec49e8b787ad217870377, type: 2}
   FireMode: 1
   FireRate: 0.3
   AmmoPerFire: 1
+  SpawnPositionOffset: {x: 0, y: 0, z: 0}
   ShotsPerFire: 1
   FireDuration: 0
   ProjectilesPerShot: 1

@@ -101,8 +101,12 @@ GameObject:
   m_Component:
   - component: {fileID: 6093631502664271822}
   - component: {fileID: -339553929967437806}
-  - component: {fileID: 6051164866743932164}
   - component: {fileID: 3292912973371145455}
+  - component: {fileID: 8129194484692066359}
+  - component: {fileID: 2544852967916977680}
+  - component: {fileID: 8355681140643816171}
+  - component: {fileID: 1074204460051681840}
+  - component: {fileID: 5777096885218030}
   m_Layer: 9
   m_Name: Bullet Root
   m_TagString: Untagged
@@ -145,7 +149,7 @@ MonoBehaviour:
   <PredictedSpawn>k__BackingField: {fileID: 0}
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
-  - {fileID: 6051164866743932164}
+  - {fileID: 0}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -184,26 +188,6 @@ MonoBehaviour:
     Rotation: {x: 0, y: 0, z: 0, w: 1}
     Scale: {x: 0.3, y: 0.3, z: 0.3}
     IsValid: 1
---- !u!114 &6051164866743932164
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5204570706634878648}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62d835e2d8e6d4493b2fab9481fb7143, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnProjectile
-  _componentIndexCache: 0
-  _addedNetworkObject: {fileID: -339553929967437806}
-  _networkObjectCache: {fileID: -339553929967437806}
-  _type: {fileID: 11400000, guid: 34c1cca6fdf4841b2aa97487481889b8, type: 2}
-  SpawnOwnerId: 0
-  SpawnPosition: {x: 0, y: 0, z: 0}
-  SpawnForward: {x: 0, y: 0, z: 0}
-  SpawnHealth: 0
 --- !u!114 &3292912973371145455
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -221,6 +205,96 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 0}
   _allowSpawning: 1
   _allowDespawning: 1
+--- !u!114 &8129194484692066359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5204570706634878648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a15016acb46b04ce78d92aee876e76f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkedMotion
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: -339553929967437806}
+  _networkObjectCache: {fileID: 0}
+  SpawnPosition: {x: 0, y: 0, z: 0}
+  SpawnForward: {x: 0, y: 0, z: 0}
+--- !u!114 &2544852967916977680
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5204570706634878648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 153b53d0d88f248348baed18f5286adc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ServerCollision
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: -339553929967437806}
+  _networkObjectCache: {fileID: 0}
+  worldMask:
+    serializedVersion: 2
+    m_Bits: 129
+  projectileMask:
+    serializedVersion: 2
+    m_Bits: 0
+--- !u!114 &8355681140643816171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5204570706634878648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30372fcaa1ab24f9ea323deaf95fa649, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Health
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: -339553929967437806}
+  _networkObjectCache: {fileID: 0}
+  maxHealth: 1
+  despawnOnDeath: 0
+  onServerDamage:
+    m_PersistentCalls:
+      m_Calls: []
+  onServerDeath:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1074204460051681840
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5204570706634878648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44ce9f2fa1c6a4bc9932aaced0df8536, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Damage
+  _amount: 1
+--- !u!114 &5777096885218030
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5204570706634878648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5f1165d8564240cc8c8cb91bf122049, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetPlayerOwnership
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: -339553929967437806}
+  _networkObjectCache: {fileID: 0}
+  SpawnOwnerId: -1
 --- !u!1 &7664607775731829085
 GameObject:
   m_ObjectHideFlags: 0
