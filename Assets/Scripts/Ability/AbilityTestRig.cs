@@ -41,9 +41,13 @@ public static class AbilityTestRig
     {
         var ability = ScriptableObject.CreateInstance<PassiveAbilityType>();
         ability.DisplayName = "Test Projectile Passive";
-        ability.ProjectileOnEnemy = new System.Collections.Generic.List<Arena.Projectile.IHitReaction>
+        var bonus = ScriptableObject.CreateInstance<DealDamage>();
+        bonus.UseInvokerDamage = false; // a fixed bonus, not the projectile's own damage
+        bonus.Amount = bonusDamage;
+        bonus.DespawnAfter = false;
+        ability.ProjectileOnEnemy = new System.Collections.Generic.List<EnemyHitReaction>
         {
-            new Arena.Projectile.DealDamage { Amount = bonusDamage, DespawnAfter = false },
+            HitReaction.CreateRuntime<EnemyHitReaction>(bonus),
         };
         pawn.GetComponent<PawnAbilities>().AddPassive(ability);
     }

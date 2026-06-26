@@ -1,20 +1,19 @@
 using System.Collections.Generic;
-using Arena.Projectile;
+using Arena.ServerCollision;
 using FishNet;
 using FishNet.Managing.Timing;
 using FishNet.Object;
 using UnityEngine;
-using CoreState = Arena.Projectile.ProjectileState;
 
 /// <summary>
-/// Scene-level concrete "world service" for projectiles. This is NOT an abstraction the pure core
-/// depends on — the core (Arena.Projectile) is pure functions and never calls this. Only the
-/// imperative shell (<see cref="PawnProjectile"/>) uses it, for the I/O the core hands back as data:
-/// physics casts/overlaps, nearest-enemy lookup, damage/debuff/spawn/VFX, and the live-projectile
-/// registry that resolves overlap colliders to <see cref="CoreState"/>.
+/// Scene-level concrete "world service" for projectiles: the single surface through which the
+/// server-only collision driver (<see cref="ServerCollision"/>) does its I/O — physics casts/overlaps,
+/// spawning networked child projectiles, owner lookup, cosmetic VFX, and the live-projectile registry that
+/// resolves an overlap collider back to its <see cref="NetworkedMotion"/>.
 ///
-/// Concrete by design (see the functional-core-imperative-shell skill): one real implementation, no
-/// interface. Integration tests can subclass it as a spy. Soft singleton (scene-scoped, resettable).
+/// Unity-coupled <see cref="WorldEffect"/> commands also reach the world through this (Spawn/SpawnVfx/owner
+/// resolution) so it stays the one place projectile-world mutation happens. Concrete by design (one real
+/// implementation, no interface); soft singleton (scene-scoped, resettable). Integration tests subclass it.
 /// </summary>
 public sealed class ProjectileWorldProvider : MonoBehaviour
 {
@@ -38,7 +37,7 @@ public sealed class ProjectileWorldProvider : MonoBehaviour
 
     public static ProjectileWorldProvider Instance { get; private set; }
 
-    private readonly Dictionary<int, PawnProjectile> _registry = new();
+    private readonly Dictionary<int, NetworkedMotion> _registry = new();
     private readonly Collider[] _cols = new Collider[32];
 
     private void OnEnable() => Instance = this;
@@ -49,15 +48,21 @@ public sealed class ProjectileWorldProvider : MonoBehaviour
         : (playerManager = FindAnyObjectByType<NetworkPlayerManager>());
 
     // ---- registry ----
-    public void Register(int id, PawnProjectile p) => _registry[id] = p;
+    public void Register(int id, NetworkedMotion m) => _registry[id] = m;
     public void Unregister(int id) => _registry.Remove(id);
-    public bool TryGet(int id, out PawnProjectile p) => _registry.TryGetValue(id, out p);
+    public bool TryGet(int id, out NetworkedMotion m) => _registry.TryGetValue(id, out m);
 
     // ---- queries ----
 
-    public bool CastWorld(Vector3 from, Vector3 to, float radius, out WorldHit hit)
+    /// <summary>
+    /// Sweep from-&gt;to against the world broadphase. On a hit, fills <paramref name="hit"/> (engine-free
+    /// data the pure classifier consumes) AND outs the actual <paramref name="hitObject"/> so the shell can
+    /// hand it to effects as the target GameObject.
+    /// </summary>
+    public bool CastWorld(Vector3 from, Vector3 to, float radius, out WorldHit hit, out GameObject hitObject)
     {
         hit = default;
+        hitObject = null;
         Vector3 delta = to - from;
         float dist = delta.magnitude;
         if (dist < 0.0001f)
@@ -66,77 +71,29 @@ public sealed class ProjectileWorldProvider : MonoBehaviour
         if (!Physics.SphereCast(from, radius, delta / dist, out RaycastHit rh, dist, worldMask, QueryTriggerInteraction.Ignore))
             return false;
 
+        hitObject = rh.collider.gameObject;
         var pawn = rh.collider.GetComponentInParent<Pawn>();
         int playerId = pawn != null && pawn.ControllingPlayer.Value != null ? pawn.ControllingPlayer.Value.ObjectId : -1;
         hit = new WorldHit { Point = rh.point, Normal = rh.normal, Distance = rh.distance, PlayerId = playerId };
         return true;
     }
 
-    /// <summary>Overlap the projectile broadphase; write each found projectile's state (excluding excludeId) into buffer; return count.</summary>
-    public int OverlapProjectileStates(Vector3 center, float radius, CoreState[] buffer, int excludeId)
+    /// <summary>Overlap the projectile broadphase; write each found projectile's NetworkedMotion (excluding excludeId) into buffer; return count.</summary>
+    public int OverlapProjectiles(Vector3 center, float radius, NetworkedMotion[] buffer, int excludeId)
     {
         int found = Physics.OverlapSphereNonAlloc(center, radius, _cols, projectileMask, QueryTriggerInteraction.Collide);
         int written = 0;
         for (int i = 0; i < found && written < buffer.Length; i++)
         {
-            var p = _cols[i].GetComponentInParent<PawnProjectile>();
-            if (p == null || p.Id == excludeId)
+            var m = _cols[i].GetComponentInParent<NetworkedMotion>();
+            if (m == null || m.Id == excludeId)
                 continue;
-            buffer[written++] = p.State;
+            buffer[written++] = m;
         }
         return written;
     }
 
-    // ---- effect execution (the shared imperative shell) ----
-
-    /// <summary>
-    /// Perform one <see cref="WorldEffect"/> in an authoritative (server) context. This is the single
-    /// place effect kinds are turned into world mutations, reused by BOTH the projectile shell
-    /// (<see cref="PawnProjectile"/>) and the ability system (PawnAbilities) — so a new effect kind is
-    /// added in exactly one switch. Vfx falls back to a local (non-networked) spawn here; emitters that
-    /// need it broadcast to observers do so via their own ObserversRpc instead of routing it here.
-    /// </summary>
-    public void Execute(in WorldEffect e)
-    {
-        switch (e.Kind)
-        {
-            case EffectKind.Damage:
-                ApplyDamage(e.TargetPlayerId, e.Amount, e.AttackerPlayerId, e.Point, e.Dir);
-                break;
-            case EffectKind.Spawn:
-                for (int n = 0; n < e.Count; n++)
-                    Spawn(e.Type, e.Point, e.Dir, e.AttackerPlayerId);
-                break;
-            case EffectKind.Debuff:
-                ApplyDebuff(e.TargetPlayerId, e.Debuff);
-                break;
-            case EffectKind.Vfx:
-                SpawnVfx(e.Type, e.Point, e.Normal);
-                break;
-        }
-    }
-
-    // ---- authoritative effects (server) ----
-
-    public void ApplyDamage(int targetPlayerId, int amount, int attackerPlayerId, Vector3 point, Vector3 dir)
-    {
-        var target = ResolvePlayer(targetPlayerId);
-        if (target?.ControlledPawn.Value is not IDamageable damageable)
-            return;
-        damageable.TakeDamage(new DamageInfo
-        {
-            Amount = amount,
-            Attacker = ResolvePlayer(attackerPlayerId),
-            HitPoint = point,
-            Direction = dir,
-            Type = DamageType.Bullet,
-        });
-    }
-
-    public void ApplyDebuff(int targetPlayerId, DebuffType debuff)
-    {
-        // TODO: no debuff system exists yet. Intentionally a no-op until one is introduced.
-    }
+    // ---- authoritative spawn (server) ----
 
     public int Spawn(ProjectileType type, Vector3 pos, Vector3 dir, int ownerId)
     {
@@ -146,15 +103,22 @@ public sealed class ProjectileWorldProvider : MonoBehaviour
 
         Quaternion rot = dir.sqrMagnitude > 0.0001f ? Quaternion.LookRotation(dir) : Quaternion.identity;
         NetworkObject nob = InstanceFinder.NetworkManager.GetPooledInstantiated(entry.Prefab, pos, rot, true);
-        if (nob.TryGetComponent(out PawnProjectile pp))
+        if (nob.TryGetComponent(out NetworkedMotion motion))
         {
             // Funnel through SetupSpawn so the child gets the FULL payload — including SpawnTick, the
-            // basis for its deterministic age. Hand-setting fields here previously omitted SpawnTick.
+            // basis for its deterministic age.
             PreciseTick tick = InstanceFinder.TimeManager.GetPreciseTick(TickType.Tick);
-            pp.SetupSpawn(ownerId, tick, pos, dir, health: 0); // 0 -> ProjectileType.MaxHealth
+            motion.SetupSpawn(ownerId, tick, pos, dir);
         }
         InstanceFinder.ServerManager.Spawn(nob);
         return nob.ObjectId;
+    }
+
+    // ---- debuff (placeholder until a debuff system exists) ----
+
+    public void ApplyDebuff(GameObject target, DebuffType debuff)
+    {
+        // TODO: no debuff system exists yet. Intentionally a no-op until one is introduced.
     }
 
     // ---- cosmetic effects (server or owning client) ----
@@ -168,12 +132,12 @@ public sealed class ProjectileWorldProvider : MonoBehaviour
         Instantiate(entry.ImpactVfx, pos, rot); // non-networked, cosmetic
     }
 
+    // ---- owner lookup ----
+
     /// <summary>
     /// Resolve the projectile's OWNER on the server and return the bundle of extra reactions they
-    /// contribute (passives that buff the player's projectiles). The owner is resolved from the id already
-    /// carried in the spawn payload — the reactions are never sent over the network, only read here on the
-    /// authoritative server. The shell hands the bundle to the processor, which selects the category;
-    /// returns default (all null) if the owner has no effect source.
+    /// contribute (passives that buff the player's projectiles). The owner is resolved from the id carried
+    /// in the spawn payload — the reactions are never sent over the network, only read here on the server.
     /// </summary>
     public OwnerReactions GetOwnerReactions(int ownerId)
     {
@@ -184,17 +148,8 @@ public sealed class ProjectileWorldProvider : MonoBehaviour
         return default;
     }
 
-    // ---- helpers ----
-
-    private TypePrefab GetEntry(ProjectileType type)
-    {
-        for (int i = 0; i < catalog.Count; i++)
-            if (catalog[i].Type == type)
-                return catalog[i];
-        return null;
-    }
-
-    private NetworkPlayer ResolvePlayer(int objectId)
+    /// <summary>Resolve a NetworkPlayer by ObjectId (used for damage attribution by effects).</summary>
+    public NetworkPlayer ResolvePlayer(int objectId)
     {
         var players = Players;
         if (players == null || objectId < 0)
@@ -202,6 +157,16 @@ public sealed class ProjectileWorldProvider : MonoBehaviour
         foreach (var player in players.ActivePlayers)
             if (player != null && player.ObjectId == objectId)
                 return player;
+        return null;
+    }
+
+    // ---- helpers ----
+
+    private TypePrefab GetEntry(ProjectileType type)
+    {
+        for (int i = 0; i < catalog.Count; i++)
+            if (catalog[i].Type == type)
+                return catalog[i];
         return null;
     }
 }

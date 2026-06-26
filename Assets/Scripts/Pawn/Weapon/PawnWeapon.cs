@@ -90,11 +90,11 @@ public class PawnWeapon : NetworkBehaviour
                 false
             );
 
-            if (nob.TryGetComponent<PawnProjectile>(out var projectile))
+            if (nob.TryGetComponent<NetworkedMotion>(out var projectile))
             {
                 int ownerId = pawn.ControllingPlayer.Value != null ? pawn.ControllingPlayer.Value.ObjectId : -1;
                 PreciseTick tick = TimeManager.GetPreciseTick(TickType.Tick);
-                projectile.SetupSpawn(ownerId, tick, spawnPos, fireDir, health: 0);
+                projectile.SetupSpawn(ownerId, tick, spawnPos, fireDir);
                 ServerManager.Spawn(nob, Owner); // own manager: predicted on the owning client, authoritative on the server
                 continue;
             }

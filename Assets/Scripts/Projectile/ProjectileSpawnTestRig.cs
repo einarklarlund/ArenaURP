@@ -1,14 +1,13 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using System.Reflection;
-using Arena.Projectile;
 using FishNet;
 using FishNet.Object;
 using UnityEngine;
 
 /// <summary>
 /// Editor/test-only helper for the projectile-spawn PlayMode tests. Lives in Assembly-CSharp so it can
-/// touch <see cref="ProjectileWorldProvider"/> / <see cref="PawnProjectile"/> directly ??? the
+/// touch <see cref="ProjectileWorldProvider"/> / <see cref="NetworkedMotion"/> directly ??? the
 /// Arena.PlayTests asmdef cannot reference Assembly-CSharp, so the tests call these by reflection (one
 /// contained seam, per the integration-testing skill). Gated by UNITY_EDITOR so it never ships.
 /// </summary>
@@ -41,11 +40,11 @@ public static class ProjectileSpawnTestRig
 
     public static uint CurrentTick() => InstanceFinder.TimeManager.Tick;
 
-    // ---- PawnProjectile payload getters (typed; keeps reflection out of the tests) ----
-    public static int SpawnOwnerId(GameObject go) => go.GetComponent<PawnProjectile>().SpawnOwnerId;
-    public static uint SpawnTickValue(GameObject go) => go.GetComponent<PawnProjectile>().SpawnTick.Tick;
-    public static Vector3 SpawnPosition(GameObject go) => go.GetComponent<PawnProjectile>().SpawnPosition;
-    public static Vector3 SpawnForward(GameObject go) => go.GetComponent<PawnProjectile>().SpawnForward;
+    // ---- NetworkedMotion payload getters (typed; keeps reflection out of the tests) ----
+    public static int SpawnOwnerId(GameObject go) => go.GetComponent<NetworkedMotion>().SpawnOwnerId;
+    public static uint SpawnTickValue(GameObject go) => go.GetComponent<NetworkedMotion>().SpawnTick.Tick;
+    public static Vector3 SpawnPosition(GameObject go) => go.GetComponent<NetworkedMotion>().SpawnPosition;
+    public static Vector3 SpawnForward(GameObject go) => go.GetComponent<NetworkedMotion>().SpawnForward;
 
     // ---- weapon-case helpers ----
 
@@ -64,12 +63,12 @@ public static class ProjectileSpawnTestRig
 
     public static int PlayerObjectId(GameObject player) => player.GetComponent<NetworkPlayer>().ObjectId;
 
-    /// <summary>The spawned object carrying a PawnProjectile (the bullet), or null. The shooter has Pawn, not PawnProjectile.</summary>
+    /// <summary>The spawned object carrying a NetworkedMotion (the bullet), or null. The shooter has Pawn, not NetworkedMotion.</summary>
     public static GameObject FindSpawnedProjectile()
     {
         if (InstanceFinder.ServerManager == null) return null;
         foreach (var nob in InstanceFinder.ServerManager.Objects.Spawned.Values)
-            if (nob != null && nob.GetComponent<PawnProjectile>() != null)
+            if (nob != null && nob.GetComponent<NetworkedMotion>() != null)
                 return nob.gameObject;
         return null;
     }
@@ -79,15 +78,10 @@ public static class ProjectileSpawnTestRig
         int n = 0;
         if (InstanceFinder.ServerManager == null) return 0;
         foreach (var nob in InstanceFinder.ServerManager.Objects.Spawned.Values)
-            if (nob != null && nob.GetComponent<PawnProjectile>() != null)
+            if (nob != null && nob.GetComponent<NetworkedMotion>() != null)
                 n++;
         return n;
     }
-
-    // ---- WorldEffect execution (the shared provider path used by projectiles AND abilities) ----
-
-    /// <summary>Run one WorldEffect through the production executor (the only place effect kinds act).</summary>
-    public static void Execute(ProjectileWorldProvider provider, WorldEffect e) => provider.Execute(in e);
 
     /// <summary>Like ConfigureCatalog, but also wires a cosmetic impact-VFX prefab for the type.</summary>
     public static void ConfigureCatalogVfx(ProjectileWorldProvider provider, ProjectileType type, NetworkObject prefab, GameObject vfx)

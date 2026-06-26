@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Arena.Ability;
-using Arena.Projectile;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using UnityEngine;
@@ -20,10 +19,10 @@ public struct ActiveSlot
 /// with F.
 ///
 /// Thin shell over pure helpers (functional-core / imperative-shell): the branchy inventory math lives
-/// in <see cref="AbilityInventoryLogic"/> (EditMode-tested) and ability effects are pure
-/// <see cref="IAbilityEffect"/>s that emit shared <see cref="WorldEffect"/>s executed by the same
-/// <see cref="ProjectileWorldProvider.Execute"/> projectiles use. Network identity (which abilities)
-/// rides as <see cref="AbilityDatabase"/> indices via <see cref="AbilityTypeSerializer"/>.
+/// in <see cref="AbilityInventoryLogic"/> (EditMode-tested) and ability effects are the shared
+/// <see cref="WorldEffect"/> commands — the SAME assets projectile hit reactions run — invoked here with
+/// an <see cref="EffectContext"/> built from the caster's aim. Network identity (which abilities) rides as
+/// <see cref="AbilityDatabase"/> indices via <see cref="AbilityTypeSerializer"/>.
 /// </summary>
 public sealed class PawnAbilities : NetworkBehaviour, IProjectileEffectProvider
 {
@@ -45,13 +44,11 @@ public sealed class PawnAbilities : NetworkBehaviour, IProjectileEffectProvider
     // ---- local (per-peer) state ----
     private readonly List<MovementModifier> _appliedMove = new();
     private readonly List<WeaponModifier> _appliedWeapon = new();
-    private readonly List<WorldEffect> _effects = new(16);
-
     // Owner-contributed projectile reactions, aggregated from equipped passives. Read server-side by the
-    // projectile shell via IProjectileEffectProvider — never sent on a projectile's spawn payload.
-    private readonly List<IHitReaction> _projOnEnemy = new();
-    private readonly List<IHitReaction> _projOnSurface = new();
-    private readonly List<IHitReaction> _projOnProjectile = new();
+    // projectile's ServerCollision via IProjectileEffectProvider — never sent on a spawn payload.
+    private readonly List<HitReaction> _projOnEnemy = new();
+    private readonly List<HitReaction> _projOnSurface = new();
+    private readonly List<HitReaction> _projOnProjectile = new();
 
     private bool _prevCycleLeft, _prevCycleRight, _prevUse;
     private float _cooldownEndTime; // server-side gate
@@ -130,21 +127,13 @@ public sealed class PawnAbilities : NetworkBehaviour, IProjectileEffectProvider
         ActiveSlot slot = Actives[i];
         if (slot.Type is not ActiveAbilityType active) return;
 
-        // Collect the ability's effects (pure) then execute them through the shared world executor.
-        AbilityContext ctx = BuildContext();
-        _effects.Clear();
+        // Run the ability's WorldEffect commands directly against the caster's context — the SAME effect
+        // assets a projectile hit reaction runs, just invoked from an ability instead of a collision.
+        EffectContext ctx = BuildContext();
         var effects = active.Effects;
         if (effects != null)
             for (int e = 0; e < effects.Count; e++)
-                effects[e]?.Collect(in ctx, _effects);
-
-        var world = ProjectileWorldProvider.Instance;
-        if (world != null)
-            for (int e = 0; e < _effects.Count; e++)
-            {
-                WorldEffect effect = _effects[e];
-                world.Execute(in effect);
-            }
+                effects[e]?.Apply(in ctx);
 
         _cooldownEndTime = Time.time + Mathf.Max(0f, active.Cooldown);
 
@@ -162,19 +151,20 @@ public sealed class PawnAbilities : NetworkBehaviour, IProjectileEffectProvider
         }
     }
 
-    private AbilityContext BuildContext()
+    private EffectContext BuildContext()
     {
         Transform src = aimSource != null ? aimSource : transform;
         int casterId = pawn != null && pawn.ControllingPlayer.Value != null
             ? pawn.ControllingPlayer.Value.ObjectId
             : -1;
-        return new AbilityContext
-        {
-            CasterPlayerId = casterId,
-            Origin = src.position,
-            AimDirection = src.forward,
-            AimPoint = src.position + src.forward,
-        };
+        // Invoker = the caster's pawn; an ability has no single collision Target; Point/Direction = aim.
+        return new EffectContext(
+            invoker: pawn != null ? pawn.gameObject : gameObject,
+            target: null,
+            point: src.position,
+            normal: Vector3.zero,
+            direction: src.forward,
+            invokerPlayerId: casterId);
     }
 
     // ---- passive modifiers: rebuilt on every peer whenever the synced list changes ----

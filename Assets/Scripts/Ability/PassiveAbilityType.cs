@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Arena.Projectile;
 using UnityEngine;
 
 /// <summary>
@@ -19,10 +18,10 @@ public sealed class PassiveAbilityType : AbilityType
     public float SpreadMultiplier = 1f;
 
     [Header("Extra reactions added to the owner's projectiles")]
-    [Tooltip("Hit reactions this passive adds to the projectiles the player fires (looked up server-side, never payloaded). e.g. bonus DealDamage on enemy hit.")]
-    [SerializeReference] public List<IHitReaction> ProjectileOnEnemy = new();
-    [SerializeReference] public List<IHitReaction> ProjectileOnSurface = new();
-    [SerializeReference] public List<IHitReaction> ProjectileOnProjectile = new();
+    [Tooltip("Hit reaction assets this passive adds to the projectiles the player fires (looked up server-side, never payloaded). e.g. a bonus-damage EnemyHitReaction.")]
+    public List<EnemyHitReaction> ProjectileOnEnemy = new();
+    public List<SurfaceHitReaction> ProjectileOnSurface = new();
+    public List<ProjectileHitReaction> ProjectileOnProjectile = new();
 
     /// <summary>Build the movement modifier this passive contributes while equipped.</summary>
     public MovementModifier ToMovementModifier() => new()
