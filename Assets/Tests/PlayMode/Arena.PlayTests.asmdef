@@ -3,8 +3,7 @@
   "rootNamespace": "Arena.PlayTests",
   "references": [
     "UnityEngine.TestRunner",
-    "FishNet.Runtime",
-    "Arena.Projectile.Core"
+    "FishNet.Runtime"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
@@ -15,7 +14,8 @@
   ],
   "autoReferenced": false,
   "defineConstraints": [
-    "UNITY_INCLUDE_TESTS"
+    "UNITY_INCLUDE_TESTS",
+    "ARENA_PLAYMODE_TESTS_WIP"
   ],
   "versionDefines": [],
   "noEngineReferences": false
