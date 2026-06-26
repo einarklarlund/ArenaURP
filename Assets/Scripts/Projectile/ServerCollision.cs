@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Arena.NetworkedMotion;
 using FishNet.Object;
 using UnityEngine;
@@ -8,13 +9,15 @@ using SC = Arena.ServerCollision;
 /// <see cref="NetworkedMotion"/>'s age, casts the world broadphase and overlaps the projectile broadphase
 /// itself (the physics that used to live in ProjectileWorldProvider), classifies each hit with the pure
 /// <see cref="SC.ServerCollisionProcessor"/>, and runs the matching authored <see cref="HitReaction"/>
-/// list — the projectile type's, then the owner's (passive abilities, looked up server-side). The
-/// reactions run their Unity-coupled <see cref="WorldEffect"/>s against an <see cref="EffectContext"/> that
-/// carries BOTH colliding GameObjects + the resolved attacker, so an effect can do anything to either side
-/// or the world.
+/// list — the projectile's, then the owner's (passive abilities, looked up server-side). The reactions run
+/// their Unity-coupled <see cref="WorldEffect"/>s against an <see cref="EffectContext"/> carrying BOTH
+/// colliding GameObjects + the resolved attacker.
 ///
-/// Collision is SERVER-AUTHORITATIVE and not predicted, so effects perform their I/O directly (no gating).
-/// Despawn is driven here off the sibling <see cref="Health"/> reaching zero, or the type's lifetime.
+/// It holds no ProjectileType: its collision radius + reaction lists are INJECTED by
+/// <c>ProjectileType.Initialize</c> via <see cref="Configure"/> (server-side at spawn); kinematics
+/// (lifetime/movement/range) come from the sibling motion's <see cref="MotionConfig"/>. Collision is
+/// SERVER-AUTHORITATIVE and not predicted, so effects perform their I/O directly. Despawn is driven here
+/// off the sibling <see cref="Health"/> reaching zero, or the motion config's lifetime.
 /// </summary>
 public sealed class ServerCollision : NetworkBehaviour
 {
@@ -26,6 +29,12 @@ public sealed class ServerCollision : NetworkBehaviour
     private Health _health;
     private NetPlayerOwnership _ownership;
     private NetworkPlayerManager _players;
+
+    // Collision config injected by ProjectileType.Initialize (server-side at spawn).
+    private float _radius;
+    private List<SurfaceHitReaction> _onSurface;
+    private List<EnemyHitReaction> _onEnemy;
+    private List<ProjectileHitReaction> _onProjectile;
 
     // Projectile-channel one-shot-on-enter dedupe guard (was ProjectileState.LastHitProjectileId).
     private int _guard = SC.ServerCollisionProcessor.NoGuard;
@@ -39,6 +48,15 @@ public sealed class ServerCollision : NetworkBehaviour
         _motion = GetComponent<NetworkedMotion>();
         _health = GetComponent<Health>();
         _ownership = GetComponent<NetPlayerOwnership>();
+    }
+
+    /// <summary>Server: inject the projectile type's collision radius + reaction lists at spawn.</summary>
+    public void Configure(float radius, List<SurfaceHitReaction> onSurface, List<EnemyHitReaction> onEnemy, List<ProjectileHitReaction> onProjectile)
+    {
+        _radius = radius;
+        _onSurface = onSurface;
+        _onEnemy = onEnemy;
+        _onProjectile = onProjectile;
     }
 
     public override void OnStartServer()
@@ -57,15 +75,15 @@ public sealed class ServerCollision : NetworkBehaviour
 
     private void ServerTick()
     {
-        if (_motion == null || _motion.Type == null)
+        if (_motion == null)
             return;
         if (_health != null && _health.IsDead)
             return;
 
-        ProjectileType type = _motion.Type;
+        MotionConfig config = _motion.Config;
         float dt = (float)TimeManager.TickDelta;
         float age = _motion.ElapsedSinceSpawn();
-        if (age >= type.Lifetime)
+        if (age >= config.Lifetime)
         {
             ServerDespawn();
             return;
@@ -78,7 +96,6 @@ public sealed class ServerCollision : NetworkBehaviour
         transform.position = newPos;    // keep this projectile's trigger collider current for the overlap
 
         var state = _motion.State;
-        MotionConfig config = _motion.Config;
         Vector3 vel = NetworkedMotionProcessor.VelocityAt(in state, in config);
         int ownerId = _ownership != null ? _ownership.SpawnOwnerId : -1;
         NetworkPlayer owner = ResolvePlayer(ownerId);
@@ -86,30 +103,30 @@ public sealed class ServerCollision : NetworkBehaviour
 
         // ---- world channel: sweep prev->new; a laser casts its beam forward instead ----
         Vector3 from = prevPos, to = newPos;
-        if (type.Movement == MotionKind.Laser)
+        if (config.Movement == MotionKind.Laser)
         {
             from = newPos;
-            to = newPos + state.OriginForward * type.MaxRange;
+            to = newPos + state.OriginForward * config.MaxRange;
         }
 
-        if (CastWorld(from, to, type.Radius, out SC.WorldHit hit, out GameObject hitObject) &&
+        if (CastWorld(from, to, _radius, out SC.WorldHit hit, out GameObject hitObject) &&
             SC.ServerCollisionProcessor.TryClassifyWorldHit(in state, ownerId, vel, in hit, out SC.HitInfo worldInfo))
         {
             var ctx = new EffectContext(gameObject, hitObject, worldInfo.Point, worldInfo.Normal, worldInfo.Direction, ownerId, owner);
             if (worldInfo.Category == SC.HitCategory.Enemy)
             {
-                RunReactions(type.OnEnemy, in ctx);
+                RunReactions(_onEnemy, in ctx);
                 RunReactions(ownerReactions.OnEnemy, in ctx);
             }
             else
             {
-                RunReactions(type.OnSurface, in ctx);
+                RunReactions(_onSurface, in ctx);
                 RunReactions(ownerReactions.OnSurface, in ctx);
             }
         }
 
         // ---- projectile channel ----
-        if (!IsDead() && WantsProjectileChannel(type, in ownerReactions))
+        if (!IsDead() && WantsProjectileChannel(in ownerReactions))
             ResolveProjectileChannel(newPos, vel, in state, ownerId, owner, in ownerReactions);
 
         if (IsDead())
@@ -118,8 +135,7 @@ public sealed class ServerCollision : NetworkBehaviour
 
     private void ResolveProjectileChannel(Vector3 selfPos, Vector3 vel, in NetworkedMotionState self, int selfOwnerId, NetworkPlayer owner, in OwnerReactions ownerReactions)
     {
-        ProjectileType type = _motion.Type;
-        int n = OverlapProjectiles(selfPos, type.Radius, _overlaps, self.Id);
+        int n = OverlapProjectiles(selfPos, _radius, _overlaps, self.Id);
         int firstHandled = SC.ServerCollisionProcessor.NoGuard;
         bool stillGuarded = false;
 
@@ -137,7 +153,7 @@ public sealed class ServerCollision : NetworkBehaviour
             }
 
             var ctx = new EffectContext(gameObject, other.gameObject, info.Point, info.Normal, info.Direction, selfOwnerId, owner);
-            RunReactions(type.OnProjectile, in ctx);
+            RunReactions(_onProjectile, in ctx);
             RunReactions(ownerReactions.OnProjectile, in ctx);
 
             if (firstHandled < 0)
@@ -149,9 +165,9 @@ public sealed class ServerCollision : NetworkBehaviour
         _guard = SC.ServerCollisionProcessor.ResolveGuard(_guard, firstHandled, stillGuarded);
     }
 
-    private static bool WantsProjectileChannel(ProjectileType type, in OwnerReactions owner)
+    private bool WantsProjectileChannel(in OwnerReactions owner)
     {
-        if (type.OnProjectile != null && type.OnProjectile.Count > 0)
+        if (_onProjectile != null && _onProjectile.Count > 0)
             return true;
         var op = owner.OnProjectile;
         return op != null && op.Count > 0;
@@ -219,7 +235,7 @@ public sealed class ServerCollision : NetworkBehaviour
 
     // ---- reaction running (short-circuits if the projectile dies mid-list) ----
 
-    private void RunReactions<T>(System.Collections.Generic.List<T> reactions, in EffectContext ctx) where T : HitReaction
+    private void RunReactions<T>(List<T> reactions, in EffectContext ctx) where T : HitReaction
     {
         if (reactions == null)
             return;
@@ -231,7 +247,7 @@ public sealed class ServerCollision : NetworkBehaviour
         }
     }
 
-    private void RunReactions(System.Collections.Generic.IReadOnlyList<HitReaction> reactions, in EffectContext ctx)
+    private void RunReactions(IReadOnlyList<HitReaction> reactions, in EffectContext ctx)
     {
         if (reactions == null)
             return;

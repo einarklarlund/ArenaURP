@@ -8,50 +8,56 @@ using UnityEngine;
 using MotionCoreState = Arena.NetworkedMotion.NetworkedMotionState;
 
 /// <summary>
-/// The deterministic-motion + spawn-identity component of a projectile, on EVERY peer. Motion is
-/// CLOSED-FORM from the spawn tick + the current trajectory segment (see
-/// <see cref="NetworkedMotionProcessor"/>), so every peer renders position locally with nothing synced
-/// per tick. The only synced state is the rare authoritative segment change (a ricochet/deflect), pushed
-/// via SyncVars; a straight bullet never touches them after spawn.
+/// Generic deterministic-motion component, on EVERY peer. Motion is CLOSED-FORM from the spawn tick + the
+/// current trajectory segment (see <see cref="NetworkedMotionProcessor"/>), so every peer renders position
+/// locally with nothing synced per tick; the only synced state is the rare authoritative segment change
+/// (a ricochet/deflect), pushed via SyncVars.
 ///
-/// This is the "spawn coordinator" of the projectile composition: it carries the
-/// <see cref="ProjectileType"/>, owns the <see cref="MotionCoreState"/> the ServerCollision component
-/// reads, and on the server seeds the sibling generic systems (<see cref="Health"/>, <see cref="Damage"/>)
-/// from the type. Spawn data rides the predicted-spawn payload. (Successor to the motion half of the old
-/// PawnProjectile.)
+/// It is FULLY DECOUPLED from the projectile concept: it holds no <c>ProjectileType</c>. Its
+/// <see cref="MotionConfig"/> + initial speed are ASSIGNED by whoever spawns it (a
+/// <c>ProjectileType.Initialize</c> via <see cref="Configure"/>) and ride the spawn payload so every peer
+/// has them. It knows nothing of Health/Damage/ownership/VFX — those are other components.
 /// </summary>
 public sealed class NetworkedMotion : NetworkBehaviour
 {
-    [SerializeField] private ProjectileType _type;
-
     // Authoritative segment, synced only when it CHANGES (a ricochet/deflect begins a new segment).
     private readonly SyncVar<Vector3> _segPos = new();
     private readonly SyncVar<Vector3> _segForward = new();
     private readonly SyncVar<float> _segSpeed = new();
     private readonly SyncVar<float> _segAge = new();
 
-    // Spawn parameters carried via the (predicted-)spawn payload; set by the spawner before Spawn.
-    // Ownership is NOT here — it lives on the sibling NetPlayerOwnership component.
+    // Motion parameters, assigned by the spawning type via Configure and carried on the payload.
+    private MotionConfig _config;
+    private float _initialSpeed;
+
+    // Per-spawn payload (set by the spawner before Spawn). Ownership lives on NetPlayerOwnership.
     public PreciseTick SpawnTick;
     public Vector3 SpawnPosition;
     public Vector3 SpawnForward;
 
     private MotionCoreState _state;
-    private MotionConfig _config;
     private bool _initialized;
 
     public int Id => (int)ObjectId;
-    public ProjectileType Type => _type;
     public MotionConfig Config => _config;
 
-    /// <summary>The current motion state (read by ServerCollision for this and other projectiles' positions).</summary>
+    /// <summary>The current motion state (read by ServerCollision for this and other movers' positions).</summary>
     public MotionCoreState State => _state;
 
     /// <summary>
-    /// The one correct way to configure a projectile's spawn payload. Every spawner (PawnWeapon and the
-    /// SpawnProjectiles effect for child projectiles) MUST call this after <c>ProjectileType.Create</c> and
-    /// before <c>ServerManager.Spawn</c> so no field — notably <see cref="SpawnTick"/>, the basis for
-    /// deterministic age — is ever forgotten.
+    /// Assign the motion parameters (from the spawning type) before <c>ServerManager.Spawn</c>. They are
+    /// serialized on the payload so observers receive them with the spawn.
+    /// </summary>
+    public void Configure(MotionConfig config, float initialSpeed)
+    {
+        _config = config;
+        _initialSpeed = initialSpeed;
+    }
+
+    /// <summary>
+    /// Set the per-spawn payload (tick/pos/dir). Owner is on NetPlayerOwnership and config via
+    /// <see cref="Configure"/>; both must be set before <c>ServerManager.Spawn</c> — notably
+    /// <see cref="SpawnTick"/>, the basis for deterministic age.
     /// </summary>
     public void SetupSpawn(PreciseTick tick, Vector3 pos, Vector3 dir)
     {
@@ -73,6 +79,12 @@ public sealed class NetworkedMotion : NetworkBehaviour
     public override void WritePayload(NetworkConnection connection, Writer writer)
     {
         base.WritePayload(connection, writer);
+        writer.WriteInt32((int)_config.Movement);
+        writer.WriteSingle(_config.Acceleration);
+        writer.WriteSingle(_config.Gravity);
+        writer.WriteSingle(_config.Lifetime);
+        writer.WriteSingle(_config.MaxRange);
+        writer.WriteSingle(_initialSpeed);
         writer.WritePreciseTick(SpawnTick);
         writer.WriteVector3(SpawnPosition);
         writer.WriteVector3(SpawnForward);
@@ -81,6 +93,13 @@ public sealed class NetworkedMotion : NetworkBehaviour
     public override void ReadPayload(NetworkConnection connection, Reader reader)
     {
         base.ReadPayload(connection, reader);
+        var movement = (MotionKind)reader.ReadInt32();
+        float acceleration = reader.ReadSingle();
+        float gravity = reader.ReadSingle();
+        float lifetime = reader.ReadSingle();
+        float maxRange = reader.ReadSingle();
+        _config = new MotionConfig(movement, acceleration, gravity, lifetime, maxRange);
+        _initialSpeed = reader.ReadSingle();
         SpawnTick = reader.ReadPreciseTick();
         SpawnPosition = reader.ReadVector3();
         SpawnForward = reader.ReadVector3();
@@ -91,10 +110,8 @@ public sealed class NetworkedMotion : NetworkBehaviour
     {
         base.OnStartNetwork();
 
-        _config = _type != null ? _type.ToMotionConfig() : default;
-        float speed = _type != null ? _type.Speed : 0f;
-        _state = MotionCoreState.Spawn(Id, SpawnPosition, SpawnForward, speed);
-        _initialized = _type != null;
+        _state = MotionCoreState.Spawn(Id, SpawnPosition, SpawnForward, _initialSpeed);
+        _initialized = true;
 
         _segPos.OnChange += OnSegPosChanged;
         _segForward.OnChange += OnSegForwardChanged;
@@ -107,13 +124,10 @@ public sealed class NetworkedMotion : NetworkBehaviour
     public override void OnStartServer()
     {
         base.OnStartServer();
-
         _segPos.Value = _state.OriginPos;
         _segForward.Value = _state.OriginForward;
         _segSpeed.Value = _state.OriginSpeed;
         _segAge.Value = _state.OriginAge;
-        // Health/Damage are seeded by ProjectileType.Initialize at Create time — NetworkedMotion stays
-        // generic and never reaches into the projectile's other components.
     }
 
     public override void OnStopNetwork()
@@ -135,8 +149,6 @@ public sealed class NetworkedMotion : NetworkBehaviour
 
     private void Render()
     {
-        if (_type == null)
-            return;
         MotionCoreState s = _state;
         s.Age = ElapsedSinceSpawn();
         transform.position = NetworkedMotionProcessor.PositionAt(in s, in _config);
@@ -175,19 +187,6 @@ public sealed class NetworkedMotion : NetworkBehaviour
         _segAge.Value = _state.OriginAge;
     }
 
-    /// <summary>
-    /// Server-authoritative VFX broadcast: instantiates this type's cosmetic impact VFX on every peer
-    /// (+ server). Each peer has the type via the shared prefab, so only the point/normal travel.
-    /// </summary>
-    [ObserversRpc(RunLocally = true)]
-    public void BroadcastImpactVfx(Vector3 point, Vector3 normal)
-    {
-        if (_type == null || _type.ImpactVfx == null)
-            return;
-        Quaternion rot = normal.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(normal) : Quaternion.identity;
-        Instantiate(_type.ImpactVfx, point, rot); // non-networked cosmetic
-    }
-
     // Server-authoritative segment changes reach clients as SyncVar changes; fold them into _state.
     private void OnSegPosChanged(Vector3 _, Vector3 next, bool asServer) { if (!asServer) _state.OriginPos = next; }
     private void OnSegForwardChanged(Vector3 _, Vector3 next, bool asServer) { if (!asServer) _state.OriginForward = next; }
@@ -199,6 +198,8 @@ public sealed class NetworkedMotion : NetworkBehaviour
         base.ResetState(asServer);
         _state = default;
         _initialized = false;
+        _config = default;
+        _initialSpeed = 0f;
         SpawnTick = default;
         SpawnPosition = Vector3.zero;
         SpawnForward = Vector3.zero;
