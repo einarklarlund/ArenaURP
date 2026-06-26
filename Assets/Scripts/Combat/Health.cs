@@ -26,6 +26,12 @@ public class Health : NetworkBehaviour, IDamageable
 
     public bool IsDead => CurrentHealth.Value <= 0;
 
+    /// <summary>
+    /// Pre-spawn config: set the max HP a type wants this instance to have, BEFORE network start so
+    /// <see cref="OnStartServer"/> seeds current/max from it. Used by a TypeScriptableObject's Initialize.
+    /// </summary>
+    public void ConfigureMax(int max) => maxHealth = Mathf.Max(1, max);
+
     public override void OnStartServer()
     {
         base.OnStartServer();

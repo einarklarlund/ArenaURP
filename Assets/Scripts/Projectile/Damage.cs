@@ -11,13 +11,10 @@ public sealed class Damage : MonoBehaviour
 {
     [SerializeField] private int _amount = 1;
 
-    /// <summary>Base damage dealt; mutable at runtime for buffs/modifiers.</summary>
+    /// <summary>Base damage dealt; seeded from the type on spawn, mutable at runtime for buffs/modifiers.</summary>
     public int Amount
     {
         get => _amount;
         set => _amount = value;
     }
-
-    /// <summary>Server: seed the base damage from config at spawn.</summary>
-    public void ServerInit(int amount) => _amount = amount;
 }

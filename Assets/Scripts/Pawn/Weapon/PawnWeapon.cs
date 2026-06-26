@@ -78,38 +78,21 @@ public class PawnWeapon : NetworkBehaviour
             var fireDir = WeaponHelper.CalculateSpread(currentWeapon, firePoint, 0, currentWeapon.ProjectilesPerShot);
             Vector3 spawnPos = firePoint.TransformPoint(currentWeapon.SpawnPositionOffset);
 
-            // Use THIS pawn's own NetworkManager (not InstanceFinder). On the owning client that is the
-            // client's manager, so the spawn below takes FishNet's predicted-spawn path and the bullet
-            // appears locally on the SAME frame; on the server/host it spawns authoritatively. Resolving
-            // a different manager could turn an owning-client shot into a server-only spawn, so the bullet
-            // only appears after a full server round-trip.
-            NetworkObject nob = NetworkManager.GetPooledInstantiated(
-                currentWeapon.BulletPrefab.gameObject,
-                spawnPos,
-                Quaternion.LookRotation(fireDir),
-                false
-            );
-
-            if (nob.TryGetComponent<NetworkedMotion>(out var projectile))
-            {
-                int ownerId = pawn.ControllingPlayer.Value != null ? pawn.ControllingPlayer.Value.ObjectId : -1;
-                PreciseTick tick = TimeManager.GetPreciseTick(TickType.Tick);
-                projectile.SetupSpawn(ownerId, tick, spawnPos, fireDir);
-                ServerManager.Spawn(nob, Owner); // own manager: predicted on the owning client, authoritative on the server
+            if (currentWeapon.Projectile == null)
                 continue;
-            }
 
-            if (nob.TryGetComponent<NetworkPlayerOwnership>(out var ownership))
-            {
-                ownership.AssignOwner(pawn.ControllingPlayer.Value);
-            }
+            // The projectile TYPE builds + initializes its own instance (it knows its composition); we
+            // only set the per-spawn payload and spawn it. Use THIS pawn's own NetworkManager (not
+            // InstanceFinder): on the owning client that is the client's manager, so the spawn takes
+            // FishNet's predicted-spawn path and the bullet appears locally on the SAME frame; on the
+            // server/host it spawns authoritatively.
+            NetworkObject nob = currentWeapon.Projectile.Create(
+                NetworkManager, spawnPos, Quaternion.LookRotation(fireDir), asServer: false);
 
-            if (nob.TryGetComponent<Collider>(out var bulletCollider))
-            {
-                Physics.IgnoreCollision(pawnCollider, bulletCollider);
-            }
-
-            InstanceFinder.ServerManager.Spawn(nob, Owner);
+            int ownerId = pawn.ControllingPlayer.Value != null ? pawn.ControllingPlayer.Value.ObjectId : -1;
+            PreciseTick tick = TimeManager.GetPreciseTick(TickType.Tick);
+            nob.GetComponent<NetworkedMotion>().SetupSpawn(ownerId, tick, spawnPos, fireDir);
+            ServerManager.Spawn(nob, Owner);
         }
     }
 }

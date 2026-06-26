@@ -48,9 +48,10 @@ public sealed class NetworkedMotion : NetworkBehaviour
     public MotionCoreState State => _state;
 
     /// <summary>
-    /// The one correct way to configure a projectile's spawn payload. Every spawner (PawnWeapon and
-    /// ProjectileWorldProvider.Spawn for child projectiles) MUST call this before <c>ServerManager.Spawn</c>
-    /// so no field — notably <see cref="SpawnTick"/>, the basis for deterministic age — is ever forgotten.
+    /// The one correct way to configure a projectile's spawn payload. Every spawner (PawnWeapon and the
+    /// SpawnProjectiles effect for child projectiles) MUST call this after <c>ProjectileType.Create</c> and
+    /// before <c>ServerManager.Spawn</c> so no field — notably <see cref="SpawnTick"/>, the basis for
+    /// deterministic age — is ever forgotten.
     /// </summary>
     public void SetupSpawn(int ownerId, PreciseTick tick, Vector3 pos, Vector3 dir)
     {
@@ -98,8 +99,6 @@ public sealed class NetworkedMotion : NetworkBehaviour
         _state = MotionCoreState.Spawn(SpawnOwnerId, Id, SpawnPosition, SpawnForward, speed);
         _initialized = _type != null;
 
-        ProjectileWorldProvider.Instance?.Register(Id, this);
-
         _segPos.OnChange += OnSegPosChanged;
         _segForward.OnChange += OnSegForwardChanged;
         _segSpeed.OnChange += OnSegSpeedChanged;
@@ -116,15 +115,8 @@ public sealed class NetworkedMotion : NetworkBehaviour
         _segForward.Value = _state.OriginForward;
         _segSpeed.Value = _state.OriginSpeed;
         _segAge.Value = _state.OriginAge;
-
-        // Seed the sibling generic systems from this projectile's type.
-        if (_type != null)
-        {
-            if (TryGetComponent<Health>(out var health))
-                health.ServerInitMax(_type.MaxHealth);
-            if (TryGetComponent<Damage>(out var damage))
-                damage.ServerInit(_type.Damage);
-        }
+        // Health/Damage are seeded by ProjectileType.Initialize at Create time — NetworkedMotion stays
+        // generic and never reaches into the projectile's other components.
     }
 
     public override void OnStopNetwork()
@@ -134,7 +126,6 @@ public sealed class NetworkedMotion : NetworkBehaviour
         _segForward.OnChange -= OnSegForwardChanged;
         _segSpeed.OnChange -= OnSegSpeedChanged;
         _segAge.OnChange -= OnSegAgeChanged;
-        ProjectileWorldProvider.Instance?.Unregister(Id);
     }
 
     // ---- rendering (all peers, deterministic from spawn tick + segment) ----
@@ -187,11 +178,17 @@ public sealed class NetworkedMotion : NetworkBehaviour
         _segAge.Value = _state.OriginAge;
     }
 
-    /// <summary>Server-authoritative VFX broadcast: runs the cosmetic impact VFX on every peer (+ server).</summary>
+    /// <summary>
+    /// Server-authoritative VFX broadcast: instantiates this type's cosmetic impact VFX on every peer
+    /// (+ server). Each peer has the type via the shared prefab, so only the point/normal travel.
+    /// </summary>
     [ObserversRpc(RunLocally = true)]
-    public void BroadcastImpactVfx(ProjectileType vfxType, Vector3 point, Vector3 normal)
+    public void BroadcastImpactVfx(Vector3 point, Vector3 normal)
     {
-        ProjectileWorldProvider.Instance?.SpawnVfx(vfxType != null ? vfxType : _type, point, normal);
+        if (_type == null || _type.ImpactVfx == null)
+            return;
+        Quaternion rot = normal.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(normal) : Quaternion.identity;
+        Instantiate(_type.ImpactVfx, point, rot); // non-networked cosmetic
     }
 
     // Server-authoritative segment changes reach clients as SyncVar changes; fold them into _state.

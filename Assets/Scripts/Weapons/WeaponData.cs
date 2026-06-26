@@ -7,7 +7,10 @@ public class WeaponData : ScriptableObject
     [Header("Visuals")]
     public string WeaponName;
     public GameObject WeaponPrefab;
-    public NetworkObject BulletPrefab;
+
+    [Header("Projectile")]
+    [Tooltip("The projectile type this weapon fires; it owns the instance prefab + component defaults.")]
+    public ProjectileType Projectile;
     
     [Header("Firing Logic")]
     public FireMode FireMode = FireMode.Automatic;

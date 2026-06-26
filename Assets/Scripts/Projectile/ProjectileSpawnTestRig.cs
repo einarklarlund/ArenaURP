@@ -1,34 +1,30 @@
 #if UNITY_EDITOR
-using System.Collections.Generic;
-using System.Reflection;
 using FishNet;
-using FishNet.Object;
+using FishNet.Managing.Timing;
 using UnityEngine;
 
 /// <summary>
 /// Editor/test-only helper for the projectile-spawn PlayMode tests. Lives in Assembly-CSharp so it can
-/// touch <see cref="ProjectileWorldProvider"/> / <see cref="NetworkedMotion"/> directly ??? the
-/// Arena.PlayTests asmdef cannot reference Assembly-CSharp, so the tests call these by reflection (one
-/// contained seam, per the integration-testing skill). Gated by UNITY_EDITOR so it never ships.
+/// touch <see cref="ProjectileType"/> / <see cref="NetworkedMotion"/> directly — the Arena.PlayTests
+/// asmdef cannot reference Assembly-CSharp, so the tests call these by reflection (one contained seam, per
+/// the integration-testing skill). Gated by UNITY_EDITOR so it never ships.
 /// </summary>
 public static class ProjectileSpawnTestRig
 {
-    public static ProjectileWorldProvider FindProvider()
-        => Object.FindAnyObjectByType<ProjectileWorldProvider>();
-
-    /// <summary>Point the provider's (private serialized) catalog at a single type-&gt;prefab mapping.</summary>
-    public static void ConfigureCatalog(ProjectileWorldProvider provider, ProjectileType type, NetworkObject prefab)
+    /// <summary>Build + initialize + authoritatively spawn a child projectile via its type. Returns the ObjectId, or -1.</summary>
+    public static int SpawnViaType(ProjectileType type, Vector3 pos, Vector3 dir, int ownerId)
     {
-        var entry = new ProjectileWorldProvider.TypePrefab { Type = type, Prefab = prefab };
-        var field = typeof(ProjectileWorldProvider).GetField("catalog", BindingFlags.Instance | BindingFlags.NonPublic);
-        var list = (List<ProjectileWorldProvider.TypePrefab>)field.GetValue(provider);
-        list.Clear();
-        list.Add(entry);
-    }
+        var manager = InstanceFinder.NetworkManager;
+        if (type == null || manager == null) return -1;
 
-    /// <summary>Invoke the production child-spawn path. Returns the spawned child's ObjectId, or -1.</summary>
-    public static int Spawn(ProjectileWorldProvider provider, ProjectileType type, Vector3 pos, Vector3 dir, int ownerId)
-        => provider.Spawn(type, pos, dir, ownerId);
+        Quaternion rot = dir.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(dir) : Quaternion.identity;
+        var nob = type.Create(manager, pos, rot, asServer: true);
+        PreciseTick tick = InstanceFinder.TimeManager.GetPreciseTick(TickType.Tick);
+        if (nob.TryGetComponent<NetworkedMotion>(out var motion))
+            motion.SetupSpawn(ownerId, tick, pos, dir);
+        manager.ServerManager.Spawn(nob);
+        return nob.ObjectId;
+    }
 
     public static GameObject FindSpawned(int objectId)
     {
@@ -81,16 +77,6 @@ public static class ProjectileSpawnTestRig
             if (nob != null && nob.GetComponent<NetworkedMotion>() != null)
                 n++;
         return n;
-    }
-
-    /// <summary>Like ConfigureCatalog, but also wires a cosmetic impact-VFX prefab for the type.</summary>
-    public static void ConfigureCatalogVfx(ProjectileWorldProvider provider, ProjectileType type, NetworkObject prefab, GameObject vfx)
-    {
-        var entry = new ProjectileWorldProvider.TypePrefab { Type = type, Prefab = prefab, ImpactVfx = vfx };
-        var field = typeof(ProjectileWorldProvider).GetField("catalog", BindingFlags.Instance | BindingFlags.NonPublic);
-        var list = (List<ProjectileWorldProvider.TypePrefab>)field.GetValue(provider);
-        list.Clear();
-        list.Add(entry);
     }
 
     /// <summary>Count live GameObjects whose name starts with <paramref name="namePrefix"/> (e.g. "Foo(Clone)").</summary>

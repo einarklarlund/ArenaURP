@@ -16,8 +16,12 @@ using UnityEngine;
 /// be dropped into the enemy slot. Each reaction owns a reusable list of <see cref="WorldEffect"/>s.
 /// </summary>
 [CreateAssetMenu(menuName = "Projectiles/Type", fileName = "ProjectileType")]
-public sealed class ProjectileType : ScriptableObject
+public sealed class ProjectileType : TypeScriptableObject
 {
+    [Header("Cosmetic")]
+    [Tooltip("Optional non-networked impact VFX prefab spawned on a hit.")]
+    public GameObject ImpactVfx;
+
     [Header("Collision")]
     public float Radius = 0.05f;
 
@@ -48,4 +52,18 @@ public sealed class ProjectileType : ScriptableObject
 
     /// <summary>The plain kinematics struct the pure <see cref="NetworkedMotionProcessor"/> consumes.</summary>
     public MotionConfig ToMotionConfig() => new(Movement, Acceleration, Gravity, Lifetime, MaxRange);
+
+    /// <summary>
+    /// Initialize a freshly-instantiated projectile's data-holder components from this type. The motion
+    /// config + impact VFX are read directly off the type by NetworkedMotion (it keeps a type reference so
+    /// every peer has them deterministically), so only the server-side Health/Damage holders are seeded
+    /// here — NetworkedMotion no longer reaches into them.
+    /// </summary>
+    protected override void Initialize(GameObject instance)
+    {
+        if (instance.TryGetComponent<Health>(out var health))
+            health.ConfigureMax(MaxHealth);
+        if (instance.TryGetComponent<Damage>(out var damage))
+            damage.Amount = Damage;
+    }
 }
