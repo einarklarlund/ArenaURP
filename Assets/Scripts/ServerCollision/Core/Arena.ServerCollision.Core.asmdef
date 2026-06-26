@@ -1,0 +1,16 @@
+{
+  "name": "Arena.ServerCollision.Core",
+  "rootNamespace": "",
+  "references": [
+    "Arena.NetworkedMotion.Core"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
