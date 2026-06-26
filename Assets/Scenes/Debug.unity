@@ -2623,7 +2623,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1272603138}
-  - component: {fileID: 1272603137}
   m_Layer: 0
   m_Name: Projectile World Provider
   m_TagString: Untagged
@@ -2631,29 +2630,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1272603137
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1272603136}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c849d29661b4949738afc1ae6b1601d4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectileWorldProvider
-  worldMask:
-    serializedVersion: 2
-    m_Bits: 129
-  projectileMask:
-    serializedVersion: 2
-    m_Bits: 0
-  playerManager: {fileID: 3137554222878767908}
-  catalog:
-  - Type: {fileID: 11400000, guid: 34c1cca6fdf4841b2aa97487481889b8, type: 2}
-    Prefab: {fileID: -339553929967437806, guid: aa3d85febce664e4d819df64022d1735, type: 3}
-    ImpactVfx: {fileID: 0}
 --- !u!4 &1272603138
 Transform:
   m_ObjectHideFlags: 0
@@ -2992,7 +2968,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1760191425}
-  - component: {fileID: 1760191426}
   m_Layer: 0
   m_Name: Power Up Manager
   m_TagString: Untagged
@@ -3015,18 +2990,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 3137554222878767907}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1760191426
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1760191424}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 014745a36ca384df18879bc8b051a8a4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PowerUpManager
 --- !u!1 &1929198793
 GameObject:
   m_ObjectHideFlags: 0
@@ -3315,17 +3278,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 844217296461668172, guid: 8d8f6887f8cde42448949849b88ca701, type: 3}
   m_PrefabInstance: {fileID: 3137554222878767905}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &3137554222878767908 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7114079467991808028, guid: 8d8f6887f8cde42448949849b88ca701, type: 3}
-  m_PrefabInstance: {fileID: 3137554222878767905}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 67c2637e1a684406c875d0aa2c923958, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NetworkPlayerManager
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

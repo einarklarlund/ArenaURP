@@ -54657,7 +54657,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 493560712}
-  - component: {fileID: 493560713}
   m_Layer: 0
   m_Name: Projectile World Provider
   m_TagString: Untagged
@@ -54680,26 +54679,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 7707852976615571468}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &493560713
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 493560711}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c849d29661b4949738afc1ae6b1601d4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectileWorldProvider
-  worldMask:
-    serializedVersion: 2
-    m_Bits: 129
-  projectileMask:
-    serializedVersion: 2
-    m_Bits: 0
-  playerManager: {fileID: 7707852976615571469}
-  catalog: []
 --- !u!1 &493599486
 GameObject:
   m_ObjectHideFlags: 0
@@ -227132,17 +227111,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6122284166908164103, guid: f9f6f1085d6184087b3d0fbc2aeaeb63, type: 3}
   m_PrefabInstance: {fileID: 7707852976615571466}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7707852976615571469 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5403703494097441515, guid: f9f6f1085d6184087b3d0fbc2aeaeb63, type: 3}
-  m_PrefabInstance: {fileID: 7707852976615571466}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 67c2637e1a684406c875d0aa2c923958, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NetworkPlayerManager
 --- !u!114 &9165185281956026871 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6401056016573493018, guid: f9f6f1085d6184087b3d0fbc2aeaeb63, type: 3}
