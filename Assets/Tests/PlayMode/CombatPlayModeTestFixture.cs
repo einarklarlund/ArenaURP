@@ -92,6 +92,9 @@ namespace Arena.PlayTests
         protected int DamageEventCount(GameObject pawn) => (int)Invoke("DamageEventCount", pawn);
         protected int DeathEventCount(GameObject pawn) => (int)Invoke("DeathEventCount", pawn);
         protected int LastDamageAmount(GameObject pawn) => (int)Invoke("LastDamageAmount", pawn);
+        protected int ImpulseCountAtLastHit(GameObject pawn) => (int)Invoke("ImpulseCountAtLastHit", pawn);
+        protected float ImpulseMagnitudeAtLastHit(GameObject pawn) => (float)Invoke("ImpulseMagnitudeAtLastHit", pawn);
+        protected bool IsPawnOwner(GameObject pawn) => (bool)Invoke("IsPawnOwner", pawn);
 
         // ---- coroutine polling helpers -----------------------------------------------------
 
