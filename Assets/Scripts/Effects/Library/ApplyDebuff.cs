@@ -1,17 +1,17 @@
-using UnityEngine;
-
 /// <summary>
-/// Apply a debuff to the single target that was hit. No-op until a debuff system exists; when one is
-/// added, this resolves the target's debuff receiver and applies <see cref="Debuff"/> directly.
+/// Apply a debuff to the single target that was hit. No-op until a debuff system exists; when one is added,
+/// this resolves the target's debuff receiver and applies <see cref="_debuff"/> directly. Needs a target.
 /// </summary>
-[CreateAssetMenu(menuName = "Arena/World Effects/Apply Debuff", fileName = "ApplyDebuff")]
-public sealed class ApplyDebuff : SingleTargetEffect
+public sealed class ApplyDebuff : IEffect
 {
-    public DebuffType Debuff = DebuffType.Slow;
+    readonly DebuffType _debuff;
 
-    protected override void ApplyToTarget(in EffectContext ctx, GameObject target)
+    public ApplyDebuff(DebuffType debuff = DebuffType.Slow) => _debuff = debuff;
+
+    public void Apply(IEffectContext ctx)
     {
+        if (ctx is not ITargetContext) return;
         // TODO: no debuff system exists yet. Intentionally a no-op until one is introduced —
-        // e.g. target.GetComponentInParent<IDebuffable>()?.Apply(Debuff);
+        // e.g. tc.Target.GetComponentInParent<IDebuffable>()?.Apply(_debuff);
     }
 }

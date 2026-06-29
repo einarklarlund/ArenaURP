@@ -1,18 +1,19 @@
 using UnityEngine;
 
 /// <summary>
-/// Drain the invoking projectile's own <see cref="Health"/> by <see cref="Amount"/> (ports the old
-/// surface/DevilDaggers self-damage). Death at zero is enforced by ServerCollision (it despawns when
-/// Health is dead), so this only needs to subtract.
+/// Drain the invoking projectile's own <see cref="Health"/> by <see cref="_amount"/> (ports the old
+/// surface/DevilDaggers self-damage). Death at zero is enforced by ServerCollision (it despawns when Health
+/// is dead), so this only needs to subtract.
 /// </summary>
-[CreateAssetMenu(menuName = "Arena/World Effects/Lose Health", fileName = "LoseHealth")]
-public sealed class LoseHealth : WorldEffect
+public sealed class LoseHealth : IEffect
 {
-    public int Amount = 1;
+    readonly int _amount;
 
-    public override void Apply(in EffectContext ctx)
+    public LoseHealth(int amount = 1) => _amount = amount;
+
+    public void Apply(IEffectContext ctx)
     {
         if (ctx.Invoker != null && ctx.Invoker.TryGetComponent<Health>(out var health))
-            health.ServerLose(Amount);
+            health.ServerLose(_amount);
     }
 }

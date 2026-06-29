@@ -1,28 +1,26 @@
-using System.Collections.Generic;
 using Arena.ServerCollision;
 
 /// <summary>
-/// The extra hit reactions a projectile's OWNER contributes (passive abilities that buff the player's
-/// bullets), split by hit category. Resolved SERVER-SIDE from the live owner during collision — never
-/// serialized onto a projectile's spawn payload (the "find the owner's effects instead of shipping them"
-/// rule). Runtime holds the base <see cref="HitReaction"/> type; the per-category typing that prevents
-/// mis-slotting lives on the authoring side (PassiveAbilityType's typed lists).
+/// The extra hit reactions a projectile's OWNER contributes (passive abilities / powerups that buff the
+/// player's bullets), split by hit category. Resolved SERVER-SIDE from the live owner during collision —
+/// never serialized onto a projectile's spawn payload (the "find the owner's effects instead of shipping
+/// them" rule). Each category is a runtime <see cref="HitReaction"/> built in code by the owner's passives.
 /// </summary>
 public readonly struct OwnerReactions
 {
-    public readonly IReadOnlyList<HitReaction> OnEnemy;
-    public readonly IReadOnlyList<HitReaction> OnSurface;
-    public readonly IReadOnlyList<HitReaction> OnProjectile;
+    public readonly HitReaction OnEnemy;
+    public readonly HitReaction OnSurface;
+    public readonly HitReaction OnProjectile;
 
-    public OwnerReactions(IReadOnlyList<HitReaction> onEnemy, IReadOnlyList<HitReaction> onSurface, IReadOnlyList<HitReaction> onProjectile)
+    public OwnerReactions(HitReaction onEnemy, HitReaction onSurface, HitReaction onProjectile)
     {
         OnEnemy = onEnemy;
         OnSurface = onSurface;
         OnProjectile = onProjectile;
     }
 
-    /// <summary>The owner's reactions for a hit category (the collision component's classification picks this).</summary>
-    public IReadOnlyList<HitReaction> For(HitCategory category) => category switch
+    /// <summary>The owner's reaction for a hit category (the collision component's classification picks this).</summary>
+    public HitReaction For(HitCategory category) => category switch
     {
         HitCategory.Enemy => OnEnemy,
         HitCategory.Surface => OnSurface,
@@ -38,6 +36,6 @@ public readonly struct OwnerReactions
 /// </summary>
 public interface IProjectileEffectProvider
 {
-    /// <summary>The owner's per-category projectile reactions.</summary>
+    /// <summary>The owner's per-category projectile reactions (runtime, built in code from equipped passives).</summary>
     OwnerReactions GetReactions();
 }

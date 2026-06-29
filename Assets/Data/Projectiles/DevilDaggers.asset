@@ -22,8 +22,5 @@ MonoBehaviour:
   Movement: 0
   Gravity: -9.81
   MaxRange: 100
-  OnSurface:
-  - {fileID: 11400000, guid: d75b57faa35694d17b203652b59e96b7, type: 2}
-  OnEnemy:
-  - {fileID: 11400000, guid: 1fd591dd3df804f22a2901ae89a3fb40, type: 2}
-  OnProjectile: []
+  SurfaceHealthLoss: 1
+  RicochetsByDefault: 0

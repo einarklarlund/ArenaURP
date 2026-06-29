@@ -4,31 +4,42 @@ using FishNet.Managing.Timing;
 using UnityEngine;
 
 /// <summary>
-/// Spawn <see cref="Count"/> projectiles of <see cref="Type"/>, fanned evenly across
-/// <see cref="SpreadDegrees"/> around the context direction (0 = all straight ahead, 360 = even ring).
-/// This is the ONE spawn effect reused by both a projectile reaction (children at the impact point) and an
-/// ability (a fan from the caster). The type builds + initializes each instance via its own Create; this
-/// effect just sets the per-spawn payload and authoritatively spawns it.
+/// Spawn <see cref="_count"/> projectiles of <see cref="_type"/>, fanned evenly across
+/// <see cref="_spreadDegrees"/> around the context direction (0 = all straight ahead, 360 = even ring). The
+/// ONE spawn effect reused by a projectile reaction (children at the impact point) and an ability (a fan
+/// from the caster). Needs a direction to fan around; origin is the context's point, or the invoker's
+/// position as a fallback.
 /// </summary>
-[CreateAssetMenu(menuName = "Arena/World Effects/Spawn Projectiles", fileName = "SpawnProjectiles")]
-public sealed class SpawnProjectiles : WorldEffect
+public sealed class SpawnProjectiles : IEffect
 {
-    public ProjectileType Type;
-    [Min(1)] public int Count = 1;
-    [Tooltip("0 = all along the context direction; 360 = even ring; in between = arc centred on it.")]
-    public float SpreadDegrees = 0f;
+    readonly ProjectileType _type;
+    readonly int _count;
+    readonly float _spreadDegrees;
 
-    public override void Apply(in EffectContext ctx)
+    /// <param name="spreadDegrees">0 = all along the context direction; 360 = even ring; in between = arc.</param>
+    public SpawnProjectiles(ProjectileType type, int count = 1, float spreadDegrees = 0f)
+    {
+        _type = type;
+        _count = count;
+        _spreadDegrees = spreadDegrees;
+    }
+
+    public void Apply(IEffectContext ctx)
     {
         var manager = InstanceFinder.NetworkManager;
-        if (Type == null || Count <= 0 || manager == null)
+        if (_type == null || _count <= 0 || manager == null)
             return;
+        if (ctx is not IDirectedContext directed)
+            return;
+        Vector3 origin = ctx is IPointContext point
+            ? point.Point
+            : (ctx.Invoker != null ? ctx.Invoker.transform.position : Vector3.zero);
 
         PreciseTick tick = InstanceFinder.TimeManager.GetPreciseTick(TickType.Tick);
-        for (int i = 0; i < Count; i++)
+        for (int i = 0; i < _count; i++)
         {
-            Vector3 dir = SpawnFanMath.Direction(ctx.Direction, i, Count, SpreadDegrees, Vector3.up);
-            ProjectileSpawner.Spawn(Type, manager, ctx.InvokerPlayerId, tick, ctx.Point, dir, asServer: true);
+            Vector3 dir = SpawnFanMath.Direction(directed.Direction, i, _count, _spreadDegrees, Vector3.up);
+            ProjectileSpawner.Spawn(_type, manager, ctx.InvokerPlayerId, tick, origin, dir, asServer: true);
         }
     }
 }

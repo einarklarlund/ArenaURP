@@ -1,53 +1,51 @@
+using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 /// <summary>
-/// A projectile's response to one category of collision: an authored, reusable bundle of
-/// <see cref="WorldEffect"/>s that fire when the projectile hits something. A ServerCollision component
-/// holds a reaction per category and runs the matching one on a hit; the effects are the shared
-/// <see cref="WorldEffect"/> vocabulary, so the same effect assets are reused here and by abilities.
-///
-/// The base is abstract; author the CONCRETE per-category subclasses (<see cref="SurfaceHitReaction"/> /
-/// <see cref="ProjectileHitReaction"/> / <see cref="EnemyHitReaction"/>) so that typed slots on the
-/// consumer can't be mis-filled — you cannot drop a surface reaction into the enemy slot. The category
-/// difference is purely about WHERE a reaction may be slotted; all three run their effect list the same
-/// way.
+/// A runtime, ordered bundle of <see cref="IEffect"/>s for ONE reaction (e.g. a projectile's surface hit).
+/// No longer a ScriptableObject asset — reactions are built IN CODE: a projectile/ability type populates its
+/// defaults (see ProjectileType.BuildDefaultReactions), and other systems APPEND extra effects at runtime
+/// (a "bouncy" powerup contributing a Ricochet to the owner's surface reaction). So a HitReaction defines
+/// what happens by default, and the contribution path adds more to the same reaction.
 /// </summary>
-public abstract class HitReaction : ScriptableObject
+public sealed class HitReaction
 {
-    [Tooltip("The world effects that fire, in order, when this reaction runs.")]
-    [SerializeField] private List<WorldEffect> effects = new();
+    readonly List<IEffect> _effects = new();
 
-    /// <summary>The effects this reaction runs, in order.</summary>
-    public IReadOnlyList<WorldEffect> Effects => effects;
+    public IReadOnlyList<IEffect> Effects => _effects;
+    public int Count => _effects.Count;
 
-    /// <summary>Run every effect against the hit context, in author order. Null entries are skipped.</summary>
-    public void React(in EffectContext ctx)
+    /// <summary>Append an effect (null ignored). Returns this for chaining in a type's default builder.</summary>
+    public HitReaction Add(IEffect effect)
     {
-        for (int i = 0; i < effects.Count; i++)
-            effects[i]?.Apply(in ctx);
+        if (effect != null) _effects.Add(effect);
+        return this;
     }
 
     /// <summary>
-    /// Build a runtime reaction of the given category from a set of effects, in code rather than as an
-    /// authored asset. Used by tests and by systems that compose reactions at runtime.
+    /// Run every effect in order against the context. <paramref name="stop"/> is checked AFTER each effect
+    /// (e.g. <c>() =&gt; projectile.IsDead</c>) so a reaction can short-circuit when the invoker dies mid-list,
+    /// matching the old ServerCollision behaviour.
     /// </summary>
-    public static T CreateRuntime<T>(params WorldEffect[] effects) where T : HitReaction
+    public void Run(IEffectContext ctx, Func<bool> stop = null)
     {
-        var reaction = CreateInstance<T>();
-        reaction.effects = new List<WorldEffect>(effects);
-        return reaction;
+        for (int i = 0; i < _effects.Count; i++)
+        {
+            _effects[i].Apply(ctx);
+            if (stop != null && stop()) break;
+        }
     }
 }
 
-/// <summary>A reaction slottable only where a SURFACE (non-player world geometry) hit is handled.</summary>
-[CreateAssetMenu(menuName = "Arena/Hit Reactions/Surface", fileName = "SurfaceHitReaction")]
-public sealed class SurfaceHitReaction : HitReaction { }
-
-/// <summary>A reaction slottable only where a PROJECTILE-vs-projectile hit is handled.</summary>
-[CreateAssetMenu(menuName = "Arena/Hit Reactions/Projectile", fileName = "ProjectileHitReaction")]
-public sealed class ProjectileHitReaction : HitReaction { }
-
-/// <summary>A reaction slottable only where an ENEMY (player) hit is handled.</summary>
-[CreateAssetMenu(menuName = "Arena/Hit Reactions/Enemy", fileName = "EnemyHitReaction")]
-public sealed class EnemyHitReaction : HitReaction { }
+/// <summary>
+/// The three per-category reactions a projectile runs, grouped. A type fills these in code; ServerCollision
+/// runs the one matching the classified hit, then runs the owner's contributed reaction for that category.
+/// The category lives in the field you add to (you can't mis-slot a surface effect into the enemy list), so
+/// the old typed marker subclasses (SurfaceHitReaction/EnemyHitReaction/ProjectileHitReaction) are gone.
+/// </summary>
+public sealed class ProjectileReactions
+{
+    public readonly HitReaction OnSurface = new();
+    public readonly HitReaction OnEnemy = new();
+    public readonly HitReaction OnProjectile = new();
+}

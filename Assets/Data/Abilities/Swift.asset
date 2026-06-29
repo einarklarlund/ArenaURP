@@ -20,9 +20,8 @@ MonoBehaviour:
   GravityMultiplier: 1
   FireRateMultiplier: 1
   SpreadMultiplier: 1
-  ProjectileOnEnemy: []
-  ProjectileOnSurface: []
-  ProjectileOnProjectile: []
+  BonusEnemyDamage: 0
+  GrantsRicochet: 0
   references:
     version: 2
     RefIds: []

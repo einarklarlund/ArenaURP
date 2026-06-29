@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Arena.NetworkedMotion;
 using FishNet.Object;
 using UnityEngine;
@@ -7,17 +6,17 @@ using SC = Arena.ServerCollision;
 /// <summary>
 /// The server-only collision driver of a projectile. Each tick it advances the sibling
 /// <see cref="NetworkedMotion"/>'s age, casts the world broadphase and overlaps the projectile broadphase
-/// itself (the physics that used to live in ProjectileWorldProvider), classifies each hit with the pure
-/// <see cref="SC.ServerCollisionProcessor"/>, and runs the matching authored <see cref="HitReaction"/>
-/// list — the projectile's, then the owner's (passive abilities, looked up server-side). The reactions run
-/// their Unity-coupled <see cref="WorldEffect"/>s against an <see cref="EffectContext"/> carrying BOTH
-/// colliding GameObjects + the resolved attacker.
+/// itself, classifies each hit with the pure <see cref="SC.ServerCollisionProcessor"/>, and runs the
+/// matching <see cref="HitReaction"/> — the projectile type's defaults (built in code), then the owner's
+/// runtime contributions (passive abilities / powerups, looked up server-side). The reactions run their
+/// Unity-coupled <see cref="IEffect"/>s against a <see cref="CollisionContext"/> carrying both colliding
+/// GameObjects + the resolved attacker.
 ///
-/// It holds no ProjectileType: its collision radius + reaction lists are INJECTED by
-/// <c>ProjectileType.Initialize</c> via <see cref="Configure"/> (server-side at spawn); kinematics
-/// (lifetime/movement/range) come from the sibling motion's <see cref="MotionConfig"/>. Collision is
-/// SERVER-AUTHORITATIVE and not predicted, so effects perform their I/O directly. Despawn is driven here
-/// off the sibling <see cref="Health"/> reaching zero, or the motion config's lifetime.
+/// It holds no ProjectileType: its collision radius + default reactions are INJECTED by
+/// <c>ProjectileType.Initialize</c> via <see cref="Configure"/> (server-side at spawn); kinematics come from
+/// the sibling motion's <see cref="MotionConfig"/>. Collision is SERVER-AUTHORITATIVE and not predicted, so
+/// effects perform their I/O directly. Despawn is driven here off the sibling <see cref="Health"/> reaching
+/// zero, or the motion config's lifetime.
 /// </summary>
 public sealed class ServerCollision : NetworkBehaviour
 {
@@ -32,9 +31,7 @@ public sealed class ServerCollision : NetworkBehaviour
 
     // Collision config injected by ProjectileType.Initialize (server-side at spawn).
     private float _radius;
-    private List<SurfaceHitReaction> _onSurface;
-    private List<EnemyHitReaction> _onEnemy;
-    private List<ProjectileHitReaction> _onProjectile;
+    private ProjectileReactions _defaults;
 
     // Projectile-channel one-shot-on-enter dedupe guard (was ProjectileState.LastHitProjectileId).
     private int _guard = SC.ServerCollisionProcessor.NoGuard;
@@ -50,13 +47,11 @@ public sealed class ServerCollision : NetworkBehaviour
         _ownership = GetComponent<NetPlayerOwnership>();
     }
 
-    /// <summary>Server: inject the projectile type's collision radius + reaction lists at spawn.</summary>
-    public void Configure(float radius, List<SurfaceHitReaction> onSurface, List<EnemyHitReaction> onEnemy, List<ProjectileHitReaction> onProjectile)
+    /// <summary>Server: inject the projectile type's collision radius + code-built default reactions at spawn.</summary>
+    public void Configure(float radius, ProjectileReactions defaults)
     {
         _radius = radius;
-        _onSurface = onSurface;
-        _onEnemy = onEnemy;
-        _onProjectile = onProjectile;
+        _defaults = defaults;
     }
 
     public override void OnStartServer()
@@ -112,16 +107,17 @@ public sealed class ServerCollision : NetworkBehaviour
         if (CastWorld(from, to, _radius, out SC.WorldHit hit, out GameObject hitObject) &&
             SC.ServerCollisionProcessor.TryClassifyWorldHit(in state, ownerId, vel, in hit, out SC.HitInfo worldInfo))
         {
-            var ctx = new EffectContext(gameObject, hitObject, worldInfo.Point, worldInfo.Normal, worldInfo.Direction, ownerId, owner);
+            var ctx = new CollisionContext(gameObject, hitObject, ownerId, owner,
+                worldInfo.Point, worldInfo.Normal, worldInfo.Direction);
             if (worldInfo.Category == SC.HitCategory.Enemy)
             {
-                RunReactions(_onEnemy, in ctx);
-                RunReactions(ownerReactions.OnEnemy, in ctx);
+                RunReaction(_defaults?.OnEnemy, ctx);
+                RunReaction(ownerReactions.OnEnemy, ctx);
             }
             else
             {
-                RunReactions(_onSurface, in ctx);
-                RunReactions(ownerReactions.OnSurface, in ctx);
+                RunReaction(_defaults?.OnSurface, ctx);
+                RunReaction(ownerReactions.OnSurface, ctx);
             }
         }
 
@@ -152,9 +148,10 @@ public sealed class ServerCollision : NetworkBehaviour
                 continue;
             }
 
-            var ctx = new EffectContext(gameObject, other.gameObject, info.Point, info.Normal, info.Direction, selfOwnerId, owner);
-            RunReactions(_onProjectile, in ctx);
-            RunReactions(ownerReactions.OnProjectile, in ctx);
+            var ctx = new CollisionContext(gameObject, other.gameObject, selfOwnerId, owner,
+                info.Point, info.Normal, info.Direction);
+            RunReaction(_defaults?.OnProjectile, ctx);
+            RunReaction(ownerReactions.OnProjectile, ctx);
 
             if (firstHandled < 0)
                 firstHandled = other.Id;
@@ -167,10 +164,9 @@ public sealed class ServerCollision : NetworkBehaviour
 
     private bool WantsProjectileChannel(in OwnerReactions owner)
     {
-        if (_onProjectile != null && _onProjectile.Count > 0)
+        if (_defaults != null && _defaults.OnProjectile.Count > 0)
             return true;
-        var op = owner.OnProjectile;
-        return op != null && op.Count > 0;
+        return owner.OnProjectile != null && owner.OnProjectile.Count > 0;
     }
 
     // ---- broadphase (the physics formerly in ProjectileWorldProvider) ----
@@ -208,7 +204,7 @@ public sealed class ServerCollision : NetworkBehaviour
         return written;
     }
 
-    // ---- owner lookup (server-side; the owner's reactions are never payloaded) ----
+    // ---- owner lookup (server-side; the owner's effects are never payloaded) ----
 
     private NetworkPlayerManager Players => _players != null
         ? _players
@@ -235,28 +231,11 @@ public sealed class ServerCollision : NetworkBehaviour
 
     // ---- reaction running (short-circuits if the projectile dies mid-list) ----
 
-    private void RunReactions<T>(List<T> reactions, in EffectContext ctx) where T : HitReaction
+    private void RunReaction(HitReaction reaction, IEffectContext ctx)
     {
-        if (reactions == null)
+        if (reaction == null || reaction.Count == 0)
             return;
-        for (int i = 0; i < reactions.Count; i++)
-        {
-            reactions[i]?.React(in ctx);
-            if (IsDead())
-                break;
-        }
-    }
-
-    private void RunReactions(IReadOnlyList<HitReaction> reactions, in EffectContext ctx)
-    {
-        if (reactions == null)
-            return;
-        for (int i = 0; i < reactions.Count; i++)
-        {
-            reactions[i]?.React(in ctx);
-            if (IsDead())
-                break;
-        }
+        reaction.Run(ctx, IsDead);
     }
 
     private bool IsDead() => _health != null && _health.IsDead;

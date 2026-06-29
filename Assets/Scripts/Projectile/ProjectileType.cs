@@ -1,19 +1,17 @@
-using System.Collections.Generic;
 using Arena.NetworkedMotion;
 using UnityEngine;
 
 /// <summary>
 /// Shared, immutable-at-runtime per-kind projectile data (Type Object + Flyweight): one asset per
-/// projectile kind (bullet, grenade, laser, arc, homing). A projectile is a COMPOSITION of generic
-/// systems (NetworkedMotion / ServerCollision / Health / Damage); this type configures each of them and
-/// supplies the hit reactions.
+/// projectile kind (bullet, grenade, laser, arc, homing). A projectile is a COMPOSITION of generic systems
+/// (NetworkedMotion / ServerCollision / Health / Damage); this type configures each of them and supplies the
+/// hit reactions.
 ///
-/// Lives in the shell (not a pure-core assembly) because it references the Unity-coupled
-/// <see cref="HitReaction"/> assets. The pure motion core never sees this object — it is fed the plain
-/// <see cref="MotionConfig"/> via <see cref="ToMotionConfig"/> (the functional-core rule).
-///
-/// Hit reactions are authored as typed ScriptableObject assets per category, so a surface reaction can't
-/// be dropped into the enemy slot. Each reaction owns a reusable list of <see cref="WorldEffect"/>s.
+/// Hit reactions are defined IN CODE, not authored as asset references: <see cref="DefaultReactions"/>
+/// composes the <see cref="IEffect"/>s for each category from this asset's serialized config + feature flags
+/// (e.g. <see cref="RicochetsByDefault"/>). New kinds = new assets tuning the config; new default behaviours
+/// = a flag + a line here. Per-run powerups add MORE effects at runtime via the owner-contribution path
+/// (see PawnAbilities / OwnerReactions) — they are not flags on the type.
 /// </summary>
 [CreateAssetMenu(menuName = "Projectiles/Type", fileName = "ProjectileType")]
 public sealed class ProjectileType : ScriptableTypeObject
@@ -41,26 +39,57 @@ public sealed class ProjectileType : ScriptableTypeObject
     [Tooltip("Maximum beam length probed by the Laser strategy each step.")]
     public float MaxRange = 100f;
 
-    [Header("Hit reactions (typed per category — can't be mis-slotted)")]
-    public List<SurfaceHitReaction> OnSurface = new();
-    public List<EnemyHitReaction> OnEnemy = new();
-    public List<ProjectileHitReaction> OnProjectile = new();
+    [Header("Default reactions (feature flags)")]
+    [Tooltip("Health the projectile loses on a surface hit (1 = a normal bullet dies on contact).")]
+    public int SurfaceHealthLoss = 1;
+    [Tooltip("If set, the projectile reflects off surfaces by default (a bouncy bullet kind).")]
+    public bool RicochetsByDefault = false;
+
+    // Built once and cached — defaults are immutable flyweights; owner contributions are merged separately
+    // at hit time by ServerCollision, so this cache is never mutated per projectile.
+    ProjectileReactions _defaultReactions;
 
     /// <summary>The plain kinematics struct the pure <see cref="NetworkedMotionProcessor"/> consumes.</summary>
     public MotionConfig ToMotionConfig() => new(Movement, Acceleration, Gravity, Lifetime, MaxRange);
 
+    /// <summary>The per-category default reactions for this kind, composed in code (cached flyweight).</summary>
+    public ProjectileReactions DefaultReactions
+    {
+        get
+        {
+            if (_defaultReactions == null)
+            {
+                _defaultReactions = new ProjectileReactions();
+                BuildDefaultReactions(_defaultReactions);
+            }
+            return _defaultReactions;
+        }
+    }
+
     /// <summary>
-    /// Initialize a freshly-instantiated projectile's components from this type — the composition lives
-    /// here, not in any component. NetworkedMotion gets its motion config + speed (which then ride the
-    /// payload to every peer); ServerCollision gets the collision radius + reaction lists; Health/Damage
-    /// get their values. No component reaches into a sibling or back into this type.
+    /// Compose this kind's default effects per category from the serialized config + flags. Behaviour
+    /// variation comes from the flags, keeping kinds as ASSETS rather than subclasses.
+    /// </summary>
+    void BuildDefaultReactions(ProjectileReactions r)
+    {
+        if (SurfaceHealthLoss > 0) r.OnSurface.Add(new LoseHealth(SurfaceHealthLoss));
+        if (RicochetsByDefault) r.OnSurface.Add(new Ricochet());
+
+        // Enemy hit: deal the projectile's own Damage (read from the Damage component) and despawn on contact.
+        r.OnEnemy.Add(new DealDamage(useInvokerDamage: true, despawnAfter: true));
+    }
+
+    /// <summary>
+    /// Initialize a freshly-instantiated projectile's components from this type — the composition lives here,
+    /// not in any component. ServerCollision gets the collision radius + this kind's default reactions; the
+    /// rest get their values. No component reaches into a sibling or back into this type.
     /// </summary>
     protected override void Initialize(GameObject instance)
     {
         if (instance.TryGetComponent<NetworkedMotion>(out var motion))
             motion.Configure(ToMotionConfig(), Speed);
         if (instance.TryGetComponent<ServerCollision>(out var collision))
-            collision.Configure(Radius, OnSurface, OnEnemy, OnProjectile);
+            collision.Configure(Radius, DefaultReactions);
         if (instance.TryGetComponent<Health>(out var health))
             health.ConfigureMax(MaxHealth);
         if (instance.TryGetComponent<Damage>(out var damage))

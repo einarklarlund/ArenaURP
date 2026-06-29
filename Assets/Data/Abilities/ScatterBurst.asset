@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ActiveAbilityType
   DisplayName: Scatter Burst
   Icon: {fileID: 10911, guid: 0000000000000000f000000000000000, type: 0}
-  Effects:
-  - {fileID: 11400000, guid: 237e6d3cf32d7400db10426ec2664e7e, type: 2}
   Uses: 3
   Cooldown: 0.5
+  SpawnProjectile: {fileID: 11400000, guid: 34c1cca6fdf4841b2aa97487481889b8, type: 2}
+  SpawnCount: 12
+  SpawnSpread: 360
