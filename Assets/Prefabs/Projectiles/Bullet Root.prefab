@@ -147,10 +147,14 @@ MonoBehaviour:
   WasActiveDuringEdit: 0
   WasActiveDuringEdit_Set1: 1
   <ComponentIndex>k__BackingField: 0
-  <PredictedSpawn>k__BackingField: {fileID: 0}
+  <PredictedSpawn>k__BackingField: {fileID: 3292912973371145455}
   <PredictedOwner>k__BackingField: {fileID: 0}
   NetworkBehaviours:
-  - {fileID: 0}
+  - {fileID: 3292912973371145455}
+  - {fileID: 8129194484692066359}
+  - {fileID: 2544852967916977680}
+  - {fileID: 8355681140643816171}
+  - {fileID: 5777096885218030}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -161,7 +165,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584193318268814218
+  _initializedTimestamp: -8584188333792226918
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -180,7 +184,7 @@ MonoBehaviour:
   _spectatorInterpolation: 5
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 11
+  <PrefabId>k__BackingField: 13
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 5269950482709255815
   SceneId: 0
@@ -201,9 +205,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2b597e1828355a4d994a69cbb11ef85, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.Ownership.PredictedSpawn
-  _componentIndexCache: 255
+  _componentIndexCache: 0
   _addedNetworkObject: {fileID: -339553929967437806}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: -339553929967437806}
   _allowSpawning: 1
   _allowDespawning: 1
 --- !u!114 &8129194484692066359
@@ -218,9 +222,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a15016acb46b04ce78d92aee876e76f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkedMotion
-  _componentIndexCache: 255
+  _componentIndexCache: 1
   _addedNetworkObject: {fileID: -339553929967437806}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: -339553929967437806}
   SpawnPosition: {x: 0, y: 0, z: 0}
   SpawnForward: {x: 0, y: 0, z: 0}
 --- !u!114 &2544852967916977680
@@ -235,9 +239,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 153b53d0d88f248348baed18f5286adc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ServerCollision
-  _componentIndexCache: 255
+  _componentIndexCache: 2
   _addedNetworkObject: {fileID: -339553929967437806}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: -339553929967437806}
   worldMask:
     serializedVersion: 2
     m_Bits: 129
@@ -256,9 +260,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30372fcaa1ab24f9ea323deaf95fa649, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
-  _componentIndexCache: 255
+  _componentIndexCache: 3
   _addedNetworkObject: {fileID: -339553929967437806}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: -339553929967437806}
   maxHealth: 1
   despawnOnDeath: 0
   onServerDamage:
@@ -279,7 +283,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44ce9f2fa1c6a4bc9932aaced0df8536, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Damage
-  _amount: 1
+  _amount: 3
 --- !u!114 &5777096885218030
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -292,9 +296,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5f1165d8564240cc8c8cb91bf122049, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetPlayerOwnership
-  _componentIndexCache: 255
+  _componentIndexCache: 4
   _addedNetworkObject: {fileID: -339553929967437806}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: -339553929967437806}
   SpawnOwnerId: -1
 --- !u!114 &1301860381354357671
 MonoBehaviour:
@@ -308,7 +312,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a6f6c820cfc640c98b22306857471fc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TypeObjectRoot
-  type: {fileID: 0}
+  type: {fileID: 11400000, guid: 34c1cca6fdf4841b2aa97487481889b8, type: 2}
 --- !u!1 &7664607775731829085
 GameObject:
   m_ObjectHideFlags: 0
