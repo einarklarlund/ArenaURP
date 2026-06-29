@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0794d882253f44f9a436cc0ea4032a4, type: 3}
   m_Name: Pellet
   m_EditorClassIdentifier: Arena.Projectile.Core::Arena.Projectile.ProjectileType
-  instancePrefab: {fileID: -339553929967437806, guid: aa3d85febce664e4d819df64022d1735, type: 3}
+  instancePrefab: {fileID: -339553929967437806, guid: c8840b78ba64f44cda32ff300574a732, type: 3}
   Radius: 0.3
   MaxHealth: 4
   Damage: 3
