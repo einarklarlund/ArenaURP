@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 2a76372f94a654d758429c2235099366
+importerOverride:
+  nativeImporterType: 2089858483
+  scriptedImporterType:
+    serializedVersion: 2
+    Hash: 76c26c7ce0939c2ab215379a0120c89d
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: ee52358dbdd12400e85878d8a37c40c9, type: 3}
+  pixelsPerUnit: 100
+  filterMode: 0
+  minFrameDelay: 0.05

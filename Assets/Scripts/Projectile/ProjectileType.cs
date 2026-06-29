@@ -81,10 +81,12 @@ public sealed class ProjectileType : ScriptableTypeObject
 
     /// <summary>
     /// Initialize a freshly-instantiated projectile's components from this type — the composition lives here,
-    /// not in any component. ServerCollision gets the collision radius + this kind's default reactions; the
-    /// rest get their values. No component reaches into a sibling or back into this type.
+    /// not in any component. Called by the instance's <see cref="TypeObjectRoot"/> at Awake on every peer:
+    /// NetworkedMotion gets its motion config + speed (read locally from this SO, NOT off the wire);
+    /// ServerCollision gets the collision radius + this kind's default reactions (a harmless no-op on clients,
+    /// which never collide); Health/Damage get their values. No component reaches into a sibling or back here.
     /// </summary>
-    protected override void Initialize(GameObject instance)
+    public override void Initialize(GameObject instance)
     {
         if (instance.TryGetComponent<NetworkedMotion>(out var motion))
             motion.Configure(ToMotionConfig(), Speed);

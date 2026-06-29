@@ -14,9 +14,10 @@ using MotionCoreState = Arena.NetworkedMotion.NetworkedMotionState;
 /// (a ricochet/deflect), pushed via SyncVars.
 ///
 /// It is FULLY DECOUPLED from the projectile concept: it holds no <c>ProjectileType</c>. Its
-/// <see cref="MotionConfig"/> + initial speed are ASSIGNED by whoever spawns it (a
-/// <c>ProjectileType.Initialize</c> via <see cref="Configure"/>) and ride the spawn payload so every peer
-/// has them. It knows nothing of Health/Damage/ownership/VFX — those are other components.
+/// <see cref="MotionConfig"/> + initial speed are ASSIGNED locally on every peer by the instance's
+/// <c>TypeObjectRoot</c> (which calls <c>ProjectileType.Initialize</c> → <see cref="Configure"/>) at Awake
+/// from the baked type — so the config is NOT on the wire; only the per-spawn anchor (tick/pos/dir) rides
+/// the payload. It knows nothing of Health/Damage/ownership/VFX — those are other components.
 /// </summary>
 public sealed class NetworkedMotion : NetworkBehaviour
 {
@@ -26,7 +27,8 @@ public sealed class NetworkedMotion : NetworkBehaviour
     private readonly SyncVar<float> _segSpeed = new();
     private readonly SyncVar<float> _segAge = new();
 
-    // Motion parameters, assigned by the spawning type via Configure and carried on the payload.
+    // Motion parameters: instance-lifetime config, set once locally by the TypeObjectRoot via Configure.
+    // NOT on the payload and NOT wiped on despawn — prefab-per-kind fixes a pooled instance's kind forever.
     private MotionConfig _config;
     private float _initialSpeed;
 
@@ -45,8 +47,9 @@ public sealed class NetworkedMotion : NetworkBehaviour
     public MotionCoreState State => _state;
 
     /// <summary>
-    /// Assign the motion parameters (from the spawning type) before <c>ServerManager.Spawn</c>. They are
-    /// serialized on the payload so observers receive them with the spawn.
+    /// Assign the motion parameters from the type. Called by the instance's <c>TypeObjectRoot</c> at Awake
+    /// on every peer (before the payload + OnStartNetwork), so these are present when <see cref="OnStartNetwork"/>
+    /// seeds the state. Read locally from the baked SO — never serialized over the network.
     /// </summary>
     public void Configure(MotionConfig config, float initialSpeed)
     {
@@ -74,17 +77,12 @@ public sealed class NetworkedMotion : NetworkBehaviour
             transform.rotation = Quaternion.LookRotation(SpawnForward);
     }
 
-    // ---- spawn payload (immutable initial data; seeds the predicting owner + all observers) ----
+    // ---- spawn payload: the PER-SPAWN ANCHOR only (tick/pos/dir). Config is set locally by the
+    //      TypeObjectRoot from the baked SO, so it is deliberately NOT on the wire. ----
 
     public override void WritePayload(NetworkConnection connection, Writer writer)
     {
         base.WritePayload(connection, writer);
-        writer.WriteInt32((int)_config.Movement);
-        writer.WriteSingle(_config.Acceleration);
-        writer.WriteSingle(_config.Gravity);
-        writer.WriteSingle(_config.Lifetime);
-        writer.WriteSingle(_config.MaxRange);
-        writer.WriteSingle(_initialSpeed);
         writer.WritePreciseTick(SpawnTick);
         writer.WriteVector3(SpawnPosition);
         writer.WriteVector3(SpawnForward);
@@ -93,13 +91,6 @@ public sealed class NetworkedMotion : NetworkBehaviour
     public override void ReadPayload(NetworkConnection connection, Reader reader)
     {
         base.ReadPayload(connection, reader);
-        var movement = (MotionKind)reader.ReadInt32();
-        float acceleration = reader.ReadSingle();
-        float gravity = reader.ReadSingle();
-        float lifetime = reader.ReadSingle();
-        float maxRange = reader.ReadSingle();
-        _config = new MotionConfig(movement, acceleration, gravity, lifetime, maxRange);
-        _initialSpeed = reader.ReadSingle();
         SpawnTick = reader.ReadPreciseTick();
         SpawnPosition = reader.ReadVector3();
         SpawnForward = reader.ReadVector3();
@@ -196,10 +187,11 @@ public sealed class NetworkedMotion : NetworkBehaviour
     public override void ResetState(bool asServer)
     {
         base.ResetState(asServer);
+        // Reset per-spawn + working state only. _config / _initialSpeed are INSTANCE-LIFETIME (set once by
+        // the TypeObjectRoot at Awake, which pooling does not re-run) — wiping them would leave a reused
+        // pooled instance unconfigured, since the config no longer arrives on the payload.
         _state = default;
         _initialized = false;
-        _config = default;
-        _initialSpeed = 0f;
         SpawnTick = default;
         SpawnPosition = Vector3.zero;
         SpawnForward = Vector3.zero;

@@ -74,3 +74,10 @@ A project-aware Unity MCP server is available (tools named `mcp__unity__*`, sche
 - Project-wide listings (`list_prefabs`, `list_scriptable_objects`, `list_all_scenes`, etc.) are faster and more reliable than `find` for typed Unity assets.
 
 Grow this section as we hit gotchas — surprising tool behaviors, MCP queries that paid off, paths/conventions that aren't obvious from tool names alone.
+
+### Unity MCP gotchas hit so far
+
+- **`unity_execute_code` runs as a method body, not a file.** No top-level `using` directives — fully-qualify (`UnityEditor.AssetDatabase`, `UnityEngine.Object`) and disambiguate `Object`. `return` to send JSON back.
+- **Creating a prefab variant in code:** instantiate the base with `PrefabUtility.InstantiatePrefab(baseGo)` (a *connected* instance), modify it, then `PrefabUtility.SaveAsPrefabAsset(instance, newPath)` — saving a connected instance to a new path produces a Variant. Wire serialized refs with `SerializedObject`/`FindProperty`/`ApplyModifiedPropertiesWithoutUndo`.
+- **Scene NetworkObjects need a baked SceneId.** A NetworkObject created via script + `EditorSceneManager.SaveScene` ships with `SceneId=0` / `IsSceneObject=false`, so FishNet refuses to spawn it. Bake it: make the scene the ACTIVE scene (`SceneManager.SetActiveScene`), then call `NetworkObject.CreateSceneId(scene, force:true, out _)` (internal static, via reflection) and re-save. The active-scene context is required — it NREs otherwise.
+- **Author scenes additively to protect the open (possibly dirty) scene.** `EditorSceneManager.NewScene(..., NewSceneMode.Additive)` + `SceneManager.MoveGameObjectToScene` + `SaveScene` + `CloseScene`, restoring the previous active scene. Never `OpenScene(..., Single)` on a dirty editor.
