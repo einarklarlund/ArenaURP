@@ -141,10 +141,15 @@ per-spawn payload is applied and before any component's `OnStartNetwork`.)
 peer); `Initialize` *pushes* plain config into the leaves. Per-instance state still stays on the instance.
 
 **This requires prefab-per-kind.** Baking a single `type` ref into the root only works if each kind has its
-own prefab (a prefab variant is the cheap way). A *shared* prefab across kinds can't bake one ref, so it
-falls back to syncing a type **index** and resolving the SO in the root once the index arrives — keep that
-init **idempotent** and re-runnable from the index's `OnChange`. Prefer prefab-per-kind; it's the only
-shape that takes config fully off the wire.
+own prefab. **Use an independent prefab COPY per kind, NOT a prefab variant** — FishNet prefab *variants*
+inherit the base's serialized `PrefabId`, so two kinds collide on one id and spawn resolution breaks (the
+generator won't reassign a variant's id; an independent copy gets a fresh one). Duplicate `Bullet Root` →
+`Types/<Kind>.prefab`, bake the kind's `type` on each copy's root, repoint each `ProjectileType.InstancePrefab`,
+then run **Tools/Fish-Networking/Utility/Refresh Default Prefabs** so each copy lands at a distinct
+collection index (its runtime PrefabId). A *shared* prefab across kinds can't bake one ref, so it falls back
+to syncing a type **index** and resolving the SO in the root once the index arrives — keep that init
+**idempotent** and re-runnable from the index's `OnChange`. Prefer prefab-per-kind; it's the only shape that
+takes config fully off the wire.
 
 **Consistency guard:** the ref is now bidirectional (`type.InstancePrefab` ⇄ the prefab's
 `TypeObjectRoot.type`); a mismatch under prefab-per-kind silently configures the wrong kind. Add an
