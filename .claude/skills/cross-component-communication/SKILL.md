@@ -108,6 +108,14 @@ works — an instance event over a static bus — because narrower scope is less
 reason about. Reach past an instance event to the static bus *only* when the listener genuinely can't
 hold a reference to the producer (decoupled UI).
 
+**Where the `+=` lives — the composition root.** When two siblings on one prefab need wiring (A's handler
+subscribes to B's event), don't let each component reach out and subscribe in its own `Awake` — that
+scatters the graph and makes teardown easy to forget. Wire it in the prefab's **composition root** (the
+`TypeObjectRoot` / initializer that already hands components their config — see [[type-object-pattern]]):
+the root subscribes the handlers, and the root's `OnDestroy`/`OnStopNetwork` owns the matching `-=`. One
+place knows the prefab's internal event graph, the same way `MatchMediator` owns the manager graph. The
+leaf components stay ignorant of each other.
+
 **Two mandatory disciplines for Family B:**
 - Every `+=` has a matching `-=` in teardown (`OnDestroy`/`OnDisable`/`OnStopServer`). Forgetting is
   the classic Unity leak/null-ref.

@@ -1,6 +1,6 @@
 ---
 name: type-object-pattern
-description: This project's house rules for the Nystrom / Gang-of-Four TYPE OBJECT pattern — the per-kind ScriptableObject (ProjectileType, AbilityType, WeaponType). Reach for this whenever you have, or expect, a FAMILY of many kinds of one conceptual thing (projectile/ability/enemy/item/spell types) that share a common runtime shape, and you want to add new kinds by AUTHORING AND COMPOSING an asset rather than writing a bespoke subclass per kind — and you're deciding how to structure that type. Kinds here MAY differ in behaviour, not just data: behaviour comes from the kind's instance prefab (any MonoBehaviour components) and from pluggable command/strategy SO assets on its config. A type is a ScriptableObject holding the type's shared CONFIGURATION (immutable-at-runtime per-kind data) AND whatever visual/resource data it needs directly (UI sprites, sounds), plus a prefab field that is the template for the in-game instance. Per-INSTANCE state never lives on the SO — it lives on the instantiated prefab (graphics, runtime state, thin behaviour components). Processor purity is preserved by feeding the pure core a plain config struct, NOT by stripping asset refs off the SO. Also covers an abstract ScriptableTypeObject base (instance prefab + a Create/Initialize method) and splitting a type's instance into reusable, type-agnostic components that the type's initializer configures by pushing config in — the components never reference the type — wired in code (UnityEvents only for the view layer). Biased for a SOLO, code-first Unity dev using the Processor + thin-MonoBehaviour pattern over FishNet. Use this BEFORE creating or extending a ScriptableObject "type", applying the Type Object pattern, modeling an in-game instance of one, or splitting a fat NetworkBehaviour into components. The general pattern catalogue is [[game-programming-patterns]]; this is the concrete house implementation of its Type Object entry. Pairs with [[scriptableobject-commands]] for authoring the pluggable behaviours themselves.
+description: This project's house rules for the Nystrom / Gang-of-Four TYPE OBJECT pattern — the per-kind ScriptableObject (ProjectileType, AbilityType, WeaponType). Reach for this whenever you have, or expect, a FAMILY of many kinds of one conceptual thing (projectile/ability/enemy/item/spell types) that share a common runtime shape, and you want to add new kinds by AUTHORING AND COMPOSING an asset rather than writing a bespoke subclass per kind — and you're deciding how to structure that type. Kinds here MAY differ in behaviour, not just data: behaviour comes from the kind's instance prefab (any MonoBehaviour components) and from pluggable command/strategy SO assets on its config. A type is a ScriptableObject holding the type's shared CONFIGURATION (immutable-at-runtime per-kind data) AND whatever visual/resource data it needs directly (UI sprites, sounds), plus a prefab field that is the template for the in-game instance. Per-INSTANCE state never lives on the SO — it lives on the instantiated prefab (graphics, runtime state, thin behaviour components). Processor purity is preserved by feeding the pure core a plain config struct, NOT by stripping asset refs off the SO. Also covers an abstract ScriptableTypeObject base (instance prefab + a public Initialize method) self-triggered by ONE generic dumb composition-root MonoBehaviour on the instance prefab (holding the base-typed SO ref baked in, prefab-per-kind) so the instance initializes itself on every peer — which is what makes client-predicted spawn correct without putting config on the wire — and splitting a type's instance into reusable, type-agnostic components that the initializer configures by pushing config in (the leaf components never reference the type; only the root does), wired in code (UnityEvents only for the view layer). Biased for a SOLO, code-first Unity dev using the Processor + thin-MonoBehaviour pattern over FishNet. Use this BEFORE creating or extending a ScriptableObject "type", applying the Type Object pattern, modeling an in-game instance of one, or splitting a fat NetworkBehaviour into components. The general pattern catalogue is [[game-programming-patterns]]; this is the concrete house implementation of its Type Object entry. Pairs with [[scriptableobject-commands]] for authoring the pluggable behaviours themselves.
 ---
 
 # The Type Object pattern, the house way: SO config + prefab instances (curated for a solo, code-first Unity dev)
@@ -78,29 +78,25 @@ SO pure. So: a type lives wherever it must to own its own resources — anything
 belongs in the shell, not a pure-Core assembly. (See [[scriptableobject-commands]] for the provider's
 removal.)
 
-## Rule 3 — the TYPE configures the instance; components never reference the type
+## Rule 3 — the instance self-initializes from its type via ONE dumb composition root
 
-The instantiation + initialization lives on the type, behind a shared base — `ScriptableTypeObject`:
+The type still owns the composition logic; a single generic component on the instance — the **composition
+root** — *triggers* it. The base is data + one contract method (no `Create`, no `NetworkManager`):
 
 ```csharp
 public abstract class ScriptableTypeObject : ScriptableObject {
-    [SerializeField] NetworkObject instancePrefab;          // the type owns its prefab
+    [SerializeField] NetworkObject instancePrefab;          // the type owns its prefab (data)
     public NetworkObject InstancePrefab => instancePrefab;
 
-    // pooled-instantiate + initialize from this type's data; caller does the network Spawn
-    public NetworkObject Create(NetworkManager m, Vector3 pos, Quaternion rot, bool asServer) {
-        var nob = m.GetPooledInstantiated(instancePrefab, pos, rot, asServer);
-        Initialize(nob.gameObject);
-        return nob;
-    }
-    protected abstract void Initialize(GameObject instance);
+    // the composition: push each component's config in. PUBLIC so the root can call it.
+    public abstract void Initialize(GameObject instance);
 }
 ```
 
 The concrete type's `Initialize` **pushes** each component's config in — the type knows the composition:
 
 ```csharp
-protected override void Initialize(GameObject instance) {              // ProjectileType
+public override void Initialize(GameObject instance) {                 // ProjectileType
     if (instance.TryGetComponent<NetworkedMotion>(out var m)) m.Configure(ToMotionConfig(), Speed);
     if (instance.TryGetComponent<ServerCollision>(out var c)) c.Configure(Radius, OnSurface, OnEnemy, OnProjectile);
     if (instance.TryGetComponent<Health>(out var h))          h.ConfigureMax(MaxHealth);
@@ -108,15 +104,55 @@ protected override void Initialize(GameObject instance) {              // Projec
 }
 ```
 
-This inverts the obvious-but-wrong instinct: **components do NOT hold a `type` reference and do NOT read
-"their slice" of the SO.** They are generic and type-agnostic (`NetworkedMotion` knows nothing about
-projectiles); the type is the single place that knows the whole composition and wires it. The *spawner*
-(a weapon, an effect) just calls `type.Create(...)` and never learns what components the instance has —
-funnel every spawn through one helper (we use `ProjectileSpawner`) so no field is forgotten.
+The composition root is **one generic `MonoBehaviour`, reused across every type family** — *dumb about
+which kind it is*. It holds a **base-typed** `ScriptableTypeObject` ref (baked into the prefab) and does
+nothing but call `Initialize` on itself, once, in `Awake`:
 
-**Why push, not read:** centralizing in `Initialize` keeps each component reusable across kinds (and
-across entirely different type families later), and removes the circular `prefab ⇄ SO` reference that a
-`type` field on the prefab creates. Per-instance state still stays on the instance for its lifetime.
+```csharp
+public sealed class TypeObjectRoot : MonoBehaviour {
+    [SerializeField] ScriptableTypeObject type;   // baked per prefab-variant; the ONLY type ref on the instance
+    bool _initialized;
+    void Awake() {                                 // runs on EVERY peer, before SetupSpawn + OnStartNetwork
+        if (_initialized || type == null) return;
+        _initialized = true;
+        type.Initialize(gameObject);
+    }
+}
+```
+
+**Why the instance self-inits instead of the spawner doing it — this is the load-bearing reason, not a
+nicety.** Initialization must be driven by the spawned object on every peer, *not* by whoever spawned it,
+because the spawner's code only runs on the spawning peer. With client-predicted spawns, a predicting
+client's weapon configures its local copy; the server and the other observers instantiate the prefab and
+**never run that code**. Self-init in the root — pulling config from the baked SO locally at `Awake` — is
+the only thing that makes all peers agree *without putting the config on the wire*. (`Awake` runs
+synchronously inside `GetPooledInstantiated` / FishNet's spawn instantiation, so config is set before the
+per-spawn payload is applied and before any component's `OnStartNetwork`.)
+
+**Two halves of the old rule — one survives, one inverts:**
+- ✅ *survives*: the **leaf** components are still generic and type-agnostic (`NetworkedMotion` knows
+  nothing about projectiles) and still get their config **pushed** by `Initialize`. They never reference
+  the type. Centralizing in `Initialize` keeps them reusable across kinds and across whole families.
+- 🔄 *inverts*: we deliberately reintroduce the `prefab → SO` reference we used to forbid — but confined to
+  **exactly one** component (the root), base-typed. That one designated GameObject "is" the type object;
+  every other component stays ignorant. This is the trade that buys correct predicted spawn.
+
+**Pull at the boundary, push internally:** the root *pulls* one ref from the SO (resolved locally per
+peer); `Initialize` *pushes* plain config into the leaves. Per-instance state still stays on the instance.
+
+**This requires prefab-per-kind.** Baking a single `type` ref into the root only works if each kind has its
+own prefab (a prefab variant is the cheap way). A *shared* prefab across kinds can't bake one ref, so it
+falls back to syncing a type **index** and resolving the SO in the root once the index arrives — keep that
+init **idempotent** and re-runnable from the index's `OnChange`. Prefer prefab-per-kind; it's the only
+shape that takes config fully off the wire.
+
+**Consistency guard:** the ref is now bidirectional (`type.InstancePrefab` ⇄ the prefab's
+`TypeObjectRoot.type`); a mismatch under prefab-per-kind silently configures the wrong kind. Add an
+`OnValidate` on the root asserting `type.InstancePrefab` resolves back to itself.
+
+**The spawner shrinks** to per-spawn concerns only — it pooled-instantiates `type.InstancePrefab`, stamps
+ownership + the per-spawn anchor, and network-spawns; it does **not** initialize. Funnel every spawn
+through one helper (`ProjectileSpawner`) so no per-spawn field is forgotten.
 
 ## Rule 4 — processor purity ≠ SO purity
 
@@ -136,20 +172,38 @@ destructibles, projectiles all want `Health`). The projectile splits into **gene
 components, each configured by `ProjectileType.Initialize` (Rule 3) — none holds a `ProjectileType`:
 
 - **`NetworkedMotion`** — generic deterministic closed-form motion (`PositionAt(age)`); runs on every peer
-  with nothing synced per tick. It holds a `MotionConfig` *value*, assigned via `Configure(config, speed)`.
+  with nothing synced per tick. It holds a `MotionConfig` *value*, assigned via `Configure(config, speed)`
+  by the root at `Awake` — **not** carried on the payload.
 - **`ServerCollision`** — server-only. Casts each tick, classifies the hit (owner-safe enemy/surface/
   projectile via a pure processor), and runs the matching **injected** reaction list directly. Its radius +
-  reaction lists are pushed in via `Configure(...)`.
+  reaction lists are pushed in via `Configure(...)`; configuring it on a client is a harmless no-op because
+  it only *acts* server-side (it gates its own behaviour, so `Initialize` stays peer-agnostic).
 - **`Health`** / **`Damage`** — data holders (`SyncVar<int> Hp` / `int Amount`), seeded via
   `ConfigureMax` / `Amount`. Reactions read/write them.
 
-**The networking sub-rule — push config so it reaches the right peers:** state that *every peer* needs to
-render deterministically (the motion config) is written into the **spawn payload** by `Initialize` on the
-server/predicting peer, so observers receive it with the spawn — the component never reads the SO per-peer.
-State that is *server-only* (collision radius + reaction lists) is simply injected; it needs no payload
-because only the server collides. This is why `NetworkedMotion` carries a `MotionConfig` it can serialize
-rather than a `ProjectileType` reference: a generic component + a paid-for-once payload beats every peer
-resolving a type.
+**The networking sub-rule — THREE data classes, each with a different home:**
+
+1. **Per-kind type config** (radius, speed, damage, reaction lists) → the root reads it from the **baked SO
+   locally on every peer** at `Awake`. **Nothing on the wire.**
+2. **Per-spawn anchor** (spawn tick, origin, direction, owner id) → genuinely per-shot and not in the SO, so
+   it **still rides the spawn payload**, written by the spawner before `Spawn`. The root can't conjure it.
+3. **Server-only runtime** (collision casting) → configured everywhere but gated by its own `IsServer`
+   behaviour, so no payload and no `IsServer` flag in `Initialize`.
+
+So `NetworkedMotion` carries its `MotionConfig` as a local value seeded from the SO (class 1), while its
+*anchor* — spawn tick/pos/dir — stays on the payload (class 2). This is the migration's win: a generic
+component + a baked SO ref beats every peer paying for the config on every spawn, **and** it's the only
+shape that survives predicted spawn (where the observer's payload may be all it gets).
+
+**Instance-lifetime config vs spawn-lifetime state — the pooling rule.** Because the root configures **once
+at `Awake`** (and pooling does **not** re-run `Awake` on reuse), a component configured by `Initialize`
+must treat that config as **instance-lifetime: set once, never wiped in `ResetState`/despawn.** Only
+per-spawn and runtime state is reset. This is safe precisely because prefab-per-kind fixes a pooled
+instance's kind forever (a fireball prefab is always a fireball). Concretely: `NetworkedMotion.ResetState`
+resets the anchor + working state but **must not** clear `_config`/`_initialSpeed`. (Caveat: a field that
+is *both* config and runtime-mutated — e.g. a projectile whose own `Damage.Amount` gets buffed mid-flight —
+can't be instance-lifetime; re-seed it per spawn. Today only the *pawn's* Damage is buffed, not a
+projectile's, so projectile `Damage.Amount` is seeded once and left alone.)
 
 **Wire gameplay in code, NOT inspector UnityEvents.** Direct calls / injected lists / typed C# delegates
 are compile-checked, refactor-safe, testable, and respect the server-authoritative boundary. **Reserve
@@ -168,10 +222,13 @@ server-only.** For a *predicted* (Rigidbody/`[Replicate]`) entity the constraint
 2. Per-kind, immutable at runtime? → config field on the SO. Per-instance, mutable? → on the instance
    prefab or in a `State` struct, never the SO.
 3. Needs visuals (sprite/sound)? → **directly on the SO**. Needs to exist in the world? → a **`NetworkObject`
-   prefab field on the SO** (put the type in the shell so it can hold it); spawn via `type.Create()`, whose
-   `Initialize` **pushes** config into the instance's components. No catalogs, no provider.
+   prefab field on the SO** (put the type in the shell so it can hold it), with a **`TypeObjectRoot`** on
+   the prefab holding the SO ref baked in (**prefab-per-kind**). The root calls the SO's `Initialize` in
+   `Awake`; the spawner pooled-instantiates `InstancePrefab` and never initializes. No catalogs, no provider,
+   no `Create`.
 4. Splitting the instance into components? → make them **generic and type-agnostic** and have the type's
-   `Initialize` configure them (they never reference the type); wire gameplay in code, view via UnityEvents;
-   put all-peer deterministic state on the payload, server-only state injected; keep the server/everyone
-   boundary the current code draws.
+   `Initialize` configure them (they never reference the type — only the one root holds it); wire gameplay in
+   code, view via UnityEvents. Sort each datum into the three classes: **type config → local from SO**,
+   **per-spawn anchor → payload**, **server-only → gated behaviour**. Treat pushed config as
+   instance-lifetime — never wiped in `ResetState`.
 5. Pure processor involved? → it gets a **config struct**, not the SO. Don't strip the SO to get purity.

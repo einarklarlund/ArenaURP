@@ -1,34 +1,26 @@
-using FishNet.Managing;
 using FishNet.Object;
 using UnityEngine;
 
 /// <summary>
-/// Base for a Type Object that owns a networked INSTANCE prefab and knows how to build + initialize one
-/// (Type Object + Flyweight). A type holds the per-kind config; <see cref="Create"/> pooled-instantiates
-/// the instance prefab and lets the concrete type assign its components' defaults from that config — so
-/// the thing that spawns an instance does NOT need to know the instance's component composition, and the
-/// components stay decoupled from the type. (The networked Spawn is left to the caller so it can choose
-/// the predicting vs. authoritative path.)
+/// Base for a Type Object that owns a networked INSTANCE prefab and knows how to configure one (Type Object
+/// + Flyweight). A type is data: the per-kind config plus the <see cref="InstancePrefab"/> template. It does
+/// NOT instantiate or spawn — the spawner pooled-instantiates <see cref="InstancePrefab"/>, and the prefab's
+/// generic <see cref="TypeObjectRoot"/> calls <see cref="Initialize"/> on itself at Awake (on every peer).
+/// The components stay decoupled from the type; only the root references it.
 /// </summary>
 public abstract class ScriptableTypeObject : ScriptableObject
 {
     [Header("Instance")]
-    [Tooltip("The networked prefab instantiated for this type.")]
+    [Tooltip("The networked prefab instantiated for this type. Its TypeObjectRoot holds this same type baked in.")]
     [SerializeField] private NetworkObject instancePrefab;
 
     public NetworkObject InstancePrefab => instancePrefab;
 
     /// <summary>
-    /// Pooled-instantiate the instance prefab and initialize its components from this type's data. Returns
-    /// the configured, NOT-yet-network-spawned instance — the caller calls <c>ServerManager.Spawn</c>.
+    /// Push this type's data into the freshly-instantiated instance's components — the composition lives
+    /// here, not in any component. Called by the instance's <see cref="TypeObjectRoot"/> at Awake; public so
+    /// the root can invoke it. Runs on every peer, so it must be safe off-server (server-only components gate
+    /// their own behaviour) and idempotent enough that the root's once-guard is the only call it needs.
     /// </summary>
-    public NetworkObject Create(NetworkManager manager, Vector3 position, Quaternion rotation, bool asServer)
-    {
-        NetworkObject nob = manager.GetPooledInstantiated(instancePrefab, position, rotation, asServer);
-        Initialize(nob.gameObject);
-        return nob;
-    }
-
-    /// <summary>Assign default values to the freshly-instantiated instance's components from this type's data.</summary>
-    protected abstract void Initialize(GameObject instance);
+    public abstract void Initialize(GameObject instance);
 }
