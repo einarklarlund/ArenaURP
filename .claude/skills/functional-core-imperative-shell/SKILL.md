@@ -1,6 +1,6 @@
 ---
 name: functional-core-imperative-shell
-description: Where gameplay logic GOES — in a pure "functional core" of plain functions (Arena.*.Core processors), NOT in the thin MonoBehaviour "imperative shell" (Pawn<X>) that only does I/O. Covers the default rule (any new or edited gameplay logic belongs in the Core processor; the MonoBehaviour stays a thin shell that builds an input struct, calls Process, and applies the result) AND the harder case of a core that must read the world or cause side effects without injecting an `IWorld` seam whose only second implementation is a test double. Biased for a SOLO Unity dev using the Processor + thin-MonoBehaviour pattern over FishNet prediction. Use this BEFORE adding or modifying ANY gameplay behavior in a Pawn<X> / NetworkBehaviour / MonoBehaviour — decide where the logic lives first, and default to the Core processor, not the shell. Also use whenever a Core processor needs to read the world (raycasts, neighbor queries, lookups) or cause side effects (damage, spawn, despawn, VFX); when deciding between an injected `IWorld`-style seam and a data boundary; or when you catch yourself adding an interface "so it's testable."
+description: Where gameplay logic GOES — in a pure "functional core" of plain functions (Arena.*.Core processors), NOT in the thin MonoBehaviour "imperative shell" (Pawn<X>) that only does I/O. Covers the default rule (any new or edited gameplay logic belongs in the Core processor; the MonoBehaviour stays a thin shell that builds an input struct, calls Process, and applies the result) AND the harder case of a core that must read the world or cause side effects without injecting an `IWorld` seam whose only second implementation is a test double. ALSO covers shell hygiene: validating serialized/injected references at runtime with a Debug.LogError null-guard (passing `this` as context) instead of letting a missing reference fail silently or NullReferenceException deep in a call. Biased for a SOLO Unity dev using the Processor + thin-MonoBehaviour pattern over FishNet prediction. Use this BEFORE adding or modifying ANY gameplay behavior in a Pawn<X> / NetworkBehaviour / MonoBehaviour — decide where the logic lives first, and default to the Core processor, not the shell. Also use whenever a Core processor needs to read the world (raycasts, neighbor queries, lookups) or cause side effects (damage, spawn, despawn, VFX); when deciding between an injected `IWorld`-style seam and a data boundary; when you catch yourself adding an interface "so it's testable"; or when adding a MonoBehaviour that depends on a serialized reference and you want to guard against it being unassigned.
 ---
 
 # Functional Core, Imperative Shell (curated for a solo, code-first, test-driven Unity dev)
@@ -156,6 +156,56 @@ never wrote a single test.
 
 ---
 
+## Guard the references the shell depends on (fail loud, not silent)
+
+The shell's whole job is I/O: it reads serialized inspector references and engine handles, then drives
+the core and applies the result. When one of those references is **unassigned** — a forgotten
+inspector slot, a prefab variant that didn't get wired, a `GetComponent` that returned null — the shell
+has nothing to do its job with. The two default failure modes are both bad:
+
+- **Silent no-op** — an `if (x == null) return;` that swallows the problem. The object just quietly does
+  nothing, and you debug a "why isn't this spawning / moving / configuring" ghost with no clue where to
+  look. This is the failure that bit us on `TypeObjectRoot` (a missing `type` made the instance silently
+  fail to configure itself).
+- **NullReferenceException deep in a call** — the null propagates and blows up three frames later in code
+  that looks correct, pointing the stack trace at the symptom, not the unassigned field.
+
+**Rule: any MonoBehaviour reference the object cannot function without gets a runtime null-guard that
+`Debug.LogError`s — with `this` as the context object — and then bails out of the operation.** The log
+names *which* instance and *which* field, so a misconfigured prefab/scene object is a one-line console
+fix instead of a debugging session. Passing `this` makes the log clickable straight to the offending
+object in the hierarchy.
+
+```csharp
+private void Awake()
+{
+    if (type == null)
+    {
+        Debug.LogError($"{name}: TypeObjectRoot has no 'type' assigned — this instance cannot " +
+            "configure itself. Assign the ScriptableTypeObject baked into this prefab.", this);
+        return;                       // bail; don't fall through into a guaranteed NRE
+    }
+    type.Initialize(gameObject);
+}
+```
+
+Notes:
+
+- **Log *then return*.** A guard that logs but keeps going just trades a silent bug for a logged one
+  followed by the same NRE. The `return` (or `enabled = false`, or skip-this-tick) is what makes the
+  guard actually protect the rest of the method. `TypeObjectRoot.EnsureInitialized` is the reference
+  example: it early-returns before touching `type`.
+- **Guard "cannot function without," not everything.** Genuinely optional references (an effect that's
+  fine being absent) don't need a LogError — only the ones whose absence means the object is broken.
+  Over-guarding optional fields trains you to ignore the console.
+- **Where to put it.** A field needed for the object's whole lifetime → guard once in `Awake`/`Start`/
+  `OnStartNetwork`/`OnEnable` and disable or early-return. A reference resolved per-tick or per-call →
+  guard at the call site. Either way, log once per failure, not every frame — a per-`Update` LogError
+  floods the console; cache a `_warned` bool or do the check in a one-time setup method.
+- This is **shell-only.** The pure core never holds references to guard — its inputs are structs, and a
+  missing struct field is a value, not a null reference. This rule is exactly the kind of I/O concern the
+  shell exists to own.
+
 ## Testing shape
 
 - **Functional core → EditMode unit tests.** Construct state + type + query-result structs, call the
@@ -175,3 +225,4 @@ never wrote a single test.
 - An interface keeps growing methods as the system grows? It's a Facade over "the world" in disguise — the boundary belongs as data, not behavior.
 - Reaching for PlayMode to test branchy decision logic (owner-safety, dedupe, any gating you kept)? That logic should be in the pure core and covered in EditMode; PlayMode is for the engine glue only.
 - Conversely: about to collapse four real runtime behaviors into one class with a `switch` *just* to avoid an interface? An interface with ≥2 real implementations is earned — keep it (see `IMotionStrategy`).
+- A shell MonoBehaviour with a serialized reference it *needs*, and no null-guard on it? A bare `if (x == null) return;` (silent) or no check at all (NRE later)? **Add a `Debug.LogError(..., this)` guard that names the field and bails** — fail loud, not silent. See "Guard the references the shell depends on."

@@ -28,8 +28,14 @@ public sealed class TypeObjectRoot : MonoBehaviour
     /// <summary>Configure this instance's components from its type, once. Idempotent and safe to re-call.</summary>
     public void EnsureInitialized()
     {
-        if (_initialized || type == null)
+        if (_initialized)
             return;
+        if (type == null)
+        {
+            Debug.LogError($"{name}: TypeObjectRoot has no 'type' assigned — this instance cannot configure itself. " +
+                "Assign the ScriptableTypeObject baked into this prefab.", this);
+            return;
+        }
         _initialized = true;
         type.Initialize(gameObject);
     }
