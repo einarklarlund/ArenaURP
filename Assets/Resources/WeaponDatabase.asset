@@ -13,29 +13,5 @@ MonoBehaviour:
   m_Name: WeaponDatabase
   m_EditorClassIdentifier: Assembly-CSharp::WeaponDatabase
   weapons:
-  - {fileID: 11400000, guid: 6ac216618c19d4c059a4aca10d43f52b, type: 2}
-  - {fileID: 11400000, guid: 1dd202a57cf7241ac8eeac0bc2e32d01, type: 2}
-  - {fileID: 11400000, guid: 131f2e57e478f4cf598e1b8d9e343d69, type: 2}
-  - {fileID: 11400000, guid: da369df3d863b41f987a8469af0f7045, type: 2}
-  - {fileID: 11400000, guid: 9065ab95afcb34b05920c676719ba647, type: 2}
-  - {fileID: 11400000, guid: 2e3565eecb2d749c298f540b44f04619, type: 2}
-  - {fileID: 11400000, guid: 7f7e87cf18a134da7a945410e8ce2f28, type: 2}
-  - {fileID: 11400000, guid: 2fd0ba9be3752431cac98a757fd4c059, type: 2}
-  - {fileID: 11400000, guid: 48e941893a48a4bb8855fa5adce7fcd3, type: 2}
-  - {fileID: 11400000, guid: 07272c265ced14a31ba664a178585c1d, type: 2}
-  - {fileID: 11400000, guid: af10d861d9fb34121b1a6c30f7f3109d, type: 2}
-  - {fileID: 11400000, guid: 174d1f6764b664a48a3d339536ec397d, type: 2}
-  - {fileID: 11400000, guid: 110022cb7dfb546aaafdb8554cdae968, type: 2}
-  - {fileID: 11400000, guid: f23fad8b2984d4163bd29e21c42e9f8d, type: 2}
-  - {fileID: 11400000, guid: 2c9db7b48e2a44c6dabec8f8eedf40da, type: 2}
-  - {fileID: 11400000, guid: a24a3b5d35a1f4929a4c7bf6d42ab9a5, type: 2}
-  - {fileID: 11400000, guid: 69169920ee6e843d78703f705c335be6, type: 2}
-  - {fileID: 11400000, guid: c8e02fccfc87141759f2d54803f7eef1, type: 2}
-  - {fileID: 11400000, guid: f529980797c424fae8e68f48b8716cb7, type: 2}
-  - {fileID: 11400000, guid: 149e4834efbe9420cb21b7343efe5f19, type: 2}
-  - {fileID: 11400000, guid: 04fd165e7e770493cb300cfa5f78f6c7, type: 2}
-  - {fileID: 11400000, guid: d6562610c8afc4c528d355b4ce34ad3d, type: 2}
-  - {fileID: 11400000, guid: 05e08cc4df617446d9885c5b218fe430, type: 2}
-  - {fileID: 11400000, guid: c961e727febf145049260a2d5ddac66a, type: 2}
-  - {fileID: 11400000, guid: 38a66930e769240449e2b53137b5155a, type: 2}
   - {fileID: 11400000, guid: a605a9340871345b48c78d3346b2cabf, type: 2}
+  - {fileID: 11400000, guid: f803806807cea44688ba2252c9e2f7d9, type: 2}
