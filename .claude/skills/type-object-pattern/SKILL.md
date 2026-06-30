@@ -213,7 +213,7 @@ projectile's, so projectile `Damage.Amount` is seeded once and left alone.)
 **Wire gameplay in code, NOT inspector UnityEvents.** Direct calls / injected lists / typed C# delegates
 are compile-checked, refactor-safe, testable, and respect the server-authoritative boundary. **Reserve
 inspector UnityEvents for the pure VIEW layer** (VFX/sound/animation) where none of those concerns apply.
-Even cosmetics here went through code, not UnityEvents: impact VFX is a `SpawnVfx` `WorldEffect` in a
+Even cosmetics here went through code, not UnityEvents: impact VFX is a `SpawnVfx` `IEffect` in a
 reaction list, not an `OnHit` UnityEvent (see [[scriptableobject-commands]]).
 
 The split must respect the networking model: **motion runs on all peers; collision/damage runs

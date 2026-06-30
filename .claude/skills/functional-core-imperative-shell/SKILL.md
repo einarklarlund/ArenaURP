@@ -61,7 +61,7 @@ This codebase's reference implementation is the projectile system. The shell com
 `ServerCollision`) cast, overlap, and resolve GameObjects; the pure cores (`Arena.NetworkedMotion.Core`,
 `Arena.ServerCollision.Core`, …) take `WorldHit`/overlap states in and return motion + a hit
 *classification* (`HitInfo`: owner-safe, enemy/surface/projectile) out. The shell then runs the
-Unity-coupled `WorldEffect` commands that the classification routes to — the core decides *what kind of
+Unity-coupled `IEffect` commands that the classification routes to — the core decides *what kind of
 hit happened*; the shell decides *what to do about it* and performs the I/O. (We did **not** inject a
 "world" into the core — see the anti-pattern below; and we did **not** keep an effect-DATA list either —
 the shell runs the effect commands directly, see [[scriptableobject-commands]]. Collision is server-only,
@@ -133,7 +133,7 @@ never wrote a single test.
      predicted `[Replicate]` code that re-runs on reconcile and must execute once.
    - **Return a classification/decision and let the shell run a Unity-coupled command** — what this
      project's server-only projectile collision does: the core returns a `HitInfo` (*what kind* of hit),
-     and the shell runs `WorldEffect` command objects that do the I/O directly. No effect-data list, no
+     and the shell runs `IEffect` command objects that do the I/O directly. No effect-data list, no
      executor switch (see [[scriptableobject-commands]]). Prefer this when the effects are server-only and
      want the freedom to touch many systems; reserve the value-struct boundary for the predicted case.
 4. **Prefer making side effects unnecessary-to-gate over building a gate.** Gating only exists because
