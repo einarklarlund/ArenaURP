@@ -18,11 +18,12 @@ public struct ActiveSlot
 /// and up to <see cref="MaxActives"/> ACTIVE abilities with limited uses — cycled with Q/E and fired
 /// with F.
 ///
-/// Thin shell over pure helpers (functional-core / imperative-shell): the branchy inventory math lives
-/// in <see cref="AbilityInventoryLogic"/> (EditMode-tested) and ability effects are the shared
-/// <see cref="IEffect"/> commands — the SAME commands projectile hit reactions run, composed in code by the
-/// ability type — invoked here against an <see cref="IEffectContext"/> built from the caster's aim. Network
-/// identity (which abilities) rides as <see cref="AbilityDatabase"/> indices via <see cref="AbilityTypeSerializer"/>.
+/// Thin shell over pure helpers (functional-core / imperative-shell): the branchy inventory math lives in
+/// <see cref="AbilityInventoryLogic"/> (EditMode-tested) and ability behaviour is the shared
+/// <see cref="IEffect{TContext}"/> commands — the SAME commands projectile hit reactions run, authored as
+/// data on the ability type — invoked here against an <see cref="AbilityAim"/> context built from the caster's
+/// aim. Network identity (which abilities) rides as <see cref="AbilityDatabase"/> indices via
+/// <see cref="AbilityTypeSerializer"/>.
 /// </summary>
 public sealed class PawnAbilities : NetworkBehaviour, IProjectileEffectProvider
 {
@@ -44,11 +45,11 @@ public sealed class PawnAbilities : NetworkBehaviour, IProjectileEffectProvider
     // ---- local (per-peer) state ----
     private readonly List<MovementModifier> _appliedMove = new();
     private readonly List<WeaponModifier> _appliedWeapon = new();
-    // Owner-contributed projectile reactions, aggregated in code from equipped passives. Read server-side by
-    // the projectile's ServerCollision via IProjectileEffectProvider — never sent on a spawn payload.
-    private ProjectileReactions _ownerReactions = new();
-    // Scratch list reused when composing an active ability's effects on use.
-    private readonly List<IEffect> _activeEffects = new();
+    // Owner-contributed projectile operations, aggregated from equipped passives' authored lists. Read
+    // server-side by the projectile's ServerCollision via IProjectileEffectProvider — never payloaded.
+    private readonly List<IEffect<ProjectileSurfaceCollision>> _ownerSurface = new();
+    private readonly List<IEffect<ProjectilePlayerCollision>> _ownerPlayer = new();
+    private readonly List<IEffect<ProjectileProjectileCollision>> _ownerProjectile = new();
 
     private bool _prevCycleLeft, _prevCycleRight, _prevUse;
     private float _cooldownEndTime; // server-side gate
@@ -113,8 +114,8 @@ public sealed class PawnAbilities : NetworkBehaviour, IProjectileEffectProvider
     private void ServerUseSelected() => ServerUse();
 
     /// <summary>
-    /// Server-side use of the currently selected active ability: run its effects through the shared
-    /// world executor and consume a use. Public + <c>[Server]</c> so the editor PlayMode test rig can
+    /// Server-side use of the currently selected active ability: run its authored operations against the
+    /// caster's aim context and consume a use. Public + <c>[Server]</c> so the editor PlayMode test rig can
     /// invoke the real path directly (calling a FishNet <c>[ServerRpc]</c> from a test is awkward).
     /// </summary>
     [Server]
@@ -127,13 +128,13 @@ public sealed class PawnAbilities : NetworkBehaviour, IProjectileEffectProvider
         ActiveSlot slot = Actives[i];
         if (slot.Type is not ActiveAbilityType active) return;
 
-        // Compose the ability's effects in code and run them against the caster's aim context — the SAME
-        // IEffect commands a projectile hit reaction runs, just invoked from an ability instead of a hit.
-        IEffectContext ctx = BuildContext();
-        _activeEffects.Clear();
-        active.BuildEffects(_activeEffects);
-        for (int e = 0; e < _activeEffects.Count; e++)
-            _activeEffects[e].Apply(ctx);
+        // Run the ability's authored operations against the caster's aim — the SAME IEffect commands a
+        // projectile hit reaction runs, just invoked from an ability against an AbilityAim context.
+        AbilityAim ctx = BuildContext();
+        var ops = active.OnUse;
+        if (ops != null)
+            for (int e = 0; e < ops.Count; e++)
+                ops[e]?.Apply(ctx);
 
         _cooldownEndTime = Time.time + Mathf.Max(0f, active.Cooldown);
 
@@ -151,15 +152,15 @@ public sealed class PawnAbilities : NetworkBehaviour, IProjectileEffectProvider
         }
     }
 
-    private IEffectContext BuildContext()
+    private AbilityAim BuildContext()
     {
         Transform src = aimSource != null ? aimSource : transform;
         int casterId = pawn != null && pawn.ControllingPlayer.Value != null
             ? pawn.ControllingPlayer.Value.ObjectId
             : -1;
-        // Invoker = the caster's pawn; an aimed ability has no Target and no surface normal — so surface-only
-        // effects (Ricochet, oriented VFX) read no ISurfaceContext and no-op here, by construction.
-        return new AimContext(
+        // Invoker = the caster's pawn; an aimed ability has only an origin + direction (no target/normal),
+        // which the AbilityAim typing enforces on the operations authored here.
+        return new AbilityAim(
             invoker: pawn != null ? pawn.gameObject : gameObject,
             invokerPlayerId: casterId,
             invokerPlayer: pawn != null ? pawn.ControllingPlayer.Value : null,
@@ -174,13 +175,16 @@ public sealed class PawnAbilities : NetworkBehaviour, IProjectileEffectProvider
 
     /// <summary>
     /// Remove our previous contributions, then push one modifier per current passive into the pawn's
-    /// movement/weapon modifier lists — the same Remove-old / Add-new discipline PawnTemperature uses.
-    /// Runs on every peer; only the peer that actually simulates movement/weapon consumes them.
+    /// movement/weapon modifier lists — the same Remove-old / Add-new discipline PawnTemperature uses — and
+    /// re-aggregate the passives' authored projectile operations. Runs on every peer; only the peer that
+    /// actually simulates movement/weapon consumes the modifiers, and only the server reads the operations.
     /// </summary>
     private void ReapplyPassiveModifiers()
     {
         ClearAppliedModifiers();
-        _ownerReactions = new ProjectileReactions(); // rebuild the aggregated owner contributions from scratch
+        _ownerSurface.Clear();
+        _ownerPlayer.Clear();
+        _ownerProjectile.Clear();
         foreach (var item in Passives)
         {
             if (item is not PassiveAbilityType p) continue;
@@ -196,17 +200,19 @@ public sealed class PawnAbilities : NetworkBehaviour, IProjectileEffectProvider
                 weapon.Modifiers.Add(w);
                 _appliedWeapon.Add(w);
             }
-            // Compose the passive's extra projectile effects in code so the owner's projectiles can find them.
-            p.BuildProjectileContributions(_ownerReactions);
+            // Aggregate the passive's authored projectile operations so the owner's projectiles can find them.
+            if (p.ProjectileOnSurface != null) _ownerSurface.AddRange(p.ProjectileOnSurface);
+            if (p.ProjectileOnPlayer != null) _ownerPlayer.AddRange(p.ProjectileOnPlayer);
+            if (p.ProjectileOnProjectile != null) _ownerProjectile.AddRange(p.ProjectileOnProjectile);
         }
     }
 
     /// <summary>
-    /// <see cref="IProjectileEffectProvider"/>: expose the owner's aggregated projectile reactions as a
+    /// <see cref="IProjectileEffectProvider"/>: expose the owner's aggregated projectile operations as a
     /// per-category bundle. Read SERVER-SIDE during collision resolution — looked up from the live owner,
-    /// never serialized onto the projectile. The processor decides which category applies to a given hit.
+    /// never serialized onto the projectile. ServerCollision decides which category applies to a given hit.
     /// </summary>
-    public OwnerReactions GetReactions() => new(_ownerReactions.OnEnemy, _ownerReactions.OnSurface, _ownerReactions.OnProjectile);
+    public ProjectileEffects GetProjectileEffects() => new(_ownerSurface, _ownerPlayer, _ownerProjectile);
 
     private void ClearAppliedModifiers()
     {

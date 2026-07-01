@@ -41,7 +41,9 @@ public static class AbilityTestRig
     {
         var ability = ScriptableObject.CreateInstance<PassiveAbilityType>();
         ability.DisplayName = "Test Projectile Passive";
-        ability.BonusEnemyDamage = bonusDamage; // flag-driven: BuildProjectileContributions adds the bonus DealDamage
+        // Author a bonus DealDamage on the owner's player-hit operations: fixed amount, does not despawn, so
+        // it stacks on top of the projectile's own player reaction (exercises the owner-lookup path).
+        ability.ProjectileOnPlayer.Add(Commands.DealDamage(useInvokerDamage: false, amount: bonusDamage, despawnAfter: false));
         pawn.GetComponent<PawnAbilities>().AddPassive(ability);
     }
 }

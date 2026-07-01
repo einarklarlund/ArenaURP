@@ -16,6 +16,14 @@ MonoBehaviour:
   Icon: {fileID: 10911, guid: 0000000000000000f000000000000000, type: 0}
   Uses: 3
   Cooldown: 0.5
-  SpawnProjectile: {fileID: 11400000, guid: 39387121012ec49e8b787ad217870377, type: 2}
-  SpawnCount: 12
-  SpawnSpread: 360
+  OnUse:
+  - rid: 4328605795349692419
+  references:
+    version: 2
+    RefIds:
+    - rid: 4328605795349692419
+      type: {class: SpawnProjectiles, ns: , asm: Assembly-CSharp}
+      data:
+        type: {fileID: 11400000, guid: 39387121012ec49e8b787ad217870377, type: 2}
+        count: 12
+        spreadDegrees: 360

@@ -1,17 +1,23 @@
+using System.Collections.Generic;
 using Arena.NetworkedMotion;
+using MackySoft.SerializeReferenceExtensions;
 using UnityEngine;
 
 /// <summary>
-/// Shared, immutable-at-runtime per-kind projectile data (Type Object + Flyweight): one asset per
-/// projectile kind (bullet, grenade, laser, arc, homing). A projectile is a COMPOSITION of generic systems
+/// Shared, immutable-at-runtime per-kind projectile data (Type Object + Flyweight): one asset per projectile
+/// kind (bullet, grenade, laser, arc, homing). A projectile is a COMPOSITION of generic systems
 /// (NetworkedMotion / ServerCollision / Health / Damage); this type configures each of them and supplies the
-/// hit reactions.
+/// hit operations.
 ///
-/// Hit reactions are defined IN CODE, not authored as asset references: <see cref="DefaultReactions"/>
-/// composes the <see cref="IEffect"/>s for each category from this asset's serialized config + feature flags
-/// (e.g. <see cref="RicochetsByDefault"/>). New kinds = new assets tuning the config; new default behaviours
-/// = a flag + a line here. Per-run powerups add MORE effects at runtime via the owner-contribution path
-/// (see PawnAbilities / OwnerReactions) — they are not flags on the type.
+/// Motion and hit reactions are AUTHORED AS DATA on this asset, not composed in code: <see cref="Motion"/> is
+/// a <c>[SerializeReference]</c> <see cref="IMotionStrategy"/> (Linear/Arc/Laser, each carrying its own
+/// tuning), and each hit category is a <c>[SerializeReference]</c> list of <see cref="IEffect{TContext}"/>
+/// typed to that category's context — so the inspector's dropdown only offers operations valid for that hit.
+/// New kinds = new assets composing existing motion + operation building blocks. Per-run powerups add MORE
+/// operations at runtime via the owner-contribution path (see PawnAbilities), resolved server-side.
+///
+/// The lists resolve locally and identically on every peer (they are data on the shared SO), so nothing rides
+/// the wire — the same determinism guarantee the old code-composed defaults had.
 /// </summary>
 [CreateAssetMenu(menuName = "Projectiles/Type", fileName = "ProjectileType")]
 public sealed class ProjectileType : ScriptableTypeObject
@@ -27,71 +33,42 @@ public sealed class ProjectileType : ScriptableTypeObject
 
     [Header("Kinematics")]
     public float Speed = 50f;
-    public float Acceleration = 0f;
     public float Lifetime = 5f;
 
-    [Header("Motion strategy")]
-    public MotionKind Movement = MotionKind.Linear;
+    [Header("Motion strategy (select a kind; it carries its own tuning)")]
+    [SerializeReference, SubclassSelector]
+    public IMotionStrategy Motion = new LinearMotion();
 
-    [Tooltip("Vertical gravity applied per second by the Arc strategy (negative = down).")]
-    public float Gravity = -9.81f;
+    [Header("Hit reactions (operations run per hit category)")]
+    [Tooltip("Operations run when this projectile hits a surface (wall/stage).")]
+    [SerializeReference, SubclassSelector]
+    public List<IEffect<ProjectileSurfaceCollision>> OnSurface = new();
 
-    [Tooltip("Maximum beam length probed by the Laser strategy each step.")]
-    public float MaxRange = 100f;
+    [Tooltip("Operations run when this projectile hits a player.")]
+    [SerializeReference, SubclassSelector]
+    public List<IEffect<ProjectilePlayerCollision>> OnPlayer = new();
 
-    [Header("Default reactions (feature flags)")]
-    [Tooltip("Health the projectile loses on a surface hit (1 = a normal bullet dies on contact).")]
-    public int SurfaceHealthLoss = 1;
-    [Tooltip("If set, the projectile reflects off surfaces by default (a bouncy bullet kind).")]
-    public bool RicochetsByDefault = false;
+    [Tooltip("Operations run when this projectile hits another projectile.")]
+    [SerializeReference, SubclassSelector]
+    public List<IEffect<ProjectileProjectileCollision>> OnProjectile = new();
 
-    // Built once and cached — defaults are immutable flyweights; owner contributions are merged separately
-    // at hit time by ServerCollision, so this cache is never mutated per projectile.
-    ProjectileReactions _defaultReactions;
-
-    /// <summary>The plain kinematics struct the pure <see cref="NetworkedMotionProcessor"/> consumes.</summary>
-    public MotionConfig ToMotionConfig() => new(Movement, Acceleration, Gravity, Lifetime, MaxRange);
-
-    /// <summary>The per-category default reactions for this kind, composed in code (cached flyweight).</summary>
-    public ProjectileReactions DefaultReactions
-    {
-        get
-        {
-            if (_defaultReactions == null)
-            {
-                _defaultReactions = new ProjectileReactions();
-                BuildDefaultReactions(_defaultReactions);
-            }
-            return _defaultReactions;
-        }
-    }
-
-    /// <summary>
-    /// Compose this kind's default effects per category from the serialized config + flags. Behaviour
-    /// variation comes from the flags, keeping kinds as ASSETS rather than subclasses.
-    /// </summary>
-    void BuildDefaultReactions(ProjectileReactions r)
-    {
-        if (SurfaceHealthLoss > 0) r.OnSurface.Add(new LoseHealth(SurfaceHealthLoss));
-        if (RicochetsByDefault) r.OnSurface.Add(new Ricochet());
-
-        // Enemy hit: deal the projectile's own Damage (read from the Damage component) and despawn on contact.
-        r.OnEnemy.Add(new DealDamage(useInvokerDamage: true, despawnAfter: true));
-    }
+    /// <summary>The per-category operations this kind runs by default, as a bundle for ServerCollision.</summary>
+    public ProjectileEffects DefaultEffects => new(OnSurface, OnPlayer, OnProjectile);
 
     /// <summary>
     /// Initialize a freshly-instantiated projectile's components from this type — the composition lives here,
     /// not in any component. Called by the instance's <see cref="TypeObjectRoot"/> at Awake on every peer:
-    /// NetworkedMotion gets its motion config + speed (read locally from this SO, NOT off the wire);
-    /// ServerCollision gets the collision radius + this kind's default reactions (a harmless no-op on clients,
-    /// which never collide); Health/Damage get their values. No component reaches into a sibling or back here.
+    /// NetworkedMotion gets its motion strategy + speed (read locally from this SO, NOT off the wire);
+    /// ServerCollision gets the collision radius + lifetime + this kind's authored operations (a harmless
+    /// no-op on clients, which never collide); Health/Damage get their values. No component reaches into a
+    /// sibling or back here.
     /// </summary>
     public override void Initialize(GameObject instance)
     {
         if (instance.TryGetComponent<NetworkedMotion>(out var motion))
-            motion.Configure(ToMotionConfig(), Speed);
+            motion.Configure(Motion, Speed);
         if (instance.TryGetComponent<ServerCollision>(out var collision))
-            collision.Configure(Radius, DefaultReactions);
+            collision.Configure(Radius, Lifetime, DefaultEffects);
         if (instance.TryGetComponent<Health>(out var health))
             health.ConfigureMax(MaxHealth);
         if (instance.TryGetComponent<Damage>(out var damage))

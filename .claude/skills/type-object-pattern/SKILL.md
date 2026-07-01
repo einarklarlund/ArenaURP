@@ -97,8 +97,8 @@ The concrete type's `Initialize` **pushes** each component's config in — the t
 
 ```csharp
 public override void Initialize(GameObject instance) {                 // ProjectileType
-    if (instance.TryGetComponent<NetworkedMotion>(out var m)) m.Configure(ToMotionConfig(), Speed);
-    if (instance.TryGetComponent<ServerCollision>(out var c)) c.Configure(Radius, OnSurface, OnEnemy, OnProjectile);
+    if (instance.TryGetComponent<NetworkedMotion>(out var m)) m.Configure(Motion, Speed);                    // Motion = [SerializeReference] IMotionStrategy
+    if (instance.TryGetComponent<ServerCollision>(out var c)) c.Configure(Radius, Lifetime, DefaultEffects); // bundles the [SerializeReference] OnSurface/OnPlayer/OnProjectile lists
     if (instance.TryGetComponent<Health>(out var h))          h.ConfigureMax(MaxHealth);
     if (instance.TryGetComponent<Damage>(out var d))          d.Amount = Damage;
 }
@@ -177,12 +177,13 @@ destructibles, projectiles all want `Health`). The projectile splits into **gene
 components, each configured by `ProjectileType.Initialize` (Rule 3) — none holds a `ProjectileType`:
 
 - **`NetworkedMotion`** — generic deterministic closed-form motion (`PositionAt(age)`); runs on every peer
-  with nothing synced per tick. It holds a `MotionConfig` *value*, assigned via `Configure(config, speed)`
-  by the root at `Awake` — **not** carried on the payload.
-- **`ServerCollision`** — server-only. Casts each tick, classifies the hit (owner-safe enemy/surface/
-  projectile via a pure processor), and runs the matching **injected** reaction list directly. Its radius +
-  reaction lists are pushed in via `Configure(...)`; configuring it on a client is a harmless no-op because
-  it only *acts* server-side (it gates its own behaviour, so `Initialize` stays peer-agnostic).
+  with nothing synced per tick. It holds an `IMotionStrategy` (a `[SerializeReference]` on the type carrying
+  its own tuning), assigned via `Configure(strategy, speed)` by the root at `Awake` — **not** on the payload.
+- **`ServerCollision`** — server-only. Casts each tick (the sweep comes polymorphically from the strategy's
+  `CollisionSweep` — a beam casts forward, a mover sweeps prev→new), classifies the hit (owner-safe player/
+  surface/projectile via a pure processor), and runs the matching **injected** typed `IEffect` list
+  directly against a concrete context. Its radius + lifetime + operation lists are pushed in via
+  `Configure(...)`; configuring it on a client is a harmless no-op because it only *acts* server-side.
 - **`Health`** / **`Damage`** — data holders (`SyncVar<int> Hp` / `int Amount`), seeded via
   `ConfigureMax` / `Amount`. Reactions read/write them.
 
@@ -195,7 +196,7 @@ components, each configured by `ProjectileType.Initialize` (Rule 3) — none hol
 3. **Server-only runtime** (collision casting) → configured everywhere but gated by its own `IsServer`
    behaviour, so no payload and no `IsServer` flag in `Initialize`.
 
-So `NetworkedMotion` carries its `MotionConfig` as a local value seeded from the SO (class 1), while its
+So `NetworkedMotion` carries its `IMotionStrategy` as a local ref seeded from the SO (class 1), while its
 *anchor* — spawn tick/pos/dir — stays on the payload (class 2). This is the migration's win: a generic
 component + a baked SO ref beats every peer paying for the config on every spawn, **and** it's the only
 shape that survives predicted spawn (where the observer's payload may be all it gets).
@@ -205,7 +206,7 @@ at `Awake`** (and pooling does **not** re-run `Awake` on reuse), a component con
 must treat that config as **instance-lifetime: set once, never wiped in `ResetState`/despawn.** Only
 per-spawn and runtime state is reset. This is safe precisely because prefab-per-kind fixes a pooled
 instance's kind forever (a fireball prefab is always a fireball). Concretely: `NetworkedMotion.ResetState`
-resets the anchor + working state but **must not** clear `_config`/`_initialSpeed`. (Caveat: a field that
+resets the anchor + working state but **must not** clear `_strategy`/`_initialSpeed`. (Caveat: a field that
 is *both* config and runtime-mutated — e.g. a projectile whose own `Damage.Amount` gets buffed mid-flight —
 can't be instance-lifetime; re-seed it per spawn. Today only the *pawn's* Damage is buffed, not a
 projectile's, so projectile `Damage.Amount` is seeded once and left alone.)
@@ -213,8 +214,8 @@ projectile's, so projectile `Damage.Amount` is seeded once and left alone.)
 **Wire gameplay in code, NOT inspector UnityEvents.** Direct calls / injected lists / typed C# delegates
 are compile-checked, refactor-safe, testable, and respect the server-authoritative boundary. **Reserve
 inspector UnityEvents for the pure VIEW layer** (VFX/sound/animation) where none of those concerns apply.
-Even cosmetics here went through code, not UnityEvents: impact VFX is a `SpawnVfx` `IEffect` in a
-reaction list, not an `OnHit` UnityEvent (see [[scriptableobject-commands]]).
+Even cosmetics here went through code/data, not UnityEvents: impact VFX is a `SpawnVfx` operation in a
+`[SerializeReference]` reaction list, not an `OnHit` UnityEvent (see [[scriptableobject-commands]]).
 
 The split must respect the networking model: **motion runs on all peers; collision/damage runs
 server-only.** For a *predicted* (Rigidbody/`[Replicate]`) entity the constraints are harder — see

@@ -14,10 +14,11 @@ using MotionCoreState = Arena.NetworkedMotion.NetworkedMotionState;
 /// (a ricochet/deflect), pushed via SyncVars.
 ///
 /// It is FULLY DECOUPLED from the projectile concept: it holds no <c>ProjectileType</c>. Its
-/// <see cref="MotionConfig"/> + initial speed are ASSIGNED locally on every peer by the instance's
+/// <see cref="IMotionStrategy"/> + initial speed are ASSIGNED locally on every peer by the instance's
 /// <c>TypeObjectRoot</c> (which calls <c>ProjectileType.Initialize</c> → <see cref="Configure"/>) at Awake
-/// from the baked type — so the config is NOT on the wire; only the per-spawn anchor (tick/pos/dir) rides
-/// the payload. It knows nothing of Health/Damage/ownership/VFX — those are other components.
+/// from the baked type — so the strategy (an inspector-authored [SerializeReference] on the type) is NOT on
+/// the wire; only the per-spawn anchor (tick/pos/dir) rides the payload, and every peer resolves the same
+/// strategy from its identical copy of the SO. It knows nothing of Health/Damage/ownership/VFX.
 /// </summary>
 public sealed class NetworkedMotion : NetworkBehaviour
 {
@@ -27,9 +28,11 @@ public sealed class NetworkedMotion : NetworkBehaviour
     private readonly SyncVar<float> _segSpeed = new();
     private readonly SyncVar<float> _segAge = new();
 
-    // Motion parameters: instance-lifetime config, set once locally by the TypeObjectRoot via Configure.
+    // Motion strategy: instance-lifetime config, set once locally by the TypeObjectRoot via Configure.
     // NOT on the payload and NOT wiped on despawn — prefab-per-kind fixes a pooled instance's kind forever.
-    private MotionConfig _config;
+    // A stateless flyweight shared from the type's [SerializeReference] Motion field (all per-instance state
+    // lives in _state), so it is safe to hold the SO's single instance here.
+    private IMotionStrategy _strategy;
     private float _initialSpeed;
 
     // Per-spawn payload (set by the spawner before Spawn). Ownership lives on NetPlayerOwnership.
@@ -41,7 +44,9 @@ public sealed class NetworkedMotion : NetworkBehaviour
     private bool _initialized;
 
     public int Id => (int)ObjectId;
-    public MotionConfig Config => _config;
+
+    /// <summary>The motion strategy this mover evaluates (read by effects for live velocity, by ServerCollision for the cast sweep).</summary>
+    public IMotionStrategy Strategy => _strategy;
 
     /// <summary>The current motion state (read by ServerCollision for this and other movers' positions).</summary>
     public MotionCoreState State => _state;
@@ -51,9 +56,12 @@ public sealed class NetworkedMotion : NetworkBehaviour
     /// on every peer (before the payload + OnStartNetwork), so these are present when <see cref="OnStartNetwork"/>
     /// seeds the state. Read locally from the baked SO — never serialized over the network.
     /// </summary>
-    public void Configure(MotionConfig config, float initialSpeed)
+    public void Configure(IMotionStrategy strategy, float initialSpeed)
     {
-        _config = config;
+        if (strategy == null)
+            Debug.LogError($"{nameof(NetworkedMotion)} on '{name}' was configured with a null motion strategy " +
+                           "— the projectile type's Motion field is unassigned. Falling back to LinearMotion.", this);
+        _strategy = strategy ?? new LinearMotion();
         _initialSpeed = initialSpeed;
     }
 
@@ -140,10 +148,12 @@ public sealed class NetworkedMotion : NetworkBehaviour
 
     private void Render()
     {
+        if (_strategy == null)
+            return;
         MotionCoreState s = _state;
         s.Age = ElapsedSinceSpawn();
-        transform.position = NetworkedMotionProcessor.PositionAt(in s, in _config);
-        Vector3 vel = NetworkedMotionProcessor.VelocityAt(in s, in _config);
+        transform.position = NetworkedMotionProcessor.PositionAt(_strategy, in s);
+        Vector3 vel = NetworkedMotionProcessor.VelocityAt(_strategy, in s);
         if (vel.sqrMagnitude > 1e-4f)
             transform.rotation = Quaternion.LookRotation(vel.normalized);
         else if (s.OriginForward.sqrMagnitude > 1e-4f)
@@ -158,7 +168,7 @@ public sealed class NetworkedMotion : NetworkBehaviour
     {
         MotionCoreState s = _state;
         s.Age = age;
-        return NetworkedMotionProcessor.PositionAt(in s, in _config);
+        return NetworkedMotionProcessor.PositionAt(_strategy, in s);
     }
 
     /// <summary>Server: set the working age so <see cref="State"/> reflects the current tick for collision queries.</summary>
@@ -187,7 +197,7 @@ public sealed class NetworkedMotion : NetworkBehaviour
     public override void ResetState(bool asServer)
     {
         base.ResetState(asServer);
-        // Reset per-spawn + working state only. _config / _initialSpeed are INSTANCE-LIFETIME (set once by
+        // Reset per-spawn + working state only. _strategy / _initialSpeed are INSTANCE-LIFETIME (set once by
         // the TypeObjectRoot at Awake, which pooling does not re-run) — wiping them would leave a reused
         // pooled instance unconfigured, since the config no longer arrives on the payload.
         _state = default;

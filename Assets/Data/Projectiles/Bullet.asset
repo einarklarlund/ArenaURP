@@ -17,10 +17,28 @@ MonoBehaviour:
   MaxHealth: 1
   Damage: 3
   Speed: 60
-  Acceleration: 0
   Lifetime: 5.15
-  Movement: 0
-  Gravity: -9.81
-  MaxRange: 100
-  SurfaceHealthLoss: 1
-  RicochetsByDefault: 0
+  Motion:
+    rid: 4328605795349692416
+  OnSurface:
+  - rid: 4328605795349692417
+  OnPlayer:
+  - rid: 4328605795349692418
+  OnProjectile: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 4328605795349692416
+      type: {class: LinearMotion, ns: Arena.NetworkedMotion, asm: Arena.NetworkedMotion.Core}
+      data:
+        acceleration: 0
+    - rid: 4328605795349692417
+      type: {class: LoseHealth, ns: , asm: Assembly-CSharp}
+      data:
+        amount: 1
+    - rid: 4328605795349692418
+      type: {class: DealDamage, ns: , asm: Assembly-CSharp}
+      data:
+        useInvokerDamage: 1
+        amount: 10
+        despawnAfter: 1

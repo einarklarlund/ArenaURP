@@ -1,17 +1,24 @@
+using UnityEngine;
+
 /// <summary>
-/// Apply a debuff to the single target that was hit. No-op until a debuff system exists; when one is added,
-/// this resolves the target's debuff receiver and applies <see cref="_debuff"/> directly. Needs a target.
+/// Apply a debuff to the player that was hit. No-op until a debuff system exists; when one is added, this
+/// resolves the target's debuff receiver and applies <see cref="debuff"/> directly. Typed to
+/// <see cref="ProjectilePlayerCollision"/>, so the target is guaranteed present.
 /// </summary>
-public sealed class ApplyDebuff : IEffect
+[System.Serializable]
+public sealed class ApplyDebuff : IEffect<ProjectilePlayerCollision>
 {
-    readonly DebuffType _debuff;
+    [SerializeField] private DebuffType debuff = DebuffType.Slow;
 
-    public ApplyDebuff(DebuffType debuff = DebuffType.Slow) => _debuff = debuff;
+    public ApplyDebuff() { }
 
-    public void Apply(IEffectContext ctx)
+    public ApplyDebuff(DebuffType debuff) => this.debuff = debuff;
+
+    public void Apply(ProjectilePlayerCollision ctx)
     {
-        if (ctx is not ITargetContext) return;
+        if (ctx.Target == null)
+            return;
         // TODO: no debuff system exists yet. Intentionally a no-op until one is introduced —
-        // e.g. tc.Target.GetComponentInParent<IDebuffable>()?.Apply(_debuff);
+        // e.g. ctx.Target.GetComponentInParent<IDebuffable>()?.Apply(debuff);
     }
 }
