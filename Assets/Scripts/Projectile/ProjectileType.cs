@@ -41,15 +41,15 @@ public sealed class ProjectileType : ScriptableTypeObject
 
     [Header("Hit reactions (operations run per hit category)")]
     [Tooltip("Operations run when this projectile hits a surface (wall/stage).")]
-    [SerializeReference, SubclassSelector]
+    [SerializeReference, EffectSelector]
     public List<IEffect<ProjectileSurfaceCollision>> OnSurface = new();
 
     [Tooltip("Operations run when this projectile hits a player.")]
-    [SerializeReference, SubclassSelector]
+    [SerializeReference, EffectSelector]
     public List<IEffect<ProjectilePlayerCollision>> OnPlayer = new();
 
     [Tooltip("Operations run when this projectile hits another projectile.")]
-    [SerializeReference, SubclassSelector]
+    [SerializeReference, EffectSelector]
     public List<IEffect<ProjectileProjectileCollision>> OnProjectile = new();
 
     /// <summary>The per-category operations this kind runs by default, as a bundle for ServerCollision.</summary>

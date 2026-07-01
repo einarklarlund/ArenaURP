@@ -155,15 +155,12 @@ public sealed class PawnAbilities : NetworkBehaviour, IProjectileEffectProvider
     private AbilityAim BuildContext()
     {
         Transform src = aimSource != null ? aimSource : transform;
-        int casterId = pawn != null && pawn.ControllingPlayer.Value != null
-            ? pawn.ControllingPlayer.Value.ObjectId
-            : -1;
-        // Invoker = the caster's pawn; an aimed ability has only an origin + direction (no target/normal),
-        // which the AbilityAim typing enforces on the operations authored here.
+        // Owner = the caster's pawn; an aimed ability has only an origin + direction (no target/normal),
+        // which the AbilityAim typing enforces on the operations authored here. The caster's player id, when
+        // an operation needs it, is read off OwnerPlayer.ObjectId.
         return new AbilityAim(
-            invoker: pawn != null ? pawn.gameObject : gameObject,
-            invokerPlayerId: casterId,
-            invokerPlayer: pawn != null ? pawn.ControllingPlayer.Value : null,
+            owner: pawn != null ? pawn.gameObject : gameObject,
+            ownerPlayer: pawn != null ? pawn.ControllingPlayer.Value : null,
             point: src.position,
             direction: src.forward);
     }

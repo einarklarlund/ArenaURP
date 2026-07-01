@@ -109,14 +109,14 @@ public sealed class ServerCollision : NetworkBehaviour
         {
             if (worldInfo.Category == SC.HitCategory.Enemy)
             {
-                var ctx = new ProjectilePlayerCollision(gameObject, hitObject, ownerId, owner,
+                var ctx = new ProjectilePlayerCollision(gameObject, hitObject, owner,
                     worldInfo.Point, worldInfo.Normal, worldInfo.Direction);
                 RunEffects(_defaults.OnPlayer, ctx);
                 RunEffects(ownerOps.OnPlayer, ctx);
             }
             else
             {
-                var ctx = new ProjectileSurfaceCollision(gameObject, ownerId, owner,
+                var ctx = new ProjectileSurfaceCollision(gameObject, owner,
                     worldInfo.Point, worldInfo.Normal, worldInfo.Direction);
                 RunEffects(_defaults.OnSurface, ctx);
                 RunEffects(ownerOps.OnSurface, ctx);
@@ -150,7 +150,7 @@ public sealed class ServerCollision : NetworkBehaviour
                 continue;
             }
 
-            var ctx = new ProjectileProjectileCollision(gameObject, other.gameObject, selfOwnerId, owner,
+            var ctx = new ProjectileProjectileCollision(gameObject, other.gameObject, owner,
                 info.Point, info.Normal, info.Direction);
             RunEffects(_defaults.OnProjectile, ctx);
             RunEffects(ownerOps.OnProjectile, ctx);

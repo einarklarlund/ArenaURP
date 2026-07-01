@@ -5,14 +5,16 @@ using UnityEngine;
 /// Redirect the invoking projectile along the OTHER projectile's heading, preserving this one's speed (ports
 /// the old ProjectileBulletImpact). Reads both projectiles' <see cref="NetworkedMotion"/>, computes the
 /// redirect with the pure <see cref="DeflectMath"/>, and begins a new synced segment from the hit point.
-/// Typed to <see cref="ProjectileProjectileCollision"/>, so the other mover (Target) is always present.
+/// Deliberately typed to the CONCRETE <see cref="ProjectileProjectileCollision"/> rather than a capability
+/// interface: its correctness depends on the target being a projectile (it reads the target's NetworkedMotion),
+/// so it should only be authorable on projectile-hit lists — the concrete type is the contract.
 /// </summary>
 [System.Serializable]
 public sealed class DeflectProjectile : IEffect<ProjectileProjectileCollision>
 {
     public void Apply(ProjectileProjectileCollision ctx)
     {
-        if (ctx.Invoker == null || !ctx.Invoker.TryGetComponent<NetworkedMotion>(out var motion))
+        if (ctx.Owner == null || !ctx.Owner.TryGetComponent<NetworkedMotion>(out var motion))
             return;
 
         var state = motion.State;

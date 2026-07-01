@@ -176,7 +176,7 @@ public sealed class NetworkedMotion : NetworkBehaviour
 
     /// <summary>
     /// Server: begin a new trajectory segment (ricochet/deflect) at the current age and publish it so every
-    /// peer re-derives the bent path. Effects call this through the invoker's NetworkedMotion.
+    /// peer re-derives the bent path. Effects call this through the owner's NetworkedMotion.
     /// </summary>
     [Server]
     public void BeginSegment(Vector3 pos, Vector3 dir, float speed)

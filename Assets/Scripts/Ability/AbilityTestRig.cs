@@ -43,7 +43,7 @@ public static class AbilityTestRig
         ability.DisplayName = "Test Projectile Passive";
         // Author a bonus DealDamage on the owner's player-hit operations: fixed amount, does not despawn, so
         // it stacks on top of the projectile's own player reaction (exercises the owner-lookup path).
-        ability.ProjectileOnPlayer.Add(Commands.DealDamage(useInvokerDamage: false, amount: bonusDamage, despawnAfter: false));
+        ability.ProjectileOnPlayer.Add(Commands.DealDamage(useOwnerDamage: false, amount: bonusDamage));
         pawn.GetComponent<PawnAbilities>().AddPassive(ability);
     }
 }

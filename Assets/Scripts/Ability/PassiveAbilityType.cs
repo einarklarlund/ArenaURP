@@ -25,15 +25,15 @@ public sealed class PassiveAbilityType : AbilityType
 
     [Header("Projectile contributions (extra operations on the owner's projectiles)")]
     [Tooltip("Added to the owner's projectiles' surface-hit operations.")]
-    [SerializeReference, SubclassSelector]
+    [SerializeReference, EffectSelector]
     public List<IEffect<ProjectileSurfaceCollision>> ProjectileOnSurface = new();
 
-    [Tooltip("Added to the owner's projectiles' player-hit operations (e.g. a bonus DealDamage that does not despawn).")]
-    [SerializeReference, SubclassSelector]
+    [Tooltip("Added to the owner's projectiles' player-hit operations (e.g. a bonus DealDamage).")]
+    [SerializeReference, EffectSelector]
     public List<IEffect<ProjectilePlayerCollision>> ProjectileOnPlayer = new();
 
     [Tooltip("Added to the owner's projectiles' projectile-hit operations.")]
-    [SerializeReference, SubclassSelector]
+    [SerializeReference, EffectSelector]
     public List<IEffect<ProjectileProjectileCollision>> ProjectileOnProjectile = new();
 
     /// <summary>Build the movement modifier this passive contributes while equipped.</summary>

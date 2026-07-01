@@ -9,8 +9,8 @@ using UnityEngine;
 /// </summary>
 public static class Commands
 {
-    public static DealDamage DealDamage(bool useInvokerDamage = true, int amount = 10, bool despawnAfter = true)
-        => new(useInvokerDamage, amount, despawnAfter);
+    public static DealDamage DealDamage(bool useOwnerDamage = true, int amount = 10)
+        => new(useOwnerDamage, amount);
 
     public static LoseHealth LoseHealth(int amount = 1) => new(amount);
 

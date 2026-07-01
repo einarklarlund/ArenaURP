@@ -3,16 +3,17 @@ using UnityEngine;
 
 /// <summary>
 /// Reflect the invoking projectile's velocity across the surface normal and continue on a new segment. Reads
-/// the invoker's <see cref="NetworkedMotion"/> for the live velocity, reflects it with the pure
-/// <see cref="RicochetMath"/>, and begins a new authoritative segment (which syncs to every peer). Typed to
-/// <see cref="ProjectileSurfaceCollision"/>, so a surface normal is always present.
+/// the owner's <see cref="NetworkedMotion"/> for the live velocity, reflects it with the pure
+/// <see cref="RicochetMath"/>, and begins a new authoritative segment (which syncs to every peer). It reads
+/// point + normal + the owner's motion, so it is typed to <see cref="ISurfaceHitContext"/> — a normal is always
+/// present, and it is authorable on any collision (reflect off a wall, a player, or another projectile).
 /// </summary>
 [System.Serializable]
-public sealed class Ricochet : IEffect<ProjectileSurfaceCollision>
+public sealed class Ricochet : IEffect<ISurfaceHitContext>
 {
-    public void Apply(ProjectileSurfaceCollision ctx)
+    public void Apply(ISurfaceHitContext ctx)
     {
-        if (ctx.Invoker == null || !ctx.Invoker.TryGetComponent<NetworkedMotion>(out var motion))
+        if (ctx.Owner == null || !ctx.Owner.TryGetComponent<NetworkedMotion>(out var motion))
             return;
 
         var state = motion.State;

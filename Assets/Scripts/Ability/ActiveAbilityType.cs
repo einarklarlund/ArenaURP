@@ -16,6 +16,6 @@ public sealed class ActiveAbilityType : AbilityType
     [Min(0f)] public float Cooldown = 0f;
 
     [Header("Operations run when the ability is used (aimed from the caster)")]
-    [SerializeReference, SubclassSelector]
+    [SerializeReference, EffectSelector]
     public List<IEffect<AbilityAim>> OnUse = new();
 }

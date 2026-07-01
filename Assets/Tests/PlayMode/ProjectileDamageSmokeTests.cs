@@ -14,7 +14,7 @@ namespace Arena.PlayTests
     ///
     ///   ServerCollision.ServerTick -> SphereCast (collider -> GetComponentInParent&lt;Pawn&gt; ->
     ///   ControllingPlayer.ObjectId) -> classify as enemy -> the type's OnEnemy DealDamage effect reads the
-    ///   invoker's Damage and calls the target's IDamageable.TakeDamage -> Health SyncVar drops -> despawn.
+    ///   owner's Damage and calls the target's IDamageable.TakeDamage -> Health SyncVar drops -> despawn.
     ///
     /// Fires the REAL authored `Bullet` ProjectileType (whose OnEnemy reaction deals its Damage), spawned
     /// via the production path (`ProjectileType.Create`), so this also catches asset/wiring regressions.

@@ -25,12 +25,12 @@ public static class OperationRefactorMigration
         if (bullet != null)
         {
             // Was: Movement=Linear, Acceleration=0; SurfaceHealthLoss=1; RicochetsByDefault=off;
-            //      enemy default = DealDamage(useInvokerDamage, despawn).
+            //      enemy default = DealDamage(useOwnerDamage, despawn).
             bullet.Motion = new LinearMotion(0f);
             bullet.OnSurface = new List<IEffect<ProjectileSurfaceCollision>> { new LoseHealth(1) };
             bullet.OnPlayer = new List<IEffect<ProjectilePlayerCollision>>
             {
-                new DealDamage(useInvokerDamage: true, amount: 10, despawnAfter: true),
+                new DealDamage(useOwnerDamage: true, amount: 10),
             };
             bullet.OnProjectile = new List<IEffect<ProjectileProjectileCollision>>();
             EditorUtility.SetDirty(bullet);
