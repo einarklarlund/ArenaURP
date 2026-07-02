@@ -4,6 +4,7 @@ using FishNet.Managing.Timing;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using FishNet.Serializing;
+using MackySoft.SerializeReferenceExtensions;
 using UnityEngine;
 using MotionCoreState = Arena.NetworkedMotion.NetworkedMotionState;
 
@@ -14,26 +15,25 @@ using MotionCoreState = Arena.NetworkedMotion.NetworkedMotionState;
 /// (a ricochet/deflect), pushed via SyncVars.
 ///
 /// It is FULLY DECOUPLED from the projectile concept: it holds no <c>ProjectileType</c>. Its
-/// <see cref="IMotionStrategy"/> + initial speed are ASSIGNED locally on every peer by the instance's
-/// <c>TypeObjectRoot</c> (which calls <c>ProjectileType.Initialize</c> → <see cref="Configure"/>) at Awake
-/// from the baked type — so the strategy (an inspector-authored [SerializeReference] on the type) is NOT on
-/// the wire; only the per-spawn anchor (tick/pos/dir) rides the payload, and every peer resolves the same
-/// strategy from its identical copy of the SO. It knows nothing of Health/Damage/ownership/VFX.
+/// <see cref="IMotionStrategy"/> + initial speed are AUTHORED ON THE PREFAB (prefab-per-kind), so every peer
+/// has them baked into its identical copy of the prefab — the strategy is NOT on the wire; only the per-spawn
+/// anchor (tick/pos/dir) rides the payload. Being serialized prefab data, the config is runtime-tunable per
+/// instance and survives pooling for free. It knows nothing of Health/Damage/ownership/VFX.
 /// </summary>
 public sealed class NetworkedMotion : NetworkBehaviour
 {
+    [Header("Motion (per-kind config, authored on the prefab)")]
+    [SerializeReference, SubclassSelector]
+    [Tooltip("The motion strategy this mover evaluates (select a kind; it carries its own tuning).")]
+    public IMotionStrategy Motion = new LinearMotion();
+    [Tooltip("Speed of the initial spawn segment.")]
+    public float InitialSpeed = 50f;
+
     // Authoritative segment, synced only when it CHANGES (a ricochet/deflect begins a new segment).
     private readonly SyncVar<Vector3> _segPos = new();
     private readonly SyncVar<Vector3> _segForward = new();
     private readonly SyncVar<float> _segSpeed = new();
     private readonly SyncVar<float> _segAge = new();
-
-    // Motion strategy: instance-lifetime config, set once locally by the TypeObjectRoot via Configure.
-    // NOT on the payload and NOT wiped on despawn — prefab-per-kind fixes a pooled instance's kind forever.
-    // A stateless flyweight shared from the type's [SerializeReference] Motion field (all per-instance state
-    // lives in _state), so it is safe to hold the SO's single instance here.
-    private IMotionStrategy _strategy;
-    private float _initialSpeed;
 
     // Per-spawn anchor. On the INITIATOR (server bot-spawn or the predicting client) these are self-derived in
     // OnStartNetwork from the instantiate pose + the current tick — FishNet invokes OnStartNetwork
@@ -52,24 +52,10 @@ public sealed class NetworkedMotion : NetworkBehaviour
     public int Id => (int)ObjectId;
 
     /// <summary>The motion strategy this mover evaluates (read by effects for live velocity, by ServerCollision for the cast sweep).</summary>
-    public IMotionStrategy Strategy => _strategy;
+    public IMotionStrategy Strategy => Motion;
 
     /// <summary>The current motion state (read by ServerCollision for this and other movers' positions).</summary>
     public MotionCoreState State => _state;
-
-    /// <summary>
-    /// Assign the motion parameters from the type. Called by the instance's <c>TypeObjectRoot</c> at Awake
-    /// on every peer (before the payload + OnStartNetwork), so these are present when <see cref="OnStartNetwork"/>
-    /// seeds the state. Read locally from the baked SO — never serialized over the network.
-    /// </summary>
-    public void Configure(IMotionStrategy strategy, float initialSpeed)
-    {
-        if (strategy == null)
-            Debug.LogError($"{nameof(NetworkedMotion)} on '{name}' was configured with a null motion strategy " +
-                           "— the projectile type's Motion field is unassigned. Falling back to LinearMotion.", this);
-        _strategy = strategy ?? new LinearMotion();
-        _initialSpeed = initialSpeed;
-    }
 
     private void ApplySpawnTransform()
     {
@@ -80,8 +66,8 @@ public sealed class NetworkedMotion : NetworkBehaviour
 
     // ---- spawn anchor payload (tick/pos/dir). Initiator: self-derived in OnStartNetwork, which FishNet
     //      runs BEFORE WritePayload on the spawning side. Receivers: ReadPayload fills the fields BEFORE
-    //      OnStartNetwork. Config (strategy/speed) is set locally by the TypeObjectRoot from the baked SO,
-    //      so it is deliberately NOT on the wire. ----
+    //      OnStartNetwork. Config (strategy/speed) is serialized prefab data every peer already has, so it
+    //      is deliberately NOT on the wire. ----
 
     public override void WritePayload(NetworkConnection connection, Writer writer)
     {
@@ -116,7 +102,14 @@ public sealed class NetworkedMotion : NetworkBehaviour
             SpawnTick = TimeManager.GetPreciseTick(TickType.Tick);
         }
 
-        _state = MotionCoreState.Spawn(Id, SpawnPosition, SpawnForward, _initialSpeed);
+        if (Motion == null)
+        {
+            Debug.LogError($"{nameof(NetworkedMotion)} on '{name}' has no Motion strategy authored on the " +
+                           "prefab. Falling back to LinearMotion.", this);
+            Motion = new LinearMotion();
+        }
+
+        _state = MotionCoreState.Spawn(Id, SpawnPosition, SpawnForward, InitialSpeed);
         _initialized = true;
 
         _segPos.OnChange += OnSegPosChanged;
@@ -155,12 +148,12 @@ public sealed class NetworkedMotion : NetworkBehaviour
 
     private void Render()
     {
-        if (_strategy == null)
+        if (Motion == null)
             return;
         MotionCoreState s = _state;
         s.Age = ElapsedSinceSpawn();
-        transform.position = NetworkedMotionProcessor.PositionAt(_strategy, in s);
-        Vector3 vel = NetworkedMotionProcessor.VelocityAt(_strategy, in s);
+        transform.position = NetworkedMotionProcessor.PositionAt(Motion, in s);
+        Vector3 vel = NetworkedMotionProcessor.VelocityAt(Motion, in s);
         if (vel.sqrMagnitude > 1e-4f)
             transform.rotation = Quaternion.LookRotation(vel.normalized);
         else if (s.OriginForward.sqrMagnitude > 1e-4f)
@@ -175,7 +168,7 @@ public sealed class NetworkedMotion : NetworkBehaviour
     {
         MotionCoreState s = _state;
         s.Age = age;
-        return NetworkedMotionProcessor.PositionAt(_strategy, in s);
+        return NetworkedMotionProcessor.PositionAt(Motion, in s);
     }
 
     /// <summary>Server: set the working age so <see cref="State"/> reflects the current tick for collision queries.</summary>
@@ -204,9 +197,9 @@ public sealed class NetworkedMotion : NetworkBehaviour
     public override void ResetState(bool asServer)
     {
         base.ResetState(asServer);
-        // Reset per-spawn + working state only. _strategy / _initialSpeed are INSTANCE-LIFETIME (set once by
-        // the TypeObjectRoot at Awake, which pooling does not re-run) — wiping them would leave a reused
-        // pooled instance unconfigured, since the config no longer arrives on the payload.
+        // Reset per-spawn + working state only. Motion / InitialSpeed are serialized prefab config — pooling
+        // never touches them, so a reused instance keeps its kind's tuning (any runtime mutation of them is
+        // deliberate per-instance state and persists across pooled reuse by design).
         _state = default;
         _initialized = false;
         _payloadApplied = false;

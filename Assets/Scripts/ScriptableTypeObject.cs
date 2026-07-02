@@ -2,11 +2,10 @@ using FishNet.Object;
 using UnityEngine;
 
 /// <summary>
-/// Base for a Type Object that owns a networked INSTANCE prefab and knows how to configure one (Type Object
-/// + Flyweight). A type is data: the per-kind config plus the <see cref="InstancePrefab"/> template. It does
-/// NOT instantiate or spawn — the spawner pooled-instantiates <see cref="InstancePrefab"/>, and the prefab's
-/// generic <see cref="TypeObjectRoot"/> calls <see cref="Initialize"/> on itself at Awake (on every peer).
-/// The components stay decoupled from the type; only the root references it.
+/// Base for a Type Object that names a kind and owns its networked INSTANCE prefab. A type is IDENTITY plus
+/// whatever cannot live on the prefab (display name, icon, SFX — UI-facing data); ALL gameplay config is
+/// authored on the prefab's own components, so every peer has it baked with nothing on the wire. It does NOT
+/// instantiate or spawn — spawn sites pooled-instantiate <see cref="InstancePrefab"/> themselves.
 /// </summary>
 public abstract class ScriptableTypeObject : ScriptableObject
 {
@@ -17,10 +16,10 @@ public abstract class ScriptableTypeObject : ScriptableObject
     public NetworkObject InstancePrefab => instancePrefab;
 
     /// <summary>
-    /// Push this type's data into the freshly-instantiated instance's components — the composition lives
-    /// here, not in any component. Called by the instance's <see cref="TypeObjectRoot"/> at Awake; public so
-    /// the root can invoke it. Runs on every peer, so it must be safe off-server (server-only components gate
-    /// their own behaviour) and idempotent enough that the root's once-guard is the only call it needs.
+    /// Optional hook to push type data into a freshly-instantiated instance, called by the instance's
+    /// <see cref="TypeObjectRoot"/> at Awake on every peer. The default is a no-op: gameplay config lives on
+    /// the prefab's components, so most types have nothing to push. Override only for data that genuinely
+    /// cannot be baked into the prefab.
     /// </summary>
-    public abstract void Initialize(GameObject instance);
+    public virtual void Initialize(GameObject instance) { }
 }

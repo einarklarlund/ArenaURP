@@ -1,20 +1,17 @@
 using UnityEngine;
 
 /// <summary>
-/// The one generic composition root for any <see cref="ScriptableTypeObject"/> instance prefab. It is DUMB
-/// about which kind it is: it holds a BASE-typed reference to the type baked into this prefab variant
-/// (prefab-per-kind) and does nothing but trigger that type's <see cref="ScriptableTypeObject.Initialize"/>
-/// on itself, exactly once, at <see cref="Awake"/>.
-///
-/// Why the instance self-inits instead of the spawner doing it: a spawner's code runs only on the spawning
-/// peer, so with client-predicted spawns the server and the other observers instantiate the prefab and
-/// would never configure it. <see cref="Awake"/> runs on EVERY peer — synchronously inside FishNet's
-/// instantiation, before the per-spawn payload is applied and before any component's OnStartNetwork — so
-/// every peer configures locally from the baked SO with nothing on the wire.
+/// The one generic identity root for any <see cref="ScriptableTypeObject"/> instance prefab. It is DUMB
+/// about which kind it is: it holds a BASE-typed reference to the type baked into this prefab
+/// (prefab-per-kind) — the instance's link back to its identity SO (display name / icon / SFX) — and
+/// triggers the type's optional <see cref="ScriptableTypeObject.Initialize"/> hook once at
+/// <see cref="Awake"/>. Since all gameplay config is authored directly on the prefab's components, that
+/// hook is a no-op for most types; <see cref="Awake"/> still runs on EVERY peer (synchronously inside
+/// FishNet's instantiation, before payload + OnStartNetwork) for any type that does override it.
 ///
 /// The leaf components stay generic and type-agnostic; this root is the ONLY component that references the
-/// type. The deliberate bidirectional prefab→SO reference (SO's InstancePrefab ⇄ this root's type) is the
-/// trade that buys correct predicted spawn; <see cref="OnValidate"/> guards it from drifting out of sync.
+/// type. The deliberate bidirectional prefab→SO reference (SO's InstancePrefab ⇄ this root's type) keeps
+/// identity resolvable locally on every peer; <see cref="OnValidate"/> guards it from drifting out of sync.
 /// </summary>
 public sealed class TypeObjectRoot : MonoBehaviour
 {

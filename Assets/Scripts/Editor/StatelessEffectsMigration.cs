@@ -1,16 +1,21 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
+using Arena.NetworkedMotion;
 using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// One-shot migration for the stateless-commands refactor. <c>SpawnProjectiles</c> and <c>SpawnVfx</c> were
-/// deleted (replaced by the stateless <c>SpawnNetworkObjects</c> / <c>InstantiateGameObjects</c>, whose config
-/// lives on <c>SpawnableObjects</c> / <c>InstantiableObjects</c> components), so ScatterBurst.asset's
-/// serialized <c>SpawnProjectiles {count:12, spread:360}</c> is now a missing-type entry. This replaces it
-/// with a <c>SpawnNetworkObjects</c> (resolved via GetComponent on the caster at use time) and puts the
-/// equivalent <c>SpawnableObjects</c> fan config (Bullet prefab, 12, 360°) on every pawn prefab that carries
-/// <c>PawnAbilities</c> — the ability context's Owner is the pawn, so that is where the effect looks.
+/// One-shot migration for the stateless-commands refactor (Phases 1+2). Effects lost their config fields
+/// (state lives on components now), and ProjectileType lost ALL gameplay config (radius / health / damage /
+/// speed / lifetime / motion / hit-operation lists moved onto the instance prefab's components). This
+/// repopulates everything the serialized assets lost:
+///
+///  1. The Bullet prefab's components get the values previously authored on Bullet.asset (including the
+///     die-on-player-hit LoseHealth that the pre-refactor DealDamage.despawnAfter used to provide).
+///  2. ScatterBurst.asset's OnUse gets a stateless SpawnNetworkObjects (its old SpawnProjectiles class was
+///     deleted, leaving a missing managed reference).
+///  3. Every pawn prefab carrying PawnAbilities gets the scatter fan config as a SpawnableObjects on the
+///     Pawn's own GameObject (the ability context's Owner is the pawn, so that is where GetComponent looks).
 ///
 /// Idempotent — safe to re-run. Run via the menu or <c>-executeMethod StatelessEffectsMigration.Run</c>.
 /// Delete once the assets are committed.
@@ -19,6 +24,14 @@ public static class StatelessEffectsMigration
 {
     const string BulletPath = "Assets/Data/Projectiles/Bullet.asset";
     const string ScatterBurstPath = "Assets/Data/Abilities/ScatterBurst.asset";
+
+    // Values previously authored on Bullet.asset (the ProjectileType SO).
+    const float BulletRadius = 0.2f;
+    const float BulletLifetime = 5.15f;
+    const int BulletMaxHealth = 1;
+    const int BulletDamage = 3;
+    const float BulletSpeed = 60f;
+
     const int ScatterCount = 12;
     const float ScatterSpreadDegrees = 360f;
 
@@ -32,7 +45,44 @@ public static class StatelessEffectsMigration
             return;
         }
 
-        // 1) ScatterBurst: replace the old serialized SpawnProjectiles (deleted class -> missing managed
+        // 1) Bullet prefab: bake the values that used to live on Bullet.asset into the prefab's components.
+        string bulletPrefabPath = AssetDatabase.GetAssetPath(bullet.InstancePrefab);
+        var contentsRoot = PrefabUtility.LoadPrefabContents(bulletPrefabPath);
+        try
+        {
+            if (contentsRoot.TryGetComponent<NetworkedMotion>(out var motion))
+            {
+                motion.Motion = new LinearMotion(0f);
+                motion.InitialSpeed = BulletSpeed;
+            }
+            if (contentsRoot.TryGetComponent<ServerCollision>(out var collision))
+            {
+                collision.Radius = BulletRadius;
+                collision.Lifetime = BulletLifetime;
+                collision.OnSurface = new List<IEffect<ProjectileSurfaceCollision>> { new LoseHealth() };
+                // Die-on-player-hit is authored data: LoseHealth AFTER DealDamage, so the bullet spends its
+                // 1 health on the hit and ServerCollision despawns it.
+                collision.OnPlayer = new List<IEffect<ProjectilePlayerCollision>> { new DealDamage(), new LoseHealth() };
+                collision.OnProjectile = new List<IEffect<ProjectileProjectileCollision>>();
+            }
+            if (contentsRoot.TryGetComponent<Health>(out var health))
+            {
+                var so = new SerializedObject(health);
+                so.FindProperty("maxHealth").intValue = BulletMaxHealth;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+            if (contentsRoot.TryGetComponent<Damage>(out var damage))
+                damage.Amount = BulletDamage;
+
+            PrefabUtility.SaveAsPrefabAsset(contentsRoot, bulletPrefabPath);
+            Debug.Log($"[StatelessEffectsMigration] Baked Bullet.asset values into {bulletPrefabPath}");
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(contentsRoot);
+        }
+
+        // 2) ScatterBurst: replace the old serialized SpawnProjectiles (deleted class -> missing managed
         //    reference) with a stateless SpawnNetworkObjects. Source is left null: the effect resolves the
         //    caster pawn's SpawnableObjects via GetComponent on the context Owner at use time.
         var scatter = AssetDatabase.LoadAssetAtPath<ActiveAbilityType>(ScatterBurstPath);
@@ -47,7 +97,7 @@ public static class StatelessEffectsMigration
             Debug.LogWarning($"[StatelessEffectsMigration] Missing {ScatterBurstPath}");
         }
 
-        // 2) Every pawn prefab carrying PawnAbilities gets the scatter fan config as a SpawnableObjects on the
+        // 3) Every pawn prefab carrying PawnAbilities gets the scatter fan config as a SpawnableObjects on the
         //    Pawn's own GameObject (AbilityAim.Owner is pawn.gameObject, so that is where GetComponent looks).
         foreach (string guid in AssetDatabase.FindAssets("t:Prefab"))
         {

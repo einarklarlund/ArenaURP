@@ -28,7 +28,8 @@ public static class ProjectileDamageTestRig
 
     public static int PlayerObjectId(NetworkPlayer player) => player.ObjectId;
 
-    /// <summary>The authored Damage of a ProjectileType asset (its own per-hit damage), for exact assertions.</summary>
-    public static int TypeDamageAt(string assetPath) => AssetDatabase.LoadAssetAtPath<ProjectileType>(assetPath).Damage;
+    /// <summary>The authored Damage of a projectile kind (read off its InstancePrefab's Damage component), for exact assertions.</summary>
+    public static int TypeDamageAt(string assetPath)
+        => AssetDatabase.LoadAssetAtPath<ProjectileType>(assetPath).InstancePrefab.GetComponent<Damage>().Amount;
 }
 #endif

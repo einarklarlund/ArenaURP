@@ -8,10 +8,11 @@ using HealthCoreState = Arena.Health.HealthState;
 /// <summary>
 /// Server-authoritative health for non-Pawn entities (bullets, enemies, props) — the generic Health
 /// system's shell. Current/Max HP are SyncVars; the arithmetic is the pure
-/// <see cref="HealthProcessor"/> (EditMode-tested in Arena.Health.Core). Projectiles seed it from their
-/// <c>ProjectileType</c> via <see cref="ServerInitMax"/>, drain it via <see cref="ServerLose"/>, and let
-/// their ServerCollision drive despawn (so set despawnOnDeath = false on a projectile); other entities can
-/// wire HurtBox.OnHurt → <see cref="TakeDamage"/> and self-despawn.
+/// <see cref="HealthProcessor"/> (EditMode-tested in Arena.Health.Core). The max is AUTHORED ON THE PREFAB
+/// (<c>maxHealth</c>); <see cref="OnStartServer"/> re-seeds current/max from it each (pooled) spawn.
+/// Projectiles drain it via <see cref="ServerLose"/> and let their ServerCollision drive despawn (so set
+/// despawnOnDeath = false on a projectile); other entities can wire HurtBox.OnHurt →
+/// <see cref="TakeDamage"/> and self-despawn.
 /// </summary>
 public class Health : NetworkBehaviour, IDamageable
 {
@@ -26,12 +27,6 @@ public class Health : NetworkBehaviour, IDamageable
 
     public bool IsDead => CurrentHealth.Value <= 0;
 
-    /// <summary>
-    /// Pre-spawn config: set the max HP a type wants this instance to have, BEFORE network start so
-    /// <see cref="OnStartServer"/> seeds current/max from it. Used by a TypeScriptableObject's Initialize.
-    /// </summary>
-    public void ConfigureMax(int max) => maxHealth = Mathf.Max(1, max);
-
     public override void OnStartServer()
     {
         base.OnStartServer();
@@ -39,7 +34,7 @@ public class Health : NetworkBehaviour, IDamageable
         CurrentHealth.Value = maxHealth;
     }
 
-    /// <summary>Server: (re)seed max + current HP from config (e.g. a projectile type) at spawn.</summary>
+    /// <summary>Server: (re)seed max + current HP at runtime (e.g. a buff raising an entity's max).</summary>
     [Server]
     public void ServerInitMax(int max)
     {

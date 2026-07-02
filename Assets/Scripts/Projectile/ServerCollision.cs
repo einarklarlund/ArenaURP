@@ -9,15 +9,16 @@ using SC = Arena.ServerCollision;
 /// <see cref="NetworkedMotion"/>'s age, casts the world broadphase and overlaps the projectile broadphase
 /// itself, classifies each hit with the pure <see cref="SC.ServerCollisionProcessor"/>, builds the matching
 /// concrete operation context (<see cref="ProjectileSurfaceCollision"/> / <see cref="ProjectilePlayerCollision"/>
-/// / <see cref="ProjectileProjectileCollision"/>), and runs the projectile type's authored operations for that
+/// / <see cref="ProjectileProjectileCollision"/>), and runs this prefab's authored operations for that
 /// category, then the owner's runtime contributions (passive abilities / powerups, looked up server-side).
 ///
-/// It holds no ProjectileType: its collision radius, lifetime, and default operations are INJECTED by
-/// <c>ProjectileType.Initialize</c> via <see cref="Configure"/> (server-side at spawn). Motion — including the
-/// per-tick collision sweep (a beam casts forward; a mover sweeps prev→new) — comes polymorphically from the
-/// sibling motion's <see cref="IMotionStrategy"/>, replacing the old <c>if (Movement == Laser)</c> branch.
-/// Collision is SERVER-AUTHORITATIVE and not predicted, so operations perform their I/O directly. Despawn is
-/// driven here off the sibling <see cref="Health"/> reaching zero, or the injected lifetime.
+/// It holds no ProjectileType: its collision radius, lifetime, and hit operations are AUTHORED ON THE PREFAB
+/// (prefab-per-kind), so they are runtime-tunable per instance and identical on every peer with nothing on the
+/// wire. Motion — including the per-tick collision sweep (a beam casts forward; a mover sweeps prev→new) —
+/// comes polymorphically from the sibling motion's <see cref="IMotionStrategy"/>, replacing the old
+/// <c>if (Movement == Laser)</c> branch. Collision is SERVER-AUTHORITATIVE and not predicted, so operations
+/// perform their I/O directly. Despawn is driven here off the sibling <see cref="Health"/> reaching zero, or
+/// the authored lifetime.
 /// </summary>
 public sealed class ServerCollision : NetworkBehaviour
 {
@@ -25,15 +26,27 @@ public sealed class ServerCollision : NetworkBehaviour
     [SerializeField] private LayerMask worldMask;       // Stage | Players
     [SerializeField] private LayerMask projectileMask;  // Bullet-To-Bullet
 
+    [Header("Collision (per-kind config, authored on the prefab)")]
+    [Tooltip("Cast/overlap radius of this projectile.")]
+    public float Radius = 0.05f;
+    [Tooltip("Seconds before the projectile self-despawns.")]
+    public float Lifetime = 5f;
+
+    [Header("Hit reactions (operations run per hit category)")]
+    [Tooltip("Operations run when this projectile hits a surface (wall/stage).")]
+    [SerializeReference, EffectSelector]
+    public List<IEffect<ProjectileSurfaceCollision>> OnSurface = new();
+    [Tooltip("Operations run when this projectile hits a player.")]
+    [SerializeReference, EffectSelector]
+    public List<IEffect<ProjectilePlayerCollision>> OnPlayer = new();
+    [Tooltip("Operations run when this projectile hits another projectile.")]
+    [SerializeReference, EffectSelector]
+    public List<IEffect<ProjectileProjectileCollision>> OnProjectile = new();
+
     private NetworkedMotion _motion;
     private Health _health;
     private NetPlayerOwnership _ownership;
     private NetworkPlayerManager _players;
-
-    // Collision config injected by ProjectileType.Initialize (server-side at spawn).
-    private float _radius;
-    private float _lifetime;
-    private ProjectileEffects _defaults;
 
     // Projectile-channel one-shot-on-enter dedupe guard (was ProjectileState.LastHitProjectileId).
     private int _guard = SC.ServerCollisionProcessor.NoGuard;
@@ -47,14 +60,6 @@ public sealed class ServerCollision : NetworkBehaviour
         _motion = GetComponent<NetworkedMotion>();
         _health = GetComponent<Health>();
         _ownership = GetComponent<NetPlayerOwnership>();
-    }
-
-    /// <summary>Server: inject the projectile type's collision radius, lifetime, and authored default operations at spawn.</summary>
-    public void Configure(float radius, float lifetime, ProjectileEffects defaults)
-    {
-        _radius = radius;
-        _lifetime = lifetime;
-        _defaults = defaults;
     }
 
     public override void OnStartServer()
@@ -81,7 +86,7 @@ public sealed class ServerCollision : NetworkBehaviour
         IMotionStrategy strategy = _motion.Strategy;
         float dt = (float)TimeManager.TickDelta;
         float age = _motion.ElapsedSinceSpawn();
-        if (age >= _lifetime)
+        if (age >= Lifetime)
         {
             ServerDespawn();
             return;
@@ -104,21 +109,21 @@ public sealed class ServerCollision : NetworkBehaviour
             ? strategy.CollisionSweep(in state, prevPos, newPos)
             : new MotionSweep(prevPos, newPos);
 
-        if (CastWorld(sweep.From, sweep.To, _radius, out SC.WorldHit hit, out GameObject hitObject) &&
+        if (CastWorld(sweep.From, sweep.To, Radius, out SC.WorldHit hit, out GameObject hitObject) &&
             SC.ServerCollisionProcessor.TryClassifyWorldHit(in state, ownerId, vel, in hit, out SC.HitInfo worldInfo))
         {
             if (worldInfo.Category == SC.HitCategory.Enemy)
             {
                 var ctx = new ProjectilePlayerCollision(gameObject, hitObject, owner,
                     worldInfo.Point, worldInfo.Normal, worldInfo.Direction);
-                RunEffects(_defaults.OnPlayer, ctx);
+                RunEffects(OnPlayer, ctx);
                 RunEffects(ownerOps.OnPlayer, ctx);
             }
             else
             {
                 var ctx = new ProjectileSurfaceCollision(gameObject, owner,
                     worldInfo.Point, worldInfo.Normal, worldInfo.Direction);
-                RunEffects(_defaults.OnSurface, ctx);
+                RunEffects(OnSurface, ctx);
                 RunEffects(ownerOps.OnSurface, ctx);
             }
         }
@@ -133,7 +138,7 @@ public sealed class ServerCollision : NetworkBehaviour
 
     private void ResolveProjectileChannel(Vector3 selfPos, Vector3 vel, in NetworkedMotionState self, int selfOwnerId, NetworkPlayer owner, in ProjectileEffects ownerOps)
     {
-        int n = OverlapProjectiles(selfPos, _radius, _overlaps, self.Id);
+        int n = OverlapProjectiles(selfPos, Radius, _overlaps, self.Id);
         int firstHandled = SC.ServerCollisionProcessor.NoGuard;
         bool stillGuarded = false;
 
@@ -152,7 +157,7 @@ public sealed class ServerCollision : NetworkBehaviour
 
             var ctx = new ProjectileProjectileCollision(gameObject, other.gameObject, owner,
                 info.Point, info.Normal, info.Direction);
-            RunEffects(_defaults.OnProjectile, ctx);
+            RunEffects(OnProjectile, ctx);
             RunEffects(ownerOps.OnProjectile, ctx);
 
             if (firstHandled < 0)
@@ -166,7 +171,7 @@ public sealed class ServerCollision : NetworkBehaviour
 
     private bool WantsProjectileChannel(in ProjectileEffects owner)
     {
-        if (_defaults.OnProjectile != null && _defaults.OnProjectile.Count > 0)
+        if (OnProjectile != null && OnProjectile.Count > 0)
             return true;
         return owner.OnProjectile != null && owner.OnProjectile.Count > 0;
     }
