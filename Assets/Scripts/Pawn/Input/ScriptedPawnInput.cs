@@ -11,7 +11,7 @@ using UnityEngine;
 /// Continuous combat inputs flow through here every server frame so they exercise the
 /// exact <c>Pawn&lt;X&gt; -&gt; Processor</c> path the shipped game uses. Ability USE/CYCLE are
 /// deliberately NOT driven here: those are server methods
-/// (<c>PawnAbilities.ServerUse</c> / <c>ServerCycleSelected</c>) the rig calls directly,
+/// (<c>PawnActiveAbilities.ServerUse</c> / <c>ServerCycleSelected</c>) the rig calls directly,
 /// matching <c>AbilityTestRig</c> and avoiding edge-trigger timing fragility.
 ///
 /// <see cref="IsActive"/> mirrors <see cref="BotPawnInput"/> (server-authoritative): the

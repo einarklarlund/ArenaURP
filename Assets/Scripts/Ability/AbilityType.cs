@@ -1,17 +1,16 @@
 using UnityEngine;
 
 /// <summary>
-/// Abstract Type Object (ScriptableObject) for one ability. Concrete kinds are
-/// <see cref="PassiveAbilityType"/> (always-on pawn/projectile modifiers) and
-/// <see cref="ActiveAbilityType"/> (triggered, limited-use effects).
+/// Abstract Type Object for one ability: IDENTITY (display name, icon — the UI-facing data) plus the
+/// <see cref="ScriptableTypeObject.InstancePrefab"/> holding the ability's gameplay config and live state.
+/// Concrete kinds are <see cref="PassiveAbilityType"/> and <see cref="ActiveAbilityType"/>; the prefab
+/// carries the matching <see cref="PassiveAbility"/> / <see cref="ActiveAbility"/> component.
 ///
-/// Subtype REPLACES the former <c>AbilityKind</c> type-code: an ability IS its kind, so there is no
-/// runtime field gating which half of the data is live, and no asset carries fields that don't apply to
-/// it. Authored as assets, registered in the <see cref="AbilityDatabase"/>, and granted by pickups.
-/// Synced over the wire as a database index (see <see cref="AbilityTypeSerializer"/>), so the base type
-/// is what the network layer and inventory hold; call sites narrow with <c>is</c> where they need a kind.
+/// Granting an ability = spawning its instance prefab parented under the owning pawn (see PawnAbilities), so
+/// nothing about WHICH ability rides the wire — FishNet replicates the spawned prefab, and every peer
+/// resolves identity locally via the instance's <see cref="TypeObjectRoot"/> back-ref to this asset.
 /// </summary>
-public abstract class AbilityType : ScriptableObject
+public abstract class AbilityType : ScriptableTypeObject
 {
     [Header("Identity")]
     public string DisplayName = "Ability";

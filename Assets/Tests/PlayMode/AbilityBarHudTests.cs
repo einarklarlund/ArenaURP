@@ -10,9 +10,10 @@ namespace Arena.PlayTests
 {
     /// <summary>
     /// Integration test for the active-ability HUD wiring: the <c>AbilityBar</c> binds to the local pawn's
-    /// server-authoritative <c>PawnAbilities</c> and must reflect the synced <c>Actives</c> list as it changes.
-    /// Proves the seam EditMode can't reach — a SyncList mutation on a live host driving the real widget through
-    /// the <c>NetworkUIEvents.OnLocalPawnSpawned</c> bind + the <c>Actives.OnChange</c>/<c>SelectedIndex.OnChange</c>
+    /// server-authoritative <c>PawnActiveAbilities</c> and must reflect the replicated ability INSTANCES as
+    /// they change. Proves the seam EditMode can't reach — a spawned/parented ability instance (and its
+    /// synced uses) on a live host driving the real widget through the
+    /// <c>NetworkUIEvents.OnLocalPawnSpawned</c> bind + the <c>InventoryChanged</c>/<c>SelectedIndex.OnChange</c>
     /// subscriptions. The slot-removal/selection-clamp math itself is owned by EditMode AbilityInventoryLogic tests;
     /// here we only pin that the HUD reacts.
     ///
@@ -24,8 +25,8 @@ namespace Arena.PlayTests
         const string PawnPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestTargetPawn.prefab";
         const string ScatterBoxPath = "Assets/Prefabs/Pickups/Scatter Burst Box.prefab";
         const string BurstPath = "Assets/Data/Abilities/ScatterBurst.asset";
-        const int BurstUses = 3; // ScatterBurst.asset Uses
-        const float BurstCooldown = 0.5f; // ScatterBurst.asset Cooldown — uses are server-gated by it
+        const int BurstUses = 3; // ScatterBurst prefab's ActiveAbility.DefaultUses
+        const float BurstCooldown = 0.5f; // ScatterBurst prefab's ActiveAbility.Cooldown — uses are server-gated by it
 
         protected override string ScenePath => "Assets/Tests/PlayMode/Scenes/TestProjectile.unity";
 
@@ -94,7 +95,7 @@ namespace Arena.PlayTests
             Assert.AreEqual((BurstUses - 2).ToString(), (string)BarRig("SlotUsesText", _bar, 0),
                 "the HUD keeps tracking each use");
 
-            // Final use exhausts the slot -> it's removed from Actives and the HUD slot must go empty.
+            // Final use exhausts the slot -> the instance is despawned and the HUD slot must go empty.
             yield return new WaitForSeconds(BurstCooldown + 0.1f);
             Ability("Use", pawn);
             yield return null;
@@ -117,7 +118,7 @@ namespace Arena.PlayTests
             yield return null;
         }
 
-        // PawnAbilities.MaxActives lives in Assembly-CSharp; mirror the constant rather than reference it.
+        // PawnActiveAbilities.MaxActives lives in Assembly-CSharp; mirror the constant rather than reference it.
         const int PawnAbilitiesMaxActives = 5;
 
         static readonly Type BarRigType = Type.GetType("AbilityBarTestRig, Assembly-CSharp");

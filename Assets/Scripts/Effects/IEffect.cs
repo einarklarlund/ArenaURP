@@ -37,7 +37,7 @@ public interface IEffect<in TContext> where TContext : IEffectContext
 /// <see cref="ISurfaceContext"/>, <see cref="ITargetContext"/>), instead of every context re-declaring the same
 /// fields. An operation then names the exact context type (or the single capability) it needs, which is what
 /// enforces the contract. Built fresh per invocation by the imperative shell that runs the operations
-/// (ServerCollision for a hit, PawnAbilities for an ability use).
+/// (ServerCollision for a hit, PawnActiveAbilities for an ability use).
 /// </summary>
 public interface IEffectContext
 {

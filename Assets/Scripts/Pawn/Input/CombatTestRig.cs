@@ -11,8 +11,8 @@ using UnityEngine;
 ///
 /// Why it exists: the <c>Arena.PlayTests</c> asmdef can't reference Assembly-CSharp, where the
 /// gameplay types live (<see cref="Pawn"/>, <see cref="PawnMovement"/>, <see cref="PawnWeapon"/>,
-/// <see cref="PawnColor"/>, <see cref="PawnAbilities"/>, <see cref="NetworkPlayer"/>,
-/// <see cref="NetworkPlayerManager"/>). Tests reach this class by reflection
+/// <see cref="PawnColor"/>, <see cref="PawnActiveAbilities"/>, <see cref="PawnPassiveAbilities"/>,
+/// <see cref="NetworkPlayer"/>, <see cref="NetworkPlayerManager"/>). Tests reach this class by reflection
 /// (<c>Type.GetType("CombatTestRig, Assembly-CSharp")</c>) and call its static methods ??? the same
 /// pattern as <see cref="MatchTestRig"/> / <c>AbilityTestRig</c> / <c>ProjectileSpawnTestRig</c>.
 /// Reflection is contained to the test???rig boundary; INSIDE the rig everything is typed.
@@ -48,7 +48,8 @@ public static class CombatTestRig
     static PawnMovement Movement(GameObject go) => go.GetComponentInChildren<PawnMovement>(true);
     static PawnWeapon Weapon(GameObject go) => go.GetComponentInChildren<PawnWeapon>(true);
     static PawnColor Color_(GameObject go) => go.GetComponentInChildren<PawnColor>(true);
-    static PawnAbilities Abilities(GameObject go) => go.GetComponentInChildren<PawnAbilities>(true);
+    static PawnActiveAbilities ActiveAbilities(GameObject go) => go.GetComponentInChildren<PawnActiveAbilities>(true);
+    static PawnPassiveAbilities PassiveAbilities(GameObject go) => go.GetComponentInChildren<PawnPassiveAbilities>(true);
     static PawnKnockback Knockback(GameObject go) => go.GetComponentInChildren<PawnKnockback>(true);
 
     static NetworkPlayerManager Players() => Object.FindAnyObjectByType<NetworkPlayerManager>();
@@ -167,18 +168,18 @@ public static class CombatTestRig
     // ---- abilities (server-authoritative paths) --------------------------------------------
 
     public static void GivePassive(GameObject pawnGo, string abilityPath)
-        => Abilities(pawnGo).AddPassive(LoadAbility<PassiveAbilityType>(abilityPath));
+        => PassiveAbilities(pawnGo).AddPassive(LoadAbility<PassiveAbilityType>(abilityPath));
 
     public static void GiveActive(GameObject pawnGo, string abilityPath)
-        => Abilities(pawnGo).AddActive(LoadAbility<ActiveAbilityType>(abilityPath));
+        => ActiveAbilities(pawnGo).AddActive(LoadAbility<ActiveAbilityType>(abilityPath));
 
-    /// <summary>Use the selected active ??? same server method the F-key ServerRpc invokes.</summary>
-    public static void UseSelectedAbility(GameObject pawnGo) => Abilities(pawnGo).ServerUse();
+    /// <summary>Use the selected active — same server method the F-key ServerRpc invokes.</summary>
+    public static void UseSelectedAbility(GameObject pawnGo) => ActiveAbilities(pawnGo).ServerUse();
 
     /// <summary>Cycle the selected active slot (private ServerRpc; runs server logic directly on host).</summary>
     public static void CycleAbility(GameObject pawnGo, int dir)
-        => typeof(PawnAbilities).GetMethod("ServerCycleSelected", BindingFlags.NonPublic | BindingFlags.Instance)
-            .Invoke(Abilities(pawnGo), new object[] { dir });
+        => typeof(PawnActiveAbilities).GetMethod("ServerCycleSelected", BindingFlags.NonPublic | BindingFlags.Instance)
+            .Invoke(ActiveAbilities(pawnGo), new object[] { dir });
 
     static T LoadAbility<T>(string path) where T : AbilityType
     {
@@ -187,14 +188,16 @@ public static class CombatTestRig
         return a;
     }
 
-    public static int ActivesCount(GameObject pawnGo) => Abilities(pawnGo).Actives.Count;
-    public static int PassivesCount(GameObject pawnGo) => Abilities(pawnGo).Passives.Count;
-    public static int SelectedIndex(GameObject pawnGo) => Abilities(pawnGo).SelectedIndex.Value;
+    static readonly List<ActiveAbility> _activesBuf = new();
+
+    public static int ActivesCount(GameObject pawnGo) => ActiveAbilities(pawnGo).ActivesCount;
+    public static int PassivesCount(GameObject pawnGo) => PassiveAbilities(pawnGo).PassivesCount;
+    public static int SelectedIndex(GameObject pawnGo) => ActiveAbilities(pawnGo).SelectedIndex.Value;
 
     public static int AbilityUses(GameObject pawnGo, int index)
     {
-        var a = Abilities(pawnGo).Actives;
-        return index >= 0 && index < a.Count ? a[index].UsesRemaining : -1;
+        ActiveAbilities(pawnGo).GetActives(_activesBuf);
+        return index >= 0 && index < _activesBuf.Count ? _activesBuf[index].UsesRemaining.Value : -1;
     }
 
     // ---- readbacks -------------------------------------------------------------------------

@@ -20,6 +20,9 @@ public sealed class TypeObjectRoot : MonoBehaviour
 
     private bool _initialized;
 
+    /// <summary>The identity SO baked into this prefab (read for display name / icon / kind checks).</summary>
+    public ScriptableTypeObject Type => type;
+
     private void Awake() => EnsureInitialized();
 
     /// <summary>Configure this instance's components from its type, once. Idempotent and safe to re-call.</summary>

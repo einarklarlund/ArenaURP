@@ -1,21 +1,12 @@
-using System.Collections.Generic;
-using MackySoft.SerializeReferenceExtensions;
 using UnityEngine;
 
 /// <summary>
-/// Triggered ability (used with F): runs a set of <see cref="IEffect{TContext}"/> commands AUTHORED AS DATA
-/// against an <see cref="AbilityAim"/> context (the caster's origin + aim), has limited uses and an optional
-/// cooldown, and occupies one of the 5 active inventory slots. These are the SAME reusable operation commands a
-/// projectile reaction runs — an operation valid on an ability (e.g. <see cref="SpawnNetworkObjects"/>) is one
-/// that only needs an origin + direction, which the <see cref="AbilityAim"/> typing enforces.
+/// Identity of a triggered ability (used with F, occupies one of the 5 active inventory slots). ALL gameplay
+/// config — default uses, cooldown, and the authored <see cref="IEffect{TContext}"/> operations run on use —
+/// lives on the <see cref="ScriptableTypeObject.InstancePrefab"/>'s <see cref="ActiveAbility"/> component,
+/// alongside any <see cref="SpawnableObjects"/> / <see cref="InstantiableObjects"/> its effects reference.
 /// </summary>
 [CreateAssetMenu(fileName = "New Active Ability", menuName = "Arena/Ability/Active")]
 public sealed class ActiveAbilityType : AbilityType
 {
-    [Min(1)] public int Uses = 1;
-    [Min(0f)] public float Cooldown = 0f;
-
-    [Header("Operations run when the ability is used (aimed from the caster)")]
-    [SerializeReference, EffectSelector]
-    public List<IEffect<AbilityAim>> OnUse = new();
 }

@@ -33,14 +33,14 @@ namespace Arena.PlayTests
             var pawn = SpawnServerPrefab(ShooterPrefabPath, new Vector3(0f, 50f, 0f));
             for (int i = 0; i < 3; i++) yield return null; // let the spawn settle
 
-            // Passive grant -> server SyncList.
+            // Passive grant -> a PassiveAbility instance spawned + parented under the pawn.
             AbRig("AddPassive", pawn, SwiftPath);
-            Assert.AreEqual(1, (int)AbRig("PassivesCount", pawn), "passive ability added to the synced list");
+            Assert.AreEqual(1, (int)AbRig("PassivesCount", pawn), "passive ability instance under the pawn");
 
-            // Active grant -> 1 slot, uses initialised from the asset (3).
+            // Active grant -> 1 slot (an ActiveAbility instance), uses initialised from the prefab (3).
             AbRig("AddActive", pawn, BurstPath);
             Assert.AreEqual(1, (int)AbRig("ActivesCount", pawn), "active slot filled");
-            Assert.AreEqual(3, (int)AbRig("Uses", pawn, 0), "uses initialised from AbilityType.Uses");
+            Assert.AreEqual(3, (int)AbRig("Uses", pawn, 0), "uses initialised from ActiveAbility.DefaultUses");
 
             // Use the active. Count projectiles SYNCHRONOUSLY (before the next server tick resolves the
             // freshly-overlapping ring against each other) to prove the spawn happened.

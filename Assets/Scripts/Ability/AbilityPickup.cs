@@ -8,8 +8,9 @@ using UnityEngine;
 /// range, then despawns. We do NOT use <c>OnTriggerEnter</c> — that fires on every peer off client-side
 /// physics; driving detection from the server tick keeps the authority on the server and off the clients.
 ///
-/// Handles both kinds: <see cref="PawnAbilities.AddPassive"/>/<see cref="PawnAbilities.AddActive"/>
-/// ignore the wrong kind, and a full (5/5) active inventory leaves the box in place for someone else.
+/// Handles both kinds — a passive routes to <see cref="PawnPassiveAbilities.AddPassive"/>, an active to
+/// <see cref="PawnActiveAbilities.AddActive"/> — and a full (5/5) active inventory leaves the box in place
+/// for someone else.
 /// </summary>
 public sealed class AbilityPickup : NetworkBehaviour
 {
@@ -48,19 +49,16 @@ public sealed class AbilityPickup : NetworkBehaviour
             var pawn = _hits[i].GetComponentInParent<Pawn>();
             if (pawn == null)
                 continue;
-            var abilities = pawn.GetComponent<PawnAbilities>();
-            if (abilities == null)
-                continue;
 
             bool granted;
-            if (ability is PassiveAbilityType passive)
+            if (ability is PassiveAbilityType passive && pawn.TryGetComponent<PawnPassiveAbilities>(out var passives))
             {
-                abilities.AddPassive(passive);
+                passives.AddPassive(passive);
                 granted = true;
             }
-            else if (ability is ActiveAbilityType active)
+            else if (ability is ActiveAbilityType active && pawn.TryGetComponent<PawnActiveAbilities>(out var actives))
             {
-                granted = abilities.AddActive(active); // false when the 5 slots are full -> leave the box
+                granted = actives.AddActive(active); // false when the 5 slots are full -> leave the box
             }
             else
             {

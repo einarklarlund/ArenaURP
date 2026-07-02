@@ -49,7 +49,7 @@ public static class AbilityBarTestRig
     /// <summary>Bind the bar to a pawn via the same event the local pawn raises through NetworkUIController.</summary>
     public static void Bind(GameObject pawn) => NetworkUIEvents.OnLocalPawnSpawned?.Invoke(pawn.GetComponent<Pawn>());
 
-    /// <summary>Number of slot widgets the bar built (should be <see cref="PawnAbilities.MaxActives"/>).</summary>
+    /// <summary>Number of slot widgets the bar built (should be <see cref="PawnActiveAbilities.MaxActives"/>).</summary>
     public static int SlotCount(GameObject bar) => Slots(bar).Count;
 
     /// <summary>True when slot <paramref name="i"/> is showing an ability — its uses label is non-empty.</summary>

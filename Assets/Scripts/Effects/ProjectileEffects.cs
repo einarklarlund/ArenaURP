@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 
 /// <summary>
-/// A projectile's per-category collision operations, grouped. Used both for a projectile TYPE's authored
-/// defaults (built from the type's <c>[SerializeReference]</c> lists and pushed into ServerCollision) and for
-/// the OWNER's runtime contributions (passives / powerups, resolved server-side from the live owner and never
-/// payloaded — the "find the owner's operations instead of shipping them" rule). Each list is typed to its
-/// category's context, so an operation can only appear where its context is available.
+/// A projectile's per-category collision operations, grouped — the OWNER's runtime contributions (passives /
+/// powerups, resolved server-side from the live owner and never payloaded — the "find the owner's operations
+/// instead of shipping them" rule). A projectile's own defaults are authored directly on its prefab's
+/// ServerCollision. Each list is typed to its category's context, so an operation can only appear where its
+/// context is available.
 /// </summary>
 public readonly struct ProjectileEffects
 {
@@ -25,7 +25,7 @@ public readonly struct ProjectileEffects
 }
 
 /// <summary>
-/// Implemented by a pawn-side component (<c>PawnAbilities</c>) that contributes EXTRA projectile operations to
+/// Implemented by a pawn-side component (<c>PawnPassiveAbilities</c>) that contributes EXTRA projectile operations to
 /// the projectiles a player owns (from equipped passive abilities / powerups). The projectile's
 /// ServerCollision resolves its owner server-side and reads this bundle; the operations are NEVER sent on the
 /// spawn payload.

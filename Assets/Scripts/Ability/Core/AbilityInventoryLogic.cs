@@ -7,7 +7,7 @@ namespace Arena.Ability
     /// after a slot is removed, and the per-use decrement that decides when a slot is exhausted. Kept
     /// engine-free and side-effect-free so the branchy bits (wrap-around, empty/size-1 edge cases,
     /// remove-at-zero) are covered by fast EditMode tests rather than PlayMode scenarios. The networked
-    /// shell (PawnAbilities) owns the actual SyncList and just calls these.
+    /// shell (PawnActiveAbilities) owns the actual inventory and just calls these.
     /// </summary>
     public static class AbilityInventoryLogic
     {
