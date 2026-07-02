@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using FishNet;
-using FishNet.Managing.Timing;
 using FishNet.Object;
 using UnityEngine;
 
@@ -81,13 +79,18 @@ public class PawnWeapon : NetworkBehaviour
             if (currentWeapon.Projectile == null)
                 continue;
 
-            // Shared spawn path. Use THIS pawn's own NetworkManager (not InstanceFinder): on the owning
-            // client that is the client's manager, so the spawn takes FishNet's predicted-spawn path and the
-            // bullet appears locally on the SAME frame; on the server/host it spawns authoritatively. Owner
-            // = this pawn's connection so the predicting client owns its bullet.
-            int ownerId = pawn.ControllingPlayer.Value != null ? pawn.ControllingPlayer.Value.ObjectId : -1;
-            PreciseTick tick = TimeManager.GetPreciseTick(TickType.Tick);
-            ProjectileSpawner.Spawn(currentWeapon.Projectile, NetworkManager, ownerId, tick, spawnPos, fireDir, asServer: false, Owner);
+            // Instantiate at the spawn pose and network-spawn; the instance's components self-configure
+            // (TypeObjectRoot at Awake, NetworkedMotion's anchor at OnStartNetwork from this pose + tick).
+            // Use THIS pawn's own NetworkManager (not InstanceFinder): on the owning client that is the
+            // client's manager, so the spawn takes FishNet's predicted-spawn path and the bullet appears
+            // locally on the SAME frame; on the server/host it spawns authoritatively. Owner = this pawn's
+            // connection so the predicting client owns its bullet. The firer id is the one per-spawn value a
+            // component cannot self-derive (bots have no owning connection), so it is stamped here.
+            Quaternion rot = fireDir.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(fireDir) : Quaternion.identity;
+            NetworkObject nob = NetworkManager.GetPooledInstantiated(currentWeapon.Projectile.InstancePrefab, spawnPos, rot, asServer: false);
+            if (nob.TryGetComponent<NetPlayerOwnership>(out var ownership))
+                ownership.SpawnOwnerId = pawn.ControllingPlayer.Value != null ? pawn.ControllingPlayer.Value.ObjectId : -1;
+            NetworkManager.ServerManager.Spawn(nob, Owner);
         }
     }
 }

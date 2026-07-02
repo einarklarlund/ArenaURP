@@ -24,7 +24,6 @@ namespace Arena.PlayTests
         const string PawnPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestTargetPawn.prefab";
         const string BulletTypePath = "Assets/Data/Projectiles/Bullet.asset";
         const int StartHealth = 21;
-        const int OwnerBonus = 4;
 
         protected override string ScenePath => "Assets/Tests/PlayMode/Scenes/TestProjectileDamage.unity";
 
@@ -47,8 +46,10 @@ namespace Arena.PlayTests
             Dmg("Wire", npm, ownerPlayerGo.GetComponent("NetworkPlayer"), ownerPawnGo.GetComponent("Pawn"), StartHealth);
             int ownerId = (int)Dmg("PlayerObjectId", ownerPlayerGo.GetComponent("NetworkPlayer"));
 
-            // The owner equips "your bullets deal +OwnerBonus on enemy hit" ??? found server-side at hit time.
-            Ability("GrantProjectilePassive", ownerPawnGo, OwnerBonus);
+            // The owner equips "your bullets deal their damage AGAIN on enemy hit" — found server-side at hit
+            // time. DealDamage is stateless (it reads the projectile's own Damage component), so the passive's
+            // contribution equals the bullet's type damage.
+            Ability("GrantProjectilePassive", ownerPawnGo);
             for (int i = 0; i < 2; i++) yield return null;
 
             int before = (int)Dmg("Health", targetPawnGo.GetComponent("Pawn"));
@@ -62,8 +63,8 @@ namespace Arena.PlayTests
             yield return null;
 
             int after = (int)Dmg("Health", targetPawnGo.GetComponent("Pawn"));
-            Assert.AreEqual(typeDamage + OwnerBonus, before - after,
-                "the bullet's own damage PLUS the owner's looked-up projectile passive should both land");
+            Assert.AreEqual(typeDamage * 2, before - after,
+                "the bullet's own damage PLUS the owner's looked-up projectile passive (its damage again) should both land");
         }
 
         static readonly Type DmgRigType = Type.GetType("ProjectileDamageTestRig, Assembly-CSharp");

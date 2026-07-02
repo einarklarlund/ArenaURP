@@ -5,7 +5,7 @@ namespace Arena.NetworkedMotion
     /// <summary>
     /// Pure direction math for spawning N movers fanned evenly across a spread around an axis. A full 360°
     /// spread produces an even ring; a smaller spread produces an arc centred on the base direction.
-    /// Deterministic (no Random), EditMode-tested; the Unity-coupled <c>SpawnProjectiles</c> effect (used
+    /// Deterministic (no Random), EditMode-tested; the Unity-coupled <c>SpawnNetworkObjects</c> effect (used
     /// by both projectile reactions and abilities) wraps this.
     /// </summary>
     public static class SpawnFanMath

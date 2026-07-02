@@ -12,15 +12,16 @@ using UnityEditor;
 namespace Arena.PlayTests
 {
     /// <summary>
-    /// Integration test for the child-projectile spawn path ??? <c>ProjectileSpawner.Spawn</c>, the path the
-    /// SpawnProjectiles reaction/ability drives. It pins that this spawner produces a COMPLETE payload:
-    /// owner, position, forward, and crucially <c>SpawnTick</c>. SpawnTick is the basis for the child's
-    /// deterministic age; if a spawner forgets it (the bug this guards), the child computes its age from
-    /// tick 0 and despawns the instant it ticks.
+    /// Integration test for the child-projectile spawn path — instantiate-at-pose + stamp owner +
+    /// ServerManager.Spawn, the sequence the SpawnNetworkObjects reaction/ability drives. It pins that the
+    /// spawned instance ends up with a COMPLETE payload: owner (stamped by the spawn site), and position,
+    /// forward, and crucially <c>SpawnTick</c> (self-derived by NetworkedMotion in OnStartNetwork from the
+    /// instantiate pose + current tick). SpawnTick is the basis for the child's deterministic age; if it is
+    /// not set (the bug this guards), the child computes its age from tick 0 and despawns the instant it ticks.
     ///
-    /// Runs through the live FishNet host so the real <c>ProjectileType.Create</c> + ServerManager.Spawn +
-    /// OnStartNetwork path executes ??? EditMode cannot reach it. Typed access goes through
-    /// ProjectileSpawnTestRig by reflection (it lives in Assembly-CSharp, unreferenceable from this asmdef).
+    /// Runs through the live FishNet host so the real ServerManager.Spawn + OnStartNetwork path executes —
+    /// EditMode cannot reach it. Typed access goes through ProjectileSpawnTestRig by reflection (it lives in
+    /// Assembly-CSharp, unreferenceable from this asmdef).
     /// </summary>
     public sealed class ProjectileProviderSpawnTests : NetworkedPlayModeTestFixture
     {
@@ -47,7 +48,7 @@ namespace Arena.PlayTests
             var child = (GameObject)RigInvoke("FindSpawned", id);
             Assert.IsNotNull(child, "the spawned child should be resolvable by its ObjectId");
 
-            // Payload completeness ??? the SetupSpawn funnel must have set every field.
+            // Payload completeness — spawn-site owner stamp + NetworkedMotion's self-derived anchor.
             Assert.AreEqual(ownerId, (int)RigInvoke("SpawnOwnerId", child), "child owner id");
             AssertVecClose(pos, (Vector3)RigInvoke("SpawnPosition", child), "child spawn position");
             AssertVecClose(dir, (Vector3)RigInvoke("SpawnForward", child), "child spawn forward");

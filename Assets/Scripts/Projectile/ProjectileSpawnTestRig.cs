@@ -1,6 +1,5 @@
 #if UNITY_EDITOR
 using FishNet;
-using FishNet.Managing.Timing;
 using UnityEngine;
 
 /// <summary>
@@ -14,8 +13,15 @@ public static class ProjectileSpawnTestRig
     /// <summary>Build + initialize + authoritatively spawn a child projectile via its type. Returns the ObjectId, or -1.</summary>
     public static int SpawnViaType(ProjectileType type, Vector3 pos, Vector3 dir, int ownerId)
     {
-        PreciseTick tick = InstanceFinder.TimeManager.GetPreciseTick(TickType.Tick);
-        var nob = ProjectileSpawner.Spawn(type, InstanceFinder.NetworkManager, ownerId, tick, pos, dir, asServer: true);
+        var manager = InstanceFinder.NetworkManager;
+        if (type == null || manager == null)
+            return -1;
+
+        Quaternion rot = dir.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(dir) : Quaternion.identity;
+        var nob = manager.GetPooledInstantiated(type.InstancePrefab, pos, rot, asServer: true);
+        if (nob.TryGetComponent<NetPlayerOwnership>(out var ownership))
+            ownership.SpawnOwnerId = ownerId;
+        manager.ServerManager.Spawn(nob);
         return nob != null ? nob.ObjectId : -1;
     }
 

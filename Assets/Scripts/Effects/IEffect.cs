@@ -11,11 +11,13 @@ using UnityEngine;
 /// A concrete operation is a plain <c>[System.Serializable]</c> class, so it can be AUTHORED AS DATA in the
 /// inspector via <c>[SerializeReference, EffectSelector]</c> (a variance-aware picker — an operation typed to a
 /// capability interface is offered on every context that satisfies it) on a typed list, AND constructed in code
-/// via <see cref="Commands"/>. Operations are stateless
-/// flyweights — they hold only their immutable serialized/ctor config and read everything else from the
-/// context. They are the Unity-coupling layer: they <c>GetComponent</c> off the context's participants,
-/// <c>Instantiate</c>, FishNet-spawn, and call <c>IDamageable</c> directly; non-trivial math belongs in a
-/// pure <c>*.Core</c> helper (RicochetMath, SpawnFanMath, DeflectMath).
+/// via <see cref="Commands"/>. Operations are STATELESS: they hold no config and no runtime state — all
+/// tunable values (damage, prefab lists, spawn counts) live on MonoBehaviours resolved via GetComponent on the
+/// context's participants (usually the Owner), so they stay runtime-tunable in the game world. The ONE allowed
+/// field is an optional reference to such a component, for when a bare GetComponent could not disambiguate
+/// (see <see cref="SpawnNetworkObjects"/>). Operations are the Unity-coupling layer: they <c>GetComponent</c>
+/// off the context's participants, <c>Instantiate</c>, FishNet-spawn, and call <c>IDamageable</c> directly;
+/// non-trivial math belongs in a pure <c>*.Core</c> helper (RicochetMath, SpawnFanMath, DeflectMath).
 ///
 /// <typeparamref name="TContext"/> is contravariant (<c>in</c>): an operation typed to a leaner context (the
 /// base <see cref="IEffectContext"/>, or a single capability like <see cref="IAimContext"/>) is usable
@@ -52,7 +54,7 @@ public interface IEffectContext
 /// <summary>
 /// The context has a world ORIGIN and a DIRECTION — the impact point + travel direction of a hit, or the
 /// origin + aim of an ability. Consumed by operations that spawn or project from a point along a heading
-/// (<see cref="SpawnProjectiles"/>, <see cref="DealDamage"/>).
+/// (<see cref="SpawnNetworkObjects"/>, <see cref="DealDamage"/>).
 /// </summary>
 public interface IAimContext : IEffectContext
 {
@@ -65,7 +67,7 @@ public interface IAimContext : IEffectContext
 
 /// <summary>
 /// The context has a SURFACE NORMAL — the operation acts against something with an orientable face, so it can
-/// reflect off it or orient VFX to it (<see cref="Ricochet"/>, <see cref="SpawnVfx"/>).
+/// reflect off it or orient VFX to it (<see cref="Ricochet"/>, <see cref="InstantiateGameObjects"/>).
 /// </summary>
 public interface ISurfaceContext : IEffectContext
 {
@@ -92,7 +94,7 @@ public interface ITargetContext : IEffectContext
 /// <summary>
 /// A hit that has BOTH an origin/direction and a surface normal (<see cref="IAimContext"/> +
 /// <see cref="ISurfaceContext"/>) — any projectile collision. Operations needing point + normal type to this
-/// (<see cref="Ricochet"/>, <see cref="SpawnVfx"/>) and become authorable on every collision site.
+/// (<see cref="Ricochet"/>, <see cref="InstantiateGameObjects"/>) and become authorable on every collision site.
 /// </summary>
 public interface ISurfaceHitContext : IAimContext, ISurfaceContext { }
 

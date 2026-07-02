@@ -4,7 +4,8 @@ using UnityEngine;
 /// A projectile hit a SURFACE (a wall / the stage). Implements <see cref="ISurfaceHitContext"/> = impact point
 /// + travel direction (<see cref="IAimContext"/>) + surface normal (<see cref="ISurfaceContext"/>). No
 /// <see cref="ITargetContext"/> — surfaces aren't operated on, only reflected off / marked with VFX. Operations
-/// authored here: <see cref="LoseHealth"/>, <see cref="Ricochet"/>, <see cref="SpawnVfx"/>, <see cref="SpawnProjectiles"/>.
+/// authored here: <see cref="LoseHealth"/>, <see cref="Ricochet"/>, <see cref="InstantiateGameObjects"/>,
+/// <see cref="SpawnNetworkObjects"/>.
 /// </summary>
 public sealed class ProjectileSurfaceCollision : ISurfaceHitContext
 {
@@ -82,7 +83,7 @@ public sealed class ProjectileProjectileCollision : ISurfaceHitContext, ITargetH
 /// An active ability was used: the caster's pawn (<see cref="IEffectContext.Owner"/>) aiming from a
 /// <see cref="IAimContext.Point"/> in a <see cref="IAimContext.Direction"/>. Composes only
 /// <see cref="IAimContext"/> — no surface normal and no target — so an operation authored on an ability can
-/// only be one that needs just an origin + aim (e.g. <see cref="SpawnProjectiles"/>).
+/// only be one that needs just an origin + aim (e.g. <see cref="SpawnNetworkObjects"/>).
 /// </summary>
 public sealed class AbilityAim : IAimContext
 {

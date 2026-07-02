@@ -35,13 +35,19 @@ public sealed class NetworkedMotion : NetworkBehaviour
     private IMotionStrategy _strategy;
     private float _initialSpeed;
 
-    // Per-spawn payload (set by the spawner before Spawn). Ownership lives on NetPlayerOwnership.
+    // Per-spawn anchor. On the INITIATOR (server bot-spawn or the predicting client) these are self-derived in
+    // OnStartNetwork from the instantiate pose + the current tick — FishNet invokes OnStartNetwork
+    // synchronously inside the Spawn call, before WritePayload. On RECEIVERS they arrive via ReadPayload
+    // (which runs before OnStartNetwork). No spawner pushes them in. Ownership lives on NetPlayerOwnership.
     public PreciseTick SpawnTick;
     public Vector3 SpawnPosition;
     public Vector3 SpawnForward;
 
     private MotionCoreState _state;
     private bool _initialized;
+    // Set by ReadPayload: this peer RECEIVED the spawn. Still false at OnStartNetwork = this peer INITIATED
+    // the spawn, so the anchor is self-derived there instead.
+    private bool _payloadApplied;
 
     public int Id => (int)ObjectId;
 
@@ -65,19 +71,6 @@ public sealed class NetworkedMotion : NetworkBehaviour
         _initialSpeed = initialSpeed;
     }
 
-    /// <summary>
-    /// Set the per-spawn payload (tick/pos/dir). Owner is on NetPlayerOwnership and config via
-    /// <see cref="Configure"/>; both must be set before <c>ServerManager.Spawn</c> — notably
-    /// <see cref="SpawnTick"/>, the basis for deterministic age.
-    /// </summary>
-    public void SetupSpawn(PreciseTick tick, Vector3 pos, Vector3 dir)
-    {
-        SpawnTick = tick;
-        SpawnPosition = pos;
-        SpawnForward = dir;
-        ApplySpawnTransform();
-    }
-
     private void ApplySpawnTransform()
     {
         transform.position = SpawnPosition;
@@ -85,8 +78,10 @@ public sealed class NetworkedMotion : NetworkBehaviour
             transform.rotation = Quaternion.LookRotation(SpawnForward);
     }
 
-    // ---- spawn payload: the PER-SPAWN ANCHOR only (tick/pos/dir). Config is set locally by the
-    //      TypeObjectRoot from the baked SO, so it is deliberately NOT on the wire. ----
+    // ---- spawn anchor payload (tick/pos/dir). Initiator: self-derived in OnStartNetwork, which FishNet
+    //      runs BEFORE WritePayload on the spawning side. Receivers: ReadPayload fills the fields BEFORE
+    //      OnStartNetwork. Config (strategy/speed) is set locally by the TypeObjectRoot from the baked SO,
+    //      so it is deliberately NOT on the wire. ----
 
     public override void WritePayload(NetworkConnection connection, Writer writer)
     {
@@ -102,12 +97,24 @@ public sealed class NetworkedMotion : NetworkBehaviour
         SpawnTick = reader.ReadPreciseTick();
         SpawnPosition = reader.ReadVector3();
         SpawnForward = reader.ReadVector3();
+        _payloadApplied = true;
         ApplySpawnTransform();
     }
 
     public override void OnStartNetwork()
     {
         base.OnStartNetwork();
+
+        // No payload was read, so this peer INITIATED the spawn (server bot-fire, or the predicting client):
+        // derive the anchor from the instantiate pose and the current tick. FishNet runs this callback
+        // synchronously inside the Spawn call and only writes the payload afterwards, so receivers get
+        // exactly what is derived here.
+        if (!_payloadApplied)
+        {
+            SpawnPosition = transform.position;
+            SpawnForward = transform.forward;
+            SpawnTick = TimeManager.GetPreciseTick(TickType.Tick);
+        }
 
         _state = MotionCoreState.Spawn(Id, SpawnPosition, SpawnForward, _initialSpeed);
         _initialized = true;
@@ -202,6 +209,7 @@ public sealed class NetworkedMotion : NetworkBehaviour
         // pooled instance unconfigured, since the config no longer arrives on the payload.
         _state = default;
         _initialized = false;
+        _payloadApplied = false;
         SpawnTick = default;
         SpawnPosition = Vector3.zero;
         SpawnForward = Vector3.zero;

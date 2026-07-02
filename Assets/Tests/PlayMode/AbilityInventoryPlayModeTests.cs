@@ -10,7 +10,7 @@ namespace Arena.PlayTests
     /// <summary>
     /// Integration test for the server-authoritative ability inventory through a live FishNet host:
     /// granting a passive and an active, then USING the active and proving it spawns projectiles through
-    /// the shared <c>WorldEffect -> ProjectileSpawner</c> path (the SAME path projectile reactions use) and
+    /// the shared <c>SpawnNetworkObjects</c> effect path (the SAME path projectile reactions use) and
     /// consumes a use. PawnAbilities lives in Assembly-CSharp (unreferenceable here), so typed access goes
     /// through AbilityTestRig by reflection; the spawned-projectile count goes through ProjectileSpawnTestRig.
     ///
@@ -23,7 +23,7 @@ namespace Arena.PlayTests
         const string ShooterPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestShooter.prefab";
         const string SwiftPath = "Assets/Data/Abilities/Swift.asset";
         const string BurstPath = "Assets/Data/Abilities/ScatterBurst.asset";
-        const int ScatterCount = 12; // ScatterBurst's SpawnProjectiles.Count
+        const int ScatterCount = 12; // the caster pawn's SpawnableObjects.Count (ScatterBurst's SpawnNetworkObjects reads it off the pawn)
 
         protected override string ScenePath => "Assets/Tests/PlayMode/Scenes/TestProjectile.unity";
 
@@ -48,7 +48,7 @@ namespace Arena.PlayTests
             AbRig("Use", pawn);
             int spawned = (int)ProjRig("CountSpawnedProjectiles");
             Assert.AreEqual(ScatterCount, spawned,
-                "using Scatter Burst must spawn its projectiles through the shared ProjectileSpawner");
+                "using Scatter Burst must spawn its projectiles through the shared SpawnNetworkObjects path");
             Assert.AreEqual(2, (int)AbRig("Uses", pawn, 0), "one use consumed by the activation");
 
             yield return null;

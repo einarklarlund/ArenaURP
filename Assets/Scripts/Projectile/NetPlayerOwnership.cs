@@ -7,14 +7,16 @@ using FishNet.Serializing;
 /// its OWN component (not a field on NetworkedMotion) so motion stays a generic concern and ownership is a
 /// separate, reusable one. The id rides the spawn payload so every peer has it atomically with the spawn —
 /// the server reads it for owner-safety, owner-reaction lookup, and damage attribution.
+///
+/// The firer is the one per-spawn value a component cannot self-derive: bots have no owning connection, so
+/// <c>NetworkObject.Owner</c> cannot stand in for it. The spawn site sets <see cref="SpawnOwnerId"/> directly
+/// after instantiating, before <c>ServerManager.Spawn</c> — FishNet invokes WritePayload after that call
+/// begins, so the value rides the payload to every peer.
 /// </summary>
 public sealed class NetPlayerOwnership : NetworkBehaviour
 {
-    /// <summary>NetworkPlayer.ObjectId of the owner (firer), or -1 if unowned.</summary>
+    /// <summary>NetworkPlayer.ObjectId of the owner (firer), or -1 if unowned. Set by the spawn site before <c>ServerManager.Spawn</c>.</summary>
     public int SpawnOwnerId = -1;
-
-    /// <summary>Set on the spawning side before <c>ServerManager.Spawn</c> so WritePayload has a value.</summary>
-    public void SetupOwner(int ownerId) => SpawnOwnerId = ownerId;
 
     public override void WritePayload(NetworkConnection connection, Writer writer)
     {

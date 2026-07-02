@@ -32,18 +32,19 @@ public static class AbilityTestRig
     }
 
     /// <summary>
-    /// Grant a runtime passive that adds a bonus DealDamage to the owner's projectiles on enemy hit.
+    /// Grant a runtime passive that adds an extra DealDamage to the owner's projectiles on enemy hit.
     /// Exercises the owner-lookup path (projectile finds owner's effects server-side, no payload). The
     /// runtime SO isn't in the AbilityDatabase, which is fine: this is read on the host server where the
-    /// SyncList holds the real reference.
+    /// SyncList holds the real reference. DealDamage is stateless (it reads the projectile's own Damage
+    /// component), so the contributed hit deals the projectile's damage a second time.
     /// </summary>
-    public static void GrantProjectilePassive(GameObject pawn, int bonusDamage)
+    public static void GrantProjectilePassive(GameObject pawn)
     {
         var ability = ScriptableObject.CreateInstance<PassiveAbilityType>();
         ability.DisplayName = "Test Projectile Passive";
-        // Author a bonus DealDamage on the owner's player-hit operations: fixed amount, does not despawn, so
-        // it stacks on top of the projectile's own player reaction (exercises the owner-lookup path).
-        ability.ProjectileOnPlayer.Add(Commands.DealDamage(useOwnerDamage: false, amount: bonusDamage));
+        // The extra DealDamage does not despawn the projectile, so it stacks on top of the projectile's own
+        // player reaction (exercises the owner-lookup path).
+        ability.ProjectileOnPlayer.Add(Commands.DealDamage());
         pawn.GetComponent<PawnAbilities>().AddPassive(ability);
     }
 }
