@@ -31,8 +31,10 @@ public sealed class ActiveAbility : NetworkBehaviour
     /// <summary>Server-authoritative remaining uses; the HUD reads it on every peer.</summary>
     public readonly SyncVar<int> UsesRemaining = new();
 
-    // The owning inventory, resolved from the parent chain at start and cached so the stop-side
-    // notification still works if FishNet unparents this object during despawn.
+    // The owning inventory facade, for the uses-change HUD notification. Membership itself is tracked by
+    // the facade's SyncList roster (its OnChange is the add/remove hook), so this instance only notifies
+    // for MID-LIFE state changes — never from its own start/stop, whose FishNet callback timing is awkward
+    // (stop fires while still parented).
     private PawnActiveAbilities _inventory;
 
     /// <summary>This ability's identity SO, via the sibling TypeObjectRoot (null if none baked).</summary>
@@ -49,20 +51,16 @@ public sealed class ActiveAbility : NetworkBehaviour
         base.OnStartNetwork();
         UsesRemaining.OnChange += OnUsesChanged;
         _inventory = GetComponentInParent<PawnActiveAbilities>();
-        NotifyInventory();
     }
 
     public override void OnStopNetwork()
     {
         base.OnStopNetwork();
         UsesRemaining.OnChange -= OnUsesChanged;
-        NotifyInventory();
         _inventory = null;
     }
 
-    private void OnUsesChanged(int prev, int next, bool asServer) => NotifyInventory();
-
-    private void NotifyInventory()
+    private void OnUsesChanged(int prev, int next, bool asServer)
     {
         if (_inventory != null)
             _inventory.NotifyInventoryChanged();

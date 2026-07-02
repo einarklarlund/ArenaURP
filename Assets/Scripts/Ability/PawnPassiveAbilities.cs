@@ -62,6 +62,9 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour, IProjectileEffectPr
 
     [Server]
     public void AddPassive(PassiveAbilityType ability) => AbilityGrant.Spawn(this, ability);
+    // Membership is derived from the replicated children directly (passives have no individual-removal
+    // path, so child enumeration alone is a sufficient source of truth — unlike actives, which keep a
+    // SyncList roster for ordering + removal hooks).
 
     // ---- change propagation: passive instances call this when they start/stop ----
 

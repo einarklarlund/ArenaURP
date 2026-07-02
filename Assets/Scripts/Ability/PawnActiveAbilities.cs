@@ -6,16 +6,21 @@ using UnityEngine;
 
 /// <summary>
 /// Server-authoritative ACTIVE-ability inventory facade for a pawn: up to <see cref="MaxActives"/> triggered
-/// abilities, cycled with Q/E and fired with F. The inventory is not a synced list — each granted ability is
-/// a spawned <see cref="ActiveAbility"/> instance (its type's prefab) parented under this pawn's
-/// NetworkObject; FishNet replicates the instances and their parenting, so every peer enumerates the same
-/// children. Live state (uses remaining) is a SyncVar ON the instance; config (default uses, cooldown, the
-/// authored operations) is that prefab's serialized data.
+/// abilities, cycled with Q/E and fired with F. Each granted ability is a spawned <see cref="ActiveAbility"/>
+/// instance (its type's prefab) parented under this pawn's NetworkObject — the instances ARE the inventory's
+/// substance (config + live state) — while <see cref="Actives"/>, a SyncList of references to those
+/// instances, is the authoritative ROSTER: it fixes slot order and provides deterministic change hooks on
+/// every peer (FishNet guarantees spawns are processed before any packet referencing them, so the entries
+/// always resolve).
+///
+/// Server-side ordering is load-bearing: an instance is SPAWNED before it is added to the roster (an
+/// unspawned reference serializes as permanent null), and REMOVED from the roster before it is despawned
+/// (so no delta references a dead object, and the removal is what drives HUD/slot updates — independent of
+/// FishNet's despawn-callback timing).
 ///
 /// This component owns the pawn-side concerns: input edges, the selection SyncVar, the server-side use path
 /// (cooldown gate, building the <see cref="AbilityAim"/> context, despawning exhausted instances), and the
-/// <see cref="InventoryChanged"/> HUD hook. Instances call <see cref="NotifyInventoryChanged"/> from their
-/// network start/stop and uses changes. Passive abilities live on the sibling <see cref="PawnPassiveAbilities"/>.
+/// <see cref="InventoryChanged"/> HUD hook. Passive abilities live on the sibling <see cref="PawnPassiveAbilities"/>.
 /// </summary>
 public sealed class PawnActiveAbilities : NetworkBehaviour
 {
@@ -28,13 +33,13 @@ public sealed class PawnActiveAbilities : NetworkBehaviour
     [SerializeField] private Transform aimSource;
 
     // ---- synced, server-authoritative ----
+
+    /// <summary>The roster: references to the spawned ability instances, in slot order.</summary>
+    public readonly SyncList<ActiveAbility> Actives = new();
     public readonly SyncVar<int> SelectedIndex = new();
 
-    /// <summary>Raised on any peer whenever the child active instances (or their uses) change. HUD hook.</summary>
+    /// <summary>Raised on any peer whenever the roster (or an instance's uses) changes. HUD hook.</summary>
     public event System.Action InventoryChanged;
-
-    // Scratch buffer for child enumeration (avoid per-call allocation).
-    private readonly List<ActiveAbility> _activesBuf = new();
 
     private bool _prevCycleLeft, _prevCycleRight, _prevUse;
     private float _cooldownEndTime; // server-side gate
@@ -42,8 +47,18 @@ public sealed class PawnActiveAbilities : NetworkBehaviour
     public override void OnStartNetwork()
     {
         base.OnStartNetwork();
-        NotifyInventoryChanged(); // surface any already-replicated children (late join / pooled reuse)
+        Actives.OnChange += OnActivesChanged;
+        NotifyInventoryChanged(); // surface any already-replicated roster (late join / pooled reuse)
     }
+
+    public override void OnStopNetwork()
+    {
+        base.OnStopNetwork();
+        Actives.OnChange -= OnActivesChanged;
+    }
+
+    private void OnActivesChanged(SyncListOperation op, int index, ActiveAbility oldItem, ActiveAbility newItem, bool asServer)
+        => NotifyInventoryChanged();
 
     private void Update()
     {
@@ -60,16 +75,18 @@ public sealed class PawnActiveAbilities : NetworkBehaviour
         _prevUse = d.UseAbility;
     }
 
-    // ---- inventory enumeration (children of this pawn's NetworkObject) ----
+    // ---- roster reads ----
 
-    /// <summary>Fill <paramref name="results"/> with the active-ability instances under this pawn, in slot order.</summary>
+    /// <summary>Fill <paramref name="results"/> with the roster's instances, in slot order (null entries skipped defensively).</summary>
     public void GetActives(List<ActiveAbility> results)
     {
         results.Clear();
-        GetComponentsInChildren(includeInactive: true, results);
+        foreach (var a in Actives)
+            if (a != null)
+                results.Add(a);
     }
 
-    public int ActivesCount { get { GetActives(_activesBuf); return _activesBuf.Count; } }
+    public int ActivesCount => Actives.Count;
 
     // ---- server: acquisition (called by pickups) ----
 
@@ -77,9 +94,15 @@ public sealed class PawnActiveAbilities : NetworkBehaviour
     [Server]
     public bool AddActive(ActiveAbilityType ability)
     {
-        if (ActivesCount >= MaxActives)
+        if (Actives.Count >= MaxActives)
             return false;
-        return AbilityGrant.Spawn(this, ability);
+
+        NetworkObject nob = AbilityGrant.Spawn(this, ability);
+        if (nob == null || !nob.TryGetComponent<ActiveAbility>(out var instance))
+            return false;
+
+        Actives.Add(instance); // AFTER Spawn — see class doc
+        return true;
     }
 
     // ---- client intent -> server ----
@@ -87,7 +110,7 @@ public sealed class PawnActiveAbilities : NetworkBehaviour
     [ServerRpc]
     private void ServerCycleSelected(int dir)
     {
-        SelectedIndex.Value = AbilityInventoryLogic.CycleIndex(SelectedIndex.Value, ActivesCount, dir);
+        SelectedIndex.Value = AbilityInventoryLogic.CycleIndex(SelectedIndex.Value, Actives.Count, dir);
     }
 
     [ServerRpc]
@@ -95,25 +118,27 @@ public sealed class PawnActiveAbilities : NetworkBehaviour
 
     /// <summary>
     /// Server-side use of the currently selected active ability: run its authored operations against the
-    /// caster's aim context and consume a use (despawning the instance when exhausted). Public +
-    /// <c>[Server]</c> so the editor PlayMode test rig can invoke the real path directly.
+    /// caster's aim context and consume a use (removing the roster entry, then despawning the instance, when
+    /// exhausted). Public + <c>[Server]</c> so the editor PlayMode test rig can invoke the real path directly.
     /// </summary>
     [Server]
     public void ServerUse()
     {
-        GetActives(_activesBuf);
         int i = SelectedIndex.Value;
-        if (i < 0 || i >= _activesBuf.Count) return;
+        if (i < 0 || i >= Actives.Count) return;
         if (Time.time < _cooldownEndTime) return;
 
-        ActiveAbility active = _activesBuf[i];
+        ActiveAbility active = Actives[i];
+        if (active == null) return;
+
         bool exhausted = active.ServerUse(BuildContext());
         _cooldownEndTime = Time.time + Mathf.Max(0f, active.Cooldown);
 
         if (exhausted)
         {
+            Actives.RemoveAt(i); // BEFORE Despawn — see class doc
             active.Despawn();
-            SelectedIndex.Value = AbilityInventoryLogic.ClampSelection(SelectedIndex.Value, _activesBuf.Count - 1);
+            SelectedIndex.Value = AbilityInventoryLogic.ClampSelection(SelectedIndex.Value, Actives.Count);
         }
     }
 
@@ -130,6 +155,6 @@ public sealed class PawnActiveAbilities : NetworkBehaviour
             direction: src.forward);
     }
 
-    /// <summary>Raise <see cref="InventoryChanged"/>. Called by active instances on start/stop/uses changes.</summary>
+    /// <summary>Raise <see cref="InventoryChanged"/>. Also called by instances when their uses change.</summary>
     public void NotifyInventoryChanged() => InventoryChanged?.Invoke();
 }
