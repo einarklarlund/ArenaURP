@@ -6,7 +6,8 @@ using UnityEngine;
 /// Concrete kinds are <see cref="PassiveAbilityType"/> and <see cref="ActiveAbilityType"/>; the prefab
 /// carries the matching <see cref="PassiveAbility"/> / <see cref="ActiveAbility"/> component.
 ///
-/// Granting an ability = spawning its instance prefab parented under the owning pawn (see PawnAbilities), so
+/// Granting an ability = spawning its instance prefab parented under the owning pawn (see
+/// PawnActiveAbilities / PawnPassiveAbilities), so
 /// nothing about WHICH ability rides the wire — FishNet replicates the spawned prefab, and every peer
 /// resolves identity locally via the instance's <see cref="TypeObjectRoot"/> back-ref to this asset.
 /// </summary>

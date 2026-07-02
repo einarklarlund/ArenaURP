@@ -11,7 +11,7 @@ namespace Arena.PlayTests
     /// Integration test for the server-authoritative ability inventory through a live FishNet host:
     /// granting a passive and an active, then USING the active and proving it spawns projectiles through
     /// the shared <c>SpawnNetworkObjects</c> effect path (the SAME path projectile reactions use) and
-    /// consumes a use. PawnAbilities lives in Assembly-CSharp (unreferenceable here), so typed access goes
+    /// consumes a use. PawnActiveAbilities lives in Assembly-CSharp (unreferenceable here), so typed access goes
     /// through AbilityTestRig by reflection; the spawned-projectile count goes through ProjectileSpawnTestRig.
     ///
     /// Slot-removal-at-zero and cycle wrap are covered by EditMode AbilityInventoryLogic tests; this test
