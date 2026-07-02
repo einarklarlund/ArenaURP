@@ -12,18 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbb5e566ea6f4942a648a884a7f48457, type: 3}
   m_Name: ScatterBurst
   m_EditorClassIdentifier: Assembly-CSharp::ActiveAbilityType
+  instancePrefab: {fileID: 853257794286402906, guid: c2cebb72198a34fdc9ff2c4beef70c13, type: 3}
   DisplayName: Scatter Burst
   Icon: {fileID: 10911, guid: 0000000000000000f000000000000000, type: 0}
-  Uses: 3
-  Cooldown: 0.5
-  OnUse:
-  - rid: 4328605795349692419
-  references:
-    version: 2
-    RefIds:
-    - rid: 4328605795349692419
-      type: {class: SpawnProjectiles, ns: , asm: Assembly-CSharp}
-      data:
-        type: {fileID: 11400000, guid: 39387121012ec49e8b787ad217870377, type: 2}
-        count: 12
-        spreadDegrees: 360

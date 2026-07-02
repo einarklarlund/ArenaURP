@@ -12,16 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 421cfe4e00cf4284b7256b1ff4d18fa7, type: 3}
   m_Name: Swift
   m_EditorClassIdentifier: Assembly-CSharp::PassiveAbilityType
+  instancePrefab: {fileID: 6230920335191685443, guid: 608ea6df58c8f45cca29c2585990f6d9, type: 3}
   DisplayName: Swift
   Icon: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
-  WalkSpeedMultiplier: 1.4
-  WalkAccelerationMultiplier: 1.2
-  JumpForceMultiplier: 1
-  GravityMultiplier: 1
-  FireRateMultiplier: 1
-  SpreadMultiplier: 1
-  BonusEnemyDamage: 0
-  GrantsRicochet: 0
-  references:
-    version: 2
-    RefIds: []

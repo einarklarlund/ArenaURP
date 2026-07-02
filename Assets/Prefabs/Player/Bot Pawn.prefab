@@ -348,6 +348,8 @@ PrefabInstance:
     - {fileID: 3552783497789917785, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
     - {fileID: 2872691228133123911, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
     - {fileID: 601749567516735660, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+    - {fileID: 1153593232723923867, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+    - {fileID: 1135862709289148814, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 6715682311924083683, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
@@ -360,6 +362,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4613304413970483175, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       insertIndex: 2
       addedObject: {fileID: 1157386614404420123}
+    - targetCorrespondingSourceObject: {fileID: 4613304413970483175, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2547182952053290219}
+    - targetCorrespondingSourceObject: {fileID: 4613304413970483175, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7232410880334241094}
+    - targetCorrespondingSourceObject: {fileID: 4613304413970483175, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5758516266887909403}
   m_SourcePrefab: {fileID: 100100000, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
 --- !u!114 &65906713945292066 stripped
 MonoBehaviour:
@@ -437,6 +448,57 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &2547182952053290219
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3727824876307670096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60743c24ec8cb4699a14898f7f88e618, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpawnableObjects
+  prefabs:
+  - {fileID: -339553929967437806, guid: c360b019439d84f7fb4c04b4f695cfd8, type: 3}
+  count: 12
+  spreadDegrees: 360
+--- !u!114 &7232410880334241094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3727824876307670096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 147cc15baafca4af3a35c6a2952b934e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnActiveAbilities
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 2020105714796687385}
+  _networkObjectCache: {fileID: 0}
+  pawn: {fileID: 6679574468413641677}
+  input: {fileID: 4460883532456950215}
+  aimSource: {fileID: 0}
+--- !u!114 &5758516266887909403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3727824876307670096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ba711ba7f0064d3894fb17361fa7c5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnPassiveAbilities
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 2020105714796687385}
+  _networkObjectCache: {fileID: 0}
+  movement: {fileID: 7554187420892138259}
+  weapon: {fileID: 7361926394180223885}
 --- !u!114 &5332105547455707922 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4197683245214701733, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}

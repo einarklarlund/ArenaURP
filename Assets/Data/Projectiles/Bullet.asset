@@ -19,26 +19,26 @@ MonoBehaviour:
   Speed: 60
   Lifetime: 5.15
   Motion:
-    rid: 4328605795349692416
+    rid: 6758500664911593552
   OnSurface:
-  - rid: 4328605795349692417
+  - rid: 6758500664911593556
   OnPlayer:
-  - rid: 4328605795349692418
+  - rid: 6758500664911593554
+  - rid: 6758500664911593558
   OnProjectile: []
   references:
     version: 2
     RefIds:
-    - rid: 4328605795349692416
+    - rid: 6758500664911593552
       type: {class: LinearMotion, ns: Arena.NetworkedMotion, asm: Arena.NetworkedMotion.Core}
       data:
         acceleration: 0
-    - rid: 4328605795349692417
-      type: {class: LoseHealth, ns: , asm: Assembly-CSharp}
-      data:
-        amount: 1
-    - rid: 4328605795349692418
+    - rid: 6758500664911593554
       type: {class: DealDamage, ns: , asm: Assembly-CSharp}
-      data:
-        useInvokerDamage: 1
-        amount: 10
-        despawnAfter: 1
+      data: 
+    - rid: 6758500664911593556
+      type: {class: LoseHealth, ns: , asm: Assembly-CSharp}
+      data: 
+    - rid: 6758500664911593558
+      type: {class: LoseHealth, ns: , asm: Assembly-CSharp}
+      data: 

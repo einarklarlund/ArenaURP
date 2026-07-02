@@ -8,6 +8,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1153593232723923867, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: weapon
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 1159318610755632454, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: input
+      value: 
+      objectReference: {fileID: 5789884467136274113}
     - target: {fileID: 1975820720333990052, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: input
       value: 
@@ -15,6 +23,14 @@ PrefabInstance:
     - target: {fileID: 3015136927240068084, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: m_IsActive
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4500148841451139641, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: weapon
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 4500148841451139641, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: movement
+      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 4613304413970483175, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: m_Name
@@ -65,6 +81,10 @@ PrefabInstance:
       value: 13355965648774862024
       objectReference: {fileID: 0}
     - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[3]'
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: 'NetworkBehaviours.Array.data[4]'
       value: 
       objectReference: {fileID: 0}
@@ -81,11 +101,19 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 0}
     - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[8]'
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: 'NetworkBehaviours.Array.data[9]'
       value: 
       objectReference: {fileID: 0}
     - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: 'NetworkBehaviours.Array.data[10]'
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
+      propertyPath: 'NetworkBehaviours.Array.data[11]'
       value: 
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -135,3 +163,4 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 0}
   Move: {x: 0, y: 0}
   Jump: 0
+  Fire: 0

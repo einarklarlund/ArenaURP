@@ -221,8 +221,18 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: -339553929967437806}
   _networkObjectCache: {fileID: 0}
+  Motion:
+    rid: 6758500664911593566
+  InitialSpeed: 60
   SpawnPosition: {x: 0, y: 0, z: 0}
   SpawnForward: {x: 0, y: 0, z: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 6758500664911593566
+      type: {class: LinearMotion, ns: Arena.NetworkedMotion, asm: Arena.NetworkedMotion.Core}
+      data:
+        acceleration: 0
 --- !u!114 &2544852967916977680
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -244,6 +254,26 @@ MonoBehaviour:
   projectileMask:
     serializedVersion: 2
     m_Bits: 0
+  Radius: 0.2
+  Lifetime: 5.15
+  OnSurface:
+  - rid: 6758500664911593567
+  OnPlayer:
+  - rid: 6758500664911593568
+  - rid: 6758500664911593569
+  OnProjectile: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 6758500664911593567
+      type: {class: LoseHealth, ns: , asm: Assembly-CSharp}
+      data: 
+    - rid: 6758500664911593568
+      type: {class: DealDamage, ns: , asm: Assembly-CSharp}
+      data: 
+    - rid: 6758500664911593569
+      type: {class: LoseHealth, ns: , asm: Assembly-CSharp}
+      data: 
 --- !u!114 &8355681140643816171
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -279,7 +309,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44ce9f2fa1c6a4bc9932aaced0df8536, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Damage
-  _amount: 1
+  _amount: 3
 --- !u!114 &5777096885218030
 MonoBehaviour:
   m_ObjectHideFlags: 0
