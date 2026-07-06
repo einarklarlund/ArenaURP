@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 3687710493089903596}
   - component: {fileID: 8001326026167082820}
   - component: {fileID: 6373383262556819811}
+  - component: {fileID: 4381368817798077477}
   m_Layer: 0
   m_Name: TestShooter
   m_TagString: Untagged
@@ -183,6 +184,29 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 0}
   movement: {fileID: 0}
   weapon: {fileID: 3687710493089903596}
+--- !u!114 &4381368817798077477
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 396719437415316231}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30372fcaa1ab24f9ea323deaf95fa649, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Health
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4030238958585574595}
+  _networkObjectCache: {fileID: 0}
+  maxHealth: 21
+  despawnOnDeath: 0
+  onServerDamage:
+    m_PersistentCalls:
+      m_Calls: []
+  onServerDeath:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1694214989659911869
 GameObject:
   m_ObjectHideFlags: 0

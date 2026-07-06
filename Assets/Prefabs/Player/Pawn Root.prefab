@@ -505,6 +505,7 @@ GameObject:
   - component: {fileID: 3229108476807971348}
   - component: {fileID: 1159318610755632454}
   - component: {fileID: 4500148841451139641}
+  - component: {fileID: 496888658077780900}
   m_Layer: 7
   m_Name: Pawn Root
   m_TagString: Untagged
@@ -768,6 +769,29 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 0}
   movement: {fileID: 1975820720333990052}
   weapon: {fileID: 1555019613777059898}
+--- !u!114 &496888658077780900
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4613304413970483175}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30372fcaa1ab24f9ea323deaf95fa649, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Health
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 8049762553664656302}
+  _networkObjectCache: {fileID: 0}
+  maxHealth: 21
+  despawnOnDeath: 0
+  onServerDamage:
+    m_PersistentCalls:
+      m_Calls: []
+  onServerDeath:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &4680480237612131196
 GameObject:
   m_ObjectHideFlags: 0

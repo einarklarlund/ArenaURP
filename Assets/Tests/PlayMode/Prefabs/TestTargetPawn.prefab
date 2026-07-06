@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6860923914512931884}
   - component: {fileID: 6448577416088286471}
   - component: {fileID: 3908788696685748638}
+  - component: {fileID: 4596740049270280756}
   m_Layer: 7
   m_Name: TestTargetPawn
   m_TagString: Untagged
@@ -164,3 +165,26 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 0}
   movement: {fileID: 0}
   weapon: {fileID: 0}
+--- !u!114 &4596740049270280756
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3646564636390950492}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30372fcaa1ab24f9ea323deaf95fa649, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Health
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4839381579409733303}
+  _networkObjectCache: {fileID: 0}
+  maxHealth: 21
+  despawnOnDeath: 0
+  onServerDamage:
+    m_PersistentCalls:
+      m_Calls: []
+  onServerDeath:
+    m_PersistentCalls:
+      m_Calls: []
