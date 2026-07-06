@@ -45,6 +45,7 @@ public sealed class ServerCollision : NetworkBehaviour
 
     private NetworkedMotion _motion;
     private Health _health;
+    private Damage _damage;
     private NetPlayerOwnership _ownership;
     private NetworkPlayerManager _players;
 
@@ -59,6 +60,7 @@ public sealed class ServerCollision : NetworkBehaviour
     {
         _motion = GetComponent<NetworkedMotion>();
         _health = GetComponent<Health>();
+        _damage = GetComponent<Damage>();
         _ownership = GetComponent<NetPlayerOwnership>();
     }
 
@@ -114,15 +116,18 @@ public sealed class ServerCollision : NetworkBehaviour
         {
             if (worldInfo.Category == SC.HitCategory.Enemy)
             {
-                var ctx = new ProjectilePlayerCollision(gameObject, hitObject, owner,
-                    worldInfo.Point, worldInfo.Normal, worldInfo.Direction);
+                var ctx = new ProjectilePlayerCollision(gameObject, owner,
+                    worldInfo.Point, worldInfo.Normal, worldInfo.Direction,
+                    _damage, ResolveDamageable(hitObject),
+                    _motion, _health);
                 RunEffects(OnPlayer, ctx);
                 RunEffects(ownerOps.OnPlayer, ctx);
             }
             else
             {
                 var ctx = new ProjectileSurfaceCollision(gameObject, owner,
-                    worldInfo.Point, worldInfo.Normal, worldInfo.Direction);
+                    worldInfo.Point, worldInfo.Normal, worldInfo.Direction,
+                    _motion, _health);
                 RunEffects(OnSurface, ctx);
                 RunEffects(ownerOps.OnSurface, ctx);
             }
@@ -155,8 +160,10 @@ public sealed class ServerCollision : NetworkBehaviour
                 continue;
             }
 
-            var ctx = new ProjectileProjectileCollision(gameObject, other.gameObject, owner,
-                info.Point, info.Normal, info.Direction);
+            var ctx = new ProjectileProjectileCollision(gameObject, owner,
+                info.Point, info.Normal, info.Direction,
+                _damage, ResolveDamageable(other.gameObject),
+                _motion, _health, other);
             RunEffects(OnProjectile, ctx);
             RunEffects(ownerOps.OnProjectile, ctx);
 
@@ -235,6 +242,11 @@ public sealed class ServerCollision : NetworkBehaviour
             return source.GetProjectileEffects();
         return default;
     }
+
+    // Resolve the damage-receiving system of a struck GameObject once, at the site that knows what was hit — so
+    // the damage operation takes a resolved IDamageable from the context instead of gambling a GetComponent.
+    private static IDamageable ResolveDamageable(GameObject hit)
+        => hit != null ? hit.GetComponentInParent<IDamageable>() : null;
 
     // ---- operation running (short-circuits if the projectile dies mid-list) ----
 

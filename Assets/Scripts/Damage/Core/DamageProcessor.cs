@@ -4,9 +4,10 @@ namespace Arena.Damage
 {
     /// <summary>
     /// The pure functional core of the Damage system: resolve a base damage amount into the final amount to
-    /// apply, after any multiplicative modifier. Today it is a thin seam (one multiplier); it is the hook
-    /// the modifier / level-up system grows into — bonus-damage passives, crits, resistances — without the
-    /// Damage component or the hit effects having to know the arithmetic. EditMode-testable.
+    /// apply, after any multiplicative modifier. Today it is a thin seam (base, or base × multiplier); it is the
+    /// hook the buff / level-up system grows into — bonus-damage passives, crits, resistances — without the
+    /// Damage component or the hit operations having to know the arithmetic. EditMode-testable. (How buffs REACH
+    /// a source's damage is a separate, deliberately deferred design.)
     /// </summary>
     public static class DamageProcessor
     {

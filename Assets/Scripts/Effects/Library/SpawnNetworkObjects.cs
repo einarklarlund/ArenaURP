@@ -10,11 +10,11 @@ using UnityEngine;
 /// from the caster); it reads only an origin + direction, so it is typed to <see cref="IAimContext"/> — a
 /// single <see cref="Apply(IAimContext)"/> authorable on every collision context and on <see cref="AbilityAim"/>.
 ///
-/// The prefab list, count, and spread are all data on a <see cref="SpawnableObjects"/> component. By default it
-/// is resolved via GetComponent on the context's Owner (the projectile on a hit, the caster's pawn on an
-/// ability use) — an effect authored on a ScriptableObject cannot serialize a component reference anyway. Set
+/// The prefab list, count, and spread are all data on a <see cref="SpawnableObjects"/> component (a plain
+/// data-holder, not a first-class system). By default it is resolved via GetComponent on the context's
+/// <see cref="IEffectContext.Source"/> (the projectile on a hit, the caster's pawn on an ability use). Set
 /// <see cref="source"/> (the one allowed reference on an otherwise stateless effect) only when the effect is
-/// authored on the applier's own prefab AND the owner carries several <see cref="SpawnableObjects"/>, which a
+/// authored on the applier's own prefab AND the source carries several <see cref="SpawnableObjects"/>, which a
 /// bare GetComponent could not disambiguate.
 ///
 /// Spawning is just instantiate-at-pose + stamp the firer + network-spawn: the instance's components
@@ -35,7 +35,7 @@ public sealed class SpawnNetworkObjects : IEffect<IAimContext>
     public void Apply(IAimContext ctx)
     {
         SpawnableObjects resolved = source;
-        if (resolved == null && (ctx.Owner == null || !ctx.Owner.TryGetComponent(out resolved)))
+        if (resolved == null && (ctx.Source == null || !ctx.Source.TryGetComponent(out resolved)))
             return;
         if (resolved.Prefabs.Count == 0)
             return;
@@ -44,7 +44,7 @@ public sealed class SpawnNetworkObjects : IEffect<IAimContext>
         if (manager == null)
             return;
 
-        int ownerId = ctx.OwnerPlayer != null ? ctx.OwnerPlayer.ObjectId : -1;
+        int ownerId = ctx.Instigator != null ? ctx.Instigator.ObjectId : -1;
         int count = resolved.Count;
         for (int i = 0; i < count; i++)
         {

@@ -1,21 +1,20 @@
 /// <summary>
-/// Apply a debuff to the target that was hit. No-op until a debuff system exists; when one is added, this
-/// resolves the target's debuff receiver and applies the debuff configured on a component on the owner. It
-/// reads only the target, so it is typed to <see cref="ITargetContext"/> — the target is guaranteed present,
-/// and it is authorable on any target-bearing hit.
-///
-/// Stateless: the debuff kind/params will live on a component on the owner, not on this effect.
+/// Apply a debuff to the thing that was hit. No-op until a debuff system exists; when one is added it will name
+/// its own capability (an <c>IDebuffTargetContext</c> exposing the resolved debuff receiver), the same way this
+/// operation family couples to a SYSTEM rather than an archetype. For now it names
+/// <see cref="IDamageTargetContext"/> — the leanest capability that guarantees "something was struck" — so it is
+/// authorable on any hit and does no <c>GetComponent</c>. Stateless.
 /// </summary>
 [System.Serializable]
-public sealed class ApplyDebuff : IEffect<ITargetContext>
+public sealed class ApplyDebuff : IEffect<IDamageTargetContext>
 {
-    public void Apply(ITargetContext ctx)
+    public void Apply(IDamageTargetContext ctx)
     {
-        if (ctx.Target == null)
+        if (ctx.DamageTarget == null)
             return;
-        // TODO: no debuff system exists yet. Intentionally a no-op until one is introduced — the debuff
-        // kind/params will be read from a component on the owner, e.g.:
-        //   if (ctx.Owner.TryGetComponent<DebuffSpec>(out var spec))
-        //       ctx.Target.GetComponentInParent<IDebuffable>()?.Apply(spec.Debuff);
+        // TODO: no debuff system exists yet. Intentionally a no-op until one is introduced — when it lands, add
+        // an IDebuffTargetContext capability that resolves the target's debuff receiver at the collision site,
+        // and read the debuff spec from a component on the source, e.g.:
+        //   if (ctx.Source.TryGetComponent<DebuffSpec>(out var spec)) ctx.DebuffTarget.Apply(spec.Debuff);
     }
 }

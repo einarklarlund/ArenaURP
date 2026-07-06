@@ -2,24 +2,24 @@ using Arena.NetworkedMotion;
 using UnityEngine;
 
 /// <summary>
-/// Reflect the invoking projectile's velocity across the surface normal and continue on a new segment. Reads
-/// the owner's <see cref="NetworkedMotion"/> for the live velocity, reflects it with the pure
-/// <see cref="RicochetMath"/>, and begins a new authoritative segment (which syncs to every peer). It reads
-/// point + normal + the owner's motion, so it is typed to <see cref="ISurfaceHitContext"/> — a normal is always
-/// present, and it is authorable on any collision (reflect off a wall, a player, or another projectile).
+/// Reflect the source's velocity across the surface normal and continue on a new segment. Coupled to the MOTION
+/// system: it names <see cref="IMotionSurfaceContext"/> and takes the source's resolved
+/// <see cref="NetworkedMotion"/> handle from the context (no <c>GetComponent</c>), reads its live velocity,
+/// reflects it with the pure <see cref="RicochetMath"/>, and begins a new authoritative segment (which syncs to
+/// every peer). Authorable on any collision (reflect off a wall, a player, or another projectile).
 /// </summary>
 [System.Serializable]
-public sealed class Ricochet : IEffect<ISurfaceHitContext>
+public sealed class Ricochet : IEffect<IMotionSurfaceContext>
 {
-    public void Apply(ISurfaceHitContext ctx)
+    public void Apply(IMotionSurfaceContext ctx)
     {
-        if (ctx.Owner == null || !ctx.Owner.TryGetComponent<NetworkedMotion>(out var motion))
+        if (ctx.Motion == null)
             return;
 
-        var state = motion.State;
-        Vector3 vel = NetworkedMotionProcessor.VelocityAt(motion.Strategy, in state);
+        var state = ctx.Motion.State;
+        Vector3 vel = NetworkedMotionProcessor.VelocityAt(ctx.Motion.Strategy, in state);
 
         if (RicochetMath.TryReflect(vel, ctx.Normal, out Vector3 dir, out float speed))
-            motion.BeginSegment(ctx.Point, dir, speed);
+            ctx.Motion.BeginSegment(ctx.Point, dir, speed);
     }
 }

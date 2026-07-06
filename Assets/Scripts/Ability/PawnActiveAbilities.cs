@@ -145,12 +145,12 @@ public sealed class PawnActiveAbilities : NetworkBehaviour
     private AbilityAim BuildContext()
     {
         Transform src = aimSource != null ? aimSource : transform;
-        // Owner = the caster's pawn; an aimed ability has only an origin + direction (no target/normal),
+        // Source = the caster's pawn; an aimed ability has only an origin + direction (no target/normal/systems),
         // which the AbilityAim typing enforces on the operations authored here. The caster's player id, when
-        // an operation needs it, is read off OwnerPlayer.ObjectId.
+        // an operation needs it, is read off Instigator.ObjectId.
         return new AbilityAim(
-            owner: pawn != null ? pawn.gameObject : gameObject,
-            ownerPlayer: pawn != null ? pawn.ControllingPlayer.Value : null,
+            source: pawn != null ? pawn.gameObject : gameObject,
+            instigator: pawn != null ? pawn.ControllingPlayer.Value : null,
             point: src.position,
             direction: src.forward);
     }

@@ -2,29 +2,28 @@ using Arena.Damage;
 using UnityEngine;
 
 /// <summary>
-/// Deal damage to the target that was hit. Reads the owner's <see cref="Damage"/> component for the amount,
-/// resolves it through the pure <see cref="DamageProcessor"/>, and applies it to the target's
-/// <see cref="IDamageable"/>. It reads target + point + direction, so it is typed to
-/// <see cref="ITargetHitContext"/> — the target is guaranteed present (no "did I have a target" check), and it
-/// is authorable on any target-bearing hit (a player, or a damageable projectile).
+/// Deal damage across a damage EXCHANGE: read the SOURCE's <see cref="Damage"/> component for the amount, resolve
+/// it through the pure <see cref="DamageProcessor"/>, and apply it to the struck <see cref="IDamageable"/>.
 ///
-/// Stateless: the amount lives on the owner's <see cref="Damage"/> component (runtime-mutable for buffs/crits),
-/// not on this effect.
+/// Coupled to the damage SYSTEM, not to any archetype: it names <see cref="IDamageExchangeContext"/>, so both the
+/// damage source and the damage target are guaranteed present and it does no <c>GetComponent</c> and no
+/// null-gambling — the site that built the context resolved them. The same operation lands on a pawn, a prop, or
+/// a damageable projectile. Stateless: the amount lives on the source's <see cref="Damage"/> component.
 /// </summary>
 [System.Serializable]
-public sealed class DealDamage : IEffect<ITargetHitContext>
+public sealed class DealDamage : IEffect<IDamageExchangeContext>
 {
-    public void Apply(ITargetHitContext ctx)
+    public void Apply(IDamageExchangeContext ctx)
     {
-        if (ctx.Target == null || ctx.Target.GetComponentInParent<IDamageable>() is not { } damageable)
-            return;
-        if (ctx.Owner == null || !ctx.Owner.TryGetComponent<Damage>(out var dmg))
+        if (ctx.DamageTarget == null || ctx.DamageSource == null)
             return;
 
-        damageable.TakeDamage(new DamageInfo
+        int amount = DamageProcessor.Resolve(ctx.DamageSource.Amount);
+
+        ctx.DamageTarget.TakeDamage(new DamageInfo
         {
-            Amount = DamageProcessor.Resolve(dmg.Amount),
-            Attacker = ctx.OwnerPlayer,
+            Amount = amount,
+            Attacker = ctx.Instigator,
             HitPoint = ctx.Point,
             Direction = ctx.Direction,
             Type = DamageType.Bullet,
