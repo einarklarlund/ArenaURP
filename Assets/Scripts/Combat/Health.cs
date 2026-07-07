@@ -47,11 +47,47 @@ public class Health : NetworkBehaviour, IDamageable
 
     public bool IsDead => CurrentHealth.Value <= 0;
 
+    // Per-spawn on-spawn buff layer over the authored max (SpawnBuffReceiver → BuffMaxHealth). Kept SEPARATE
+    // from the baseline `maxHealth` field so a pooled reuse never inherits a previous spawn's buff; reset to identity
+    // in ResetState. Server-only knob — the SyncVars are ServerOnly, so clients self-heal from the seeded values.
+    private float _maxMultiplier = 1f;
+
     public override void OnStartServer()
     {
         base.OnStartServer();
-        MaxHealth.Value = maxHealth;
-        CurrentHealth.Value = maxHealth;
+        SeedFromMax();
+    }
+
+    // Effective max = authored baseline × per-spawn buff layer (rounded, floored at 1). Seeds both SyncVars — on
+    // spawn current == max — without mutating the authored `maxHealth` field.
+    private void SeedFromMax()
+    {
+        int max = Mathf.Max(1, Mathf.RoundToInt(maxHealth * _maxMultiplier));
+        MaxHealth.Value = max;
+        CurrentHealth.Value = max;
+    }
+
+    /// <summary>
+    /// Apply an on-spawn max-health buff as a multiplier over the authored baseline. ORDER-INDEPENDENT (house rule
+    /// for shared init across siblings with no guaranteed OnStartNetwork order), mirroring
+    /// <see cref="NetworkedMotion.SetSpeedMultiplier"/>: safe to call before <see cref="OnStartServer"/> (the
+    /// multiplier is stored and folded in when it seeds) or after (an already-seeded max is recomputed in place).
+    ///
+    /// Server-only effect: the SyncVars are ServerOnly, so this writes nothing on a client (the buffed values ride
+    /// the spawn message and land via SyncVar replication — a client that missed the just-granted passive still gets
+    /// the server-authoritative max). Per-spawn buff layer, reset to identity in <see cref="ResetState"/>.
+    /// </summary>
+    public void SetMaxHealthMultiplier(float multiplier)
+    {
+        _maxMultiplier = multiplier;
+        if (IsServerInitialized)
+            SeedFromMax();
+    }
+
+    public override void ResetState(bool asServer)
+    {
+        base.ResetState(asServer);
+        _maxMultiplier = 1f;   // pooled reuse starts unbuffed; OnStartServer re-seeds from the baseline max
     }
 
     /// <summary>Server: (re)seed max + current HP at runtime (e.g. a buff raising an entity's max).</summary>

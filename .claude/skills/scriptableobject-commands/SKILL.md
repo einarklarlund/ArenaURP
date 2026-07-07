@@ -123,6 +123,21 @@ collisions, single-site ops just one). **Do NOT rely on `in`-variance for the dr
 `[SubclassSelector]` drawer collects candidates via `TypeCache.GetTypesDerivedFrom(closedGenericInterface)`,
 which is exact-match, not variance-aware — a command only appears under a context it *explicitly* implements.
 
+**2b. NAME an effect (and shape a context) after the SYSTEM it touches — never a concretion.** "SYSTEM
+BOUNDARIES, NOT OBJECT TYPES" (the `IEffect.cs` rule) governs *naming* too. An effect couples to Motion /
+Health / Damage / Weapon / Movement (the current contexts are the system-capability set: `IMotionContext`,
+`IHealthContext`, `IDamageExchangeContext`, `IMovementModifierContext`, `IWeaponModifierContext`, plus the
+generic `OnSpawnContext`), so name it `Buff<system-knob>` (`BuffSpeed`, `BuffScale`, `BuffMaxHealth`,
+`BuffWalkSpeed`, `BuffFireRate`) — the same object-agnostic knob-naming as the sibling stat buffs. NEVER prefix
+with the archetype that happens to carry the system (`BuffProjectile*`, `BuffPawn*`): the same op lands on
+anything with that system, and a generic context like `OnSpawnContext` ("just-spawned owned object") reaches its
+target by `GetComponent` and knows nothing about projectiles — a concretion-named effect lies about the coupling
+the context design deliberately removed. (Contexts named for a collision SITE — `ProjectilePlayerCollision` —
+are fine: those name the two *participants* of the event, not an archetype the op is coupled to.) The 2026-07-07
+`BuffProjectile{Speed,Scale,Health}` → `Buff{Speed,Scale,MaxHealth}` rename was exactly this correction; renaming
+a `[SerializeReference]` command means updating the persisted `type: {class}` strings in every authoring asset in
+lockstep (see below). See the [[effect-name-the-system-not-the-concretion]] memory.
+
 **3. `category ≠ capability` still holds — as separate context TYPES + separate typed LISTS.** The
 surface/player/projectile split is *what kind of thing was hit* (a routing/authoring axis). Each maps to a
 concrete context type AND a `[SerializeReference] List<IEffect<ThatContext>>` on the owner, so the inspector

@@ -10,7 +10,7 @@ using UnityEngine;
 /// <see cref="ResetState"/> restores the baseline so pooled reuse starts unbuffed.
 ///
 /// Scale has no sync channel — this is per-peer cosmetic state by design (a peer that missed a just-granted
-/// passive renders that one spawn un-buffed; see OnSpawnContext / BuffProjectileScale). Generic: knows nothing of
+/// passive renders that one spawn un-buffed; see OnSpawnContext / BuffScale). Generic: knows nothing of
 /// the projectile concept, works on any owned spawnable.
 /// </summary>
 public sealed class SpawnScale : NetworkBehaviour

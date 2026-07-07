@@ -9,12 +9,12 @@ using UnityEngine;
 /// spawn un-buffed (the defined semantics, not a bug). Stateless flyweight: only the serialized multiplier.
 /// </summary>
 [System.Serializable]
-public sealed class BuffProjectileScale : IEffect<OnSpawnContext>
+public sealed class BuffScale : IEffect<OnSpawnContext>
 {
     [SerializeField] float multiplier = 1.5f;
 
-    public BuffProjectileScale() { }
-    public BuffProjectileScale(float multiplier) { this.multiplier = multiplier; }
+    public BuffScale() { }
+    public BuffScale(float multiplier) { this.multiplier = multiplier; }
 
     public void Apply(OnSpawnContext ctx)
     {

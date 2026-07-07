@@ -134,6 +134,6 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 4328605912790728776
-      type: {class: BuffProjectileScale, ns: , asm: Assembly-CSharp}
+      type: {class: BuffScale, ns: , asm: Assembly-CSharp}
       data:
         multiplier: 2

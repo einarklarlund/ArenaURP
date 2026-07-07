@@ -93,38 +93,45 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour, IProjectileEffectPr
     }
 
     /// <summary>
-    /// Remove our previous contributions, then push one modifier per current passive instance into the pawn's
-    /// movement/weapon modifier lists, and re-aggregate the passives' authored projectile operations. Runs on
-    /// every peer; only the peer that actually simulates movement/weapon consumes the modifiers, and only the
-    /// server reads the operations.
+    /// Remove our previous contributions, then run each current passive's authored stat buffs into a
+    /// <see cref="PawnStatBuff"/> context — every buff contributes one modifier, which we then apply to the
+    /// pawn's movement/weapon modifier lists — and re-aggregate the passives' authored projectile operations.
+    /// Runs on every peer; only the peer that actually simulates movement/weapon consumes the modifiers, and
+    /// only the server reads the operations.
     /// </summary>
     private void ReapplyPassiveModifiers()
     {
-        ClearAppliedModifiers();
+        ClearAppliedModifiers(); // removes previous contributions from the live lists and clears the tracking lists
         _ownerSurface.Clear();
         _ownerPlayer.Clear();
         _ownerProjectile.Clear();
+
+        // Buffs contribute into the tracking lists via the context; we apply those to the live lists below.
+        var buffCtx = new PawnStatBuff(gameObject, ResolveInstigator(), _appliedMove, _appliedWeapon);
+
         GetPassives(_passivesBuf);
         foreach (var p in _passivesBuf)
         {
-            if (movement != null)
-            {
-                MovementModifier m = p.ToMovementModifier();
-                movement.Modifiers.Add(m);
-                _appliedMove.Add(m);
-            }
-            if (weapon != null)
-            {
-                WeaponModifier w = p.ToWeaponModifier();
-                weapon.Modifiers.Add(w);
-                _appliedWeapon.Add(w);
-            }
+            var buffs = p.StatBuffs;
+            if (buffs != null)
+                for (int i = 0; i < buffs.Count; i++)
+                    buffs[i]?.Apply(buffCtx);
             // Aggregate the passive's authored projectile operations so the owner's projectiles can find them.
             if (p.ProjectileOnSurface != null) _ownerSurface.AddRange(p.ProjectileOnSurface);
             if (p.ProjectileOnPlayer != null) _ownerPlayer.AddRange(p.ProjectileOnPlayer);
             if (p.ProjectileOnProjectile != null) _ownerProjectile.AddRange(p.ProjectileOnProjectile);
         }
+
+        // Push the contributed modifiers onto the pawn's live modifier lists (ClearAppliedModifiers removes them).
+        if (movement != null)
+            foreach (var m in _appliedMove) movement.Modifiers.Add(m);
+        if (weapon != null)
+            foreach (var w in _appliedWeapon) weapon.Modifiers.Add(w);
     }
+
+    /// <summary>The controlling player to attribute buffs to (unused by the stat buffs today; null-safe).</summary>
+    private NetworkPlayer ResolveInstigator() =>
+        TryGetComponent<Pawn>(out var pawn) ? pawn.ControllingPlayer.Value : null;
 
     /// <summary>
     /// <see cref="IProjectileEffectProvider"/>: expose the owner's aggregated projectile operations as a

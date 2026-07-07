@@ -4,10 +4,10 @@ using UnityEngine;
 
 /// <summary>
 /// The stateful half of an always-on ability, living on the ability's INSTANCE prefab — a logical
-/// NetworkObject spawned by <see cref="PawnPassiveAbilities"/> and parented under the owning pawn. The pawn
-/// value multipliers and the extra projectile operations are serialized prefab data (runtime-tunable per
-/// instance); while this instance exists under a pawn, <see cref="PawnPassiveAbilities"/> folds the
-/// multipliers into the pawn's movement/weapon modifier lists and aggregates the projectile lists for the
+/// NetworkObject spawned by <see cref="PawnPassiveAbilities"/> and parented under the owning pawn. The stat
+/// buffs and the extra projectile operations are serialized prefab data (runtime-tunable per instance); while
+/// this instance exists under a pawn, <see cref="PawnPassiveAbilities"/> runs each stat buff to fold one
+/// modifier into the pawn's movement/weapon modifier lists and aggregates the projectile lists for the
 /// owner-contribution path.
 ///
 /// Identity (display name / icon) resolves through the sibling <see cref="TypeObjectRoot"/>'s baked
@@ -15,13 +15,10 @@ using UnityEngine;
 /// </summary>
 public sealed class PassiveAbility : NetworkBehaviour
 {
-    [Header("Pawn value modifiers (1 = no change)")]
-    public float WalkSpeedMultiplier = 1f;
-    public float WalkAccelerationMultiplier = 1f;
-    public float JumpForceMultiplier = 1f;
-    public float GravityMultiplier = 1f;
-    public float FireRateMultiplier = 1f;
-    public float SpreadMultiplier = 1f;
+    [Header("Stat buffs (folded into the pawn's movement/weapon modifiers while equipped)")]
+    [Tooltip("Standing movement/weapon buffs — each contributes one modifier folded by the pawn's processors.")]
+    [SerializeReference, EffectSelector]
+    public List<IEffect<PawnStatBuff>> StatBuffs = new();
 
     [Header("Projectile contributions (extra operations on the owner's projectiles)")]
     [Tooltip("Added to the owner's projectiles' surface-hit operations.")]
@@ -65,21 +62,4 @@ public sealed class PassiveAbility : NetworkBehaviour
         if (_inventory != null)
             _inventory.NotifyInventoryChanged();
     }
-
-    /// <summary>Build the movement modifier this passive contributes while equipped.</summary>
-    public MovementModifier ToMovementModifier() => new()
-    {
-        WalkSpeedMultiplier = WalkSpeedMultiplier,
-        WalkAccelerationMultiplier = WalkAccelerationMultiplier,
-        JumpForceMultiplier = JumpForceMultiplier,
-        GravityMultiplier = GravityMultiplier,
-        PreImpulseVelocityMultiplier = 1f,
-    };
-
-    /// <summary>Build the weapon modifier this passive contributes while equipped.</summary>
-    public WeaponModifier ToWeaponModifier() => new()
-    {
-        FireRateMultiplier = FireRateMultiplier,
-        SpreadMultiplier = SpreadMultiplier,
-    };
 }

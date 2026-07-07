@@ -8,8 +8,8 @@
   <Project Path="Arena.Tests.csproj" />
   <Project Path="GameKit.Dependencies.csproj" />
   <Project Path="SimpleWebTransport.csproj" />
-  <Project Path="Arena.NetworkedMotion.Core.csproj" />
   <Project Path="Unity.FishNet.Codegen.csproj" />
+  <Project Path="Arena.NetworkedMotion.Core.csproj" />
   <Project Path="FishNet.Demos.csproj" />
   <Project Path="Arena.Movement.Core.csproj" />
   <Project Path="ParrelSync.csproj" />

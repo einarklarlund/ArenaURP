@@ -23,6 +23,7 @@ namespace Arena.PlayTests
         const string ShooterPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestShooter.prefab";
         const string SwiftPath = "Assets/Data/Abilities/Swift.asset";
         const string BurstPath = "Assets/Data/Abilities/ScatterBurst.asset";
+        const string FireRateBuffPath = "Assets/Tests/PlayMode/Prefabs/TestFireRateBuffPassive.asset";
         const int ScatterCount = 12; // the caster pawn's SpawnableObjects.Count (ScatterBurst's SpawnNetworkObjects reads it off the pawn)
 
         protected override string ScenePath => "Assets/Tests/PlayMode/Scenes/TestProjectile.unity";
@@ -50,6 +51,31 @@ namespace Arena.PlayTests
             Assert.AreEqual(ScatterCount, spawned,
                 "using Scatter Burst must spawn its projectiles through the shared SpawnNetworkObjects path");
             Assert.AreEqual(2, (int)AbRig("Uses", pawn, 0), "one use consumed by the activation");
+
+            yield return null;
+        }
+
+        /// <summary>
+        /// A passive's authored stat buffs (movement/weapon multipliers, now <c>IEffect&lt;PawnStatBuff&gt;</c>)
+        /// must fold into the pawn's live modifier lists through the same effect-Apply path the projectile/on-spawn
+        /// effects use. Grants a passive carrying <c>BuffFireRate(0.5)</c> and proves it reaches
+        /// <c>PawnWeapon.Modifiers</c> (TestShooter has no other weapon-modifier producer, so the fold is exact).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Granting_a_stat_buff_passive_folds_its_modifier_into_the_pawn()
+        {
+            var pawn = SpawnServerPrefab(ShooterPrefabPath, new Vector3(0f, 50f, 0f));
+            for (int i = 0; i < 3; i++) yield return null;
+
+            Assert.AreEqual(1f, (float)AbRig("FireRateProduct", pawn), 1e-4f,
+                "precondition: no weapon modifiers before any passive");
+
+            AbRig("AddPassive", pawn, FireRateBuffPath);
+            for (int i = 0; i < 3; i++) yield return null;
+
+            Assert.AreEqual(1, (int)AbRig("PassivesCount", pawn), "passive ability instance under the pawn");
+            Assert.AreEqual(0.5f, (float)AbRig("FireRateProduct", pawn), 1e-4f,
+                "BuffFireRate(0.5) authored on the passive must fold into PawnWeapon.Modifiers via the PawnStatBuff path");
 
             yield return null;
         }

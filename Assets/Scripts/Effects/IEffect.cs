@@ -147,3 +147,34 @@ public interface IDamageExchangeContext : IDamageSourceContext, IDamageTargetCon
 /// <see cref="ISurfaceContext"/>). What <see cref="Ricochet"/> needs — reflect the live velocity across the normal.
 /// </summary>
 public interface IMotionSurfaceContext : IMotionContext, ISurfaceContext { }
+
+// ---- standing-contribution capabilities: for buffs that CONTRIBUTE a modifier rather than mutate a system ----
+// Unlike the collision/spawn capabilities above (which hand the operation a resolved system HANDLE to act on
+// once), a stat buff is a STANDING contribution folded every tick by the pure MovementProcessor/WeaponProcessor.
+// So its reach is a SINK, not a handle: the operation adds one modifier and the site that built the context
+// (PawnPassiveAbilities) owns applying it to the pawn's live modifier list and removing it when the passive is
+// dropped (the Remove-old/Add-new discipline). This is the "contribute a modifier folded at apply time, never
+// mutate an authored value" rule expressed as a context.
+
+/// <summary>
+/// The pawn's MOVEMENT-modifier system is reachable as a contribution sink: a buff calls
+/// <see cref="AddMovementModifier"/> to fold one multiplicative <see cref="MovementModifier"/> into the pawn while
+/// the passive is equipped. Consumed by the movement buffs (<see cref="BuffWalkSpeed"/>,
+/// <see cref="BuffWalkAcceleration"/>, <see cref="BuffJumpForce"/>, <see cref="BuffGravity"/>).
+/// </summary>
+public interface IMovementModifierContext : IEffectContext
+{
+    /// <summary>Contribute one movement modifier for as long as the source passive is equipped.</summary>
+    void AddMovementModifier(MovementModifier modifier);
+}
+
+/// <summary>
+/// The pawn's WEAPON-modifier system is reachable as a contribution sink: a buff calls
+/// <see cref="AddWeaponModifier"/> to fold one multiplicative <see cref="WeaponModifier"/> into the pawn while the
+/// passive is equipped. Consumed by the weapon buffs (<see cref="BuffFireRate"/>, <see cref="BuffSpread"/>).
+/// </summary>
+public interface IWeaponModifierContext : IEffectContext
+{
+    /// <summary>Contribute one weapon modifier for as long as the source passive is equipped.</summary>
+    void AddWeaponModifier(WeaponModifier modifier);
+}

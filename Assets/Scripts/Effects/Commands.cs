@@ -25,7 +25,22 @@ public static class Commands
 
     public static ApplyDebuff ApplyDebuff() => new();
 
-    public static BuffProjectileSpeed BuffProjectileSpeed(float multiplier = 1.5f) => new(multiplier);
+    public static BuffSpeed BuffSpeed(float multiplier = 1.5f) => new(multiplier);
 
-    public static BuffProjectileScale BuffProjectileScale(float multiplier = 1.5f) => new(multiplier);
+    public static BuffScale BuffScale(float multiplier = 1.5f) => new(multiplier);
+
+    public static BuffMaxHealth BuffMaxHealth(float multiplier = 2f) => new(multiplier);
+
+    // Standing pawn stat buffs (contributed by an equipped passive).
+    public static BuffWalkSpeed BuffWalkSpeed(float multiplier = 1.5f) => new(multiplier);
+
+    public static BuffWalkAcceleration BuffWalkAcceleration(float multiplier = 1.5f) => new(multiplier);
+
+    public static BuffJumpForce BuffJumpForce(float multiplier = 1.5f) => new(multiplier);
+
+    public static BuffGravity BuffGravity(float multiplier = 1f) => new(multiplier);
+
+    public static BuffFireRate BuffFireRate(float multiplier = 0.75f) => new(multiplier);
+
+    public static BuffSpread BuffSpread(float multiplier = 0.75f) => new(multiplier);
 }

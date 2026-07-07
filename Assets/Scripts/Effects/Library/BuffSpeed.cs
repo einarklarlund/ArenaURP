@@ -10,12 +10,12 @@ using UnityEngine;
 /// SyncVars (see NetworkedMotion). Stateless flyweight: only the immutable serialized multiplier.
 /// </summary>
 [System.Serializable]
-public sealed class BuffProjectileSpeed : IEffect<OnSpawnContext>
+public sealed class BuffSpeed : IEffect<OnSpawnContext>
 {
     [SerializeField] float multiplier = 1.5f;
 
-    public BuffProjectileSpeed() { }
-    public BuffProjectileSpeed(float multiplier) { this.multiplier = multiplier; }
+    public BuffSpeed() { }
+    public BuffSpeed(float multiplier) { this.multiplier = multiplier; }
 
     public void Apply(OnSpawnContext ctx)
     {

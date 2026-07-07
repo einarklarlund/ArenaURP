@@ -57,5 +57,18 @@ public static class AbilityTestRig
 
     /// <summary>Grant the on-spawn scale-buff passive — exercises the no-sync-channel snapshot path (SpawnScale).</summary>
     public static void GrantScaleBuffPassive(GameObject pawn) => AddPassive(pawn, TestScaleBuffPassivePath);
+
+    /// <summary>
+    /// Product of every <see cref="WeaponModifier.FireRateMultiplier"/> currently folded into the pawn's weapon
+    /// (1 when none). Used to assert a passive's authored <c>BuffFireRate</c> stat buff reaches
+    /// <c>PawnWeapon.Modifiers</c> through the PawnStatBuff path.
+    /// </summary>
+    public static float FireRateProduct(GameObject pawn)
+    {
+        var weapon = pawn.GetComponent<PawnWeapon>();
+        float product = 1f;
+        foreach (var m in weapon.Modifiers) product *= m.FireRateMultiplier;
+        return product;
+    }
 }
 #endif
