@@ -45,5 +45,17 @@ public static class AbilityTestRig
     /// </summary>
     public static void GrantProjectilePassive(GameObject pawn)
         => AddPassive(pawn, TestProjectilePassivePath);
+
+    /// <summary>Passive whose PassiveAbility.OnSpawn multiplies spawned projectiles' speed ×2 (on every peer, at spawn).</summary>
+    const string TestSpeedBuffPassivePath = "Assets/Tests/PlayMode/Prefabs/TestSpeedBuffPassive.asset";
+
+    /// <summary>Passive whose PassiveAbility.OnSpawn multiplies spawned projectiles' scale ×2 (on every peer, at spawn).</summary>
+    const string TestScaleBuffPassivePath = "Assets/Tests/PlayMode/Prefabs/TestScaleBuffPassive.asset";
+
+    /// <summary>Grant the on-spawn speed-buff passive — exercises the every-peer on-spawn buff path (Option A speed setter).</summary>
+    public static void GrantSpeedBuffPassive(GameObject pawn) => AddPassive(pawn, TestSpeedBuffPassivePath);
+
+    /// <summary>Grant the on-spawn scale-buff passive — exercises the no-sync-channel snapshot path (SpawnScale).</summary>
+    public static void GrantScaleBuffPassive(GameObject pawn) => AddPassive(pawn, TestScaleBuffPassivePath);
 }
 #endif

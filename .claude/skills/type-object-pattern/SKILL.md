@@ -206,10 +206,20 @@ at `Awake`** (and pooling does **not** re-run `Awake` on reuse), a component con
 must treat that config as **instance-lifetime: set once, never wiped in `ResetState`/despawn.** Only
 per-spawn and runtime state is reset. This is safe precisely because prefab-per-kind fixes a pooled
 instance's kind forever (a fireball prefab is always a fireball). Concretely: `NetworkedMotion.ResetState`
-resets the anchor + working state but **must not** clear `_strategy`/`_initialSpeed`. (Caveat: a field that
-is *both* config and runtime-mutated — e.g. a projectile whose own `Damage.Amount` gets buffed mid-flight —
-can't be instance-lifetime; re-seed it per spawn. Today only the *pawn's* Damage is buffed, not a
-projectile's, so projectile `Damage.Amount` is seeded once and left alone.)
+resets the anchor + working state but **must not** clear `_strategy`/`_initialSpeed`.
+
+**Two physically separate layers — baseline vs per-spawn buff (project-wide rule).** When a spawn-time
+contributor mutates a config-ish field (an on-spawn passive buff scaling a projectile's speed/scale), do **not**
+multiply onto the current value — pooling preserves the baseline, so a multiply-in-place buff *compounds* across
+reuse by a different owner. Keep two layers that never share a field: the **baseline** (`InitialSpeed`, authored
+prefab scale, authored `Damage.Amount`) is preserved in `ResetState`; the **per-spawn buff/multiplier layer** is
+reset to identity in `ResetState` and re-derived every spawn as `effective = baseline × multiplier`. Rule of
+thumb: *any field a spawn-time contributor mutates must be reset in `ResetState`; never multiply onto the last
+spawn's value.* This is the pooling-safe form of the modifier fold. Corollary: a per-spawn **transform** mutation
+(scale/tint) needs an owning component with its own `ResetState` (`SpawnScale`), never a raw `transform.localScale`
+write — raw transform state has no reset owner and leaks across reuse. Live examples: the on-spawn-buff receiver
+(`SpawnBuffReceiver` + `NetworkedMotion._speedMultiplier`) and `SpawnScale`; see [[onspawn-projectile-buffs]] and
+[[pooled-per-spawn-state-reset]].
 
 **Wire gameplay in code, NOT inspector UnityEvents.** Direct calls / injected lists / typed C# delegates
 are compile-checked, refactor-safe, testable, and respect the server-authoritative boundary. **Reserve

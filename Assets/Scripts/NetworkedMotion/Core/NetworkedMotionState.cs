@@ -68,6 +68,19 @@ namespace Arena.NetworkedMotion
         }
 
         /// <summary>
+        /// A copy of this state with a different <see cref="OriginSpeed"/>. Used by an on-spawn speed buff
+        /// that lands AFTER the state was already built: recomputing OriginSpeed is lossless during init
+        /// because <see cref="Age"/> is 0 there, and every strategy's closed-form position at age 0 is the
+        /// spawn point regardless of speed (see NetworkedMotion.SetSpeedMultiplier). Pure — no engine deps.
+        /// </summary>
+        public readonly NetworkedMotionState WithOriginSpeed(float speed)
+        {
+            NetworkedMotionState s = this;
+            s.OriginSpeed = speed;
+            return s;
+        }
+
+        /// <summary>
         /// Cheap linear position estimate from the segment, ignoring acceleration/gravity. Used for
         /// cross-mover queries where the other mover's exact motion model isn't available.
         /// </summary>

@@ -24,4 +24,8 @@ public static class Commands
     public static InstantiateGameObjects InstantiateGameObjects(InstantiableObjects source) => new(source);
 
     public static ApplyDebuff ApplyDebuff() => new();
+
+    public static BuffProjectileSpeed BuffProjectileSpeed(float multiplier = 1.5f) => new(multiplier);
+
+    public static BuffProjectileScale BuffProjectileScale(float multiplier = 1.5f) => new(multiplier);
 }

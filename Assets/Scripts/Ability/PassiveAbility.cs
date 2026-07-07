@@ -36,6 +36,11 @@ public sealed class PassiveAbility : NetworkBehaviour
     [SerializeReference, EffectSelector]
     public List<IEffect<ProjectileProjectileCollision>> ProjectileOnProjectile = new();
 
+    [Header("On-spawn buffs (applied on every peer to each object this pawn spawns, at spawn)")]
+    [Tooltip("Transform the owner's spawned objects at spawn (e.g. faster/bigger bullets). On-spawn only.")]
+    [SerializeReference, EffectSelector]
+    public List<IEffect<OnSpawnContext>> OnSpawn = new();
+
     private PawnPassiveAbilities _inventory;
 
     /// <summary>This ability's identity SO, via the sibling TypeObjectRoot (null if none baked).</summary>

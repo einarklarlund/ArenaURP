@@ -45,6 +45,9 @@ public sealed class NetworkedMotion : NetworkBehaviour
 
     private MotionCoreState _state;
     private bool _initialized;
+    // Per-spawn buff layer (§ on-spawn buffs): a multiplier folded onto InitialSpeed, kept SEPARATE from the
+    // baseline InitialSpeed so pooled reuse by a different owner never compounds. Reset to identity in ResetState.
+    private float _speedMultiplier = 1f;
     // Set by ReadPayload: this peer RECEIVED the spawn. Still false at OnStartNetwork = this peer INITIATED
     // the spawn, so the anchor is self-derived there instead.
     private bool _payloadApplied;
@@ -109,7 +112,10 @@ public sealed class NetworkedMotion : NetworkBehaviour
             Motion = new LinearMotion();
         }
 
-        _state = MotionCoreState.Spawn(Id, SpawnPosition, SpawnForward, InitialSpeed);
+        // Effective spawn speed = baseline × per-spawn buff layer. An on-spawn buff (SpawnBuffReceiver) may have
+        // called SetSpeedMultiplier before this — its OnStartNetwork can run either side of ours — so fold the
+        // multiplier in here rather than assuming it arrives later (see SetSpeedMultiplier for the after-case).
+        _state = MotionCoreState.Spawn(Id, SpawnPosition, SpawnForward, InitialSpeed * _speedMultiplier);
         _initialized = true;
 
         _segPos.OnChange += OnSegPosChanged;
@@ -175,6 +181,25 @@ public sealed class NetworkedMotion : NetworkBehaviour
     public void ServerSetAge(float age) => _state.Age = age;
 
     /// <summary>
+    /// Apply an on-spawn speed buff as a multiplier over the baseline <see cref="InitialSpeed"/>. ORDER-INDEPENDENT
+    /// (house rule for shared init across siblings with no guaranteed OnStartNetwork order): safe to call before
+    /// OnStartNetwork (the multiplier is stored and folded in when <see cref="_state"/> is built) or after (the
+    /// already-built OriginSpeed is recomputed in place — lossless, since Age is 0 throughout init and every
+    /// strategy's closed-form position at age 0 is the spawn point regardless of speed).
+    ///
+    /// On the server this is invoked from a sibling's OnStartNetwork, and FishNet runs ALL OnStartNetwork callbacks
+    /// before any OnStartServer, so the buffed OriginSpeed is already in <see cref="_state"/> when
+    /// <see cref="OnStartServer"/> seeds the segment SyncVars — the buffed value ships in the spawn message with
+    /// nothing extra on the wire. It is a per-spawn buff layer, reset to identity in <see cref="ResetState"/>.
+    /// </summary>
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        _speedMultiplier = multiplier;
+        if (_initialized)
+            _state = _state.WithOriginSpeed(InitialSpeed * _speedMultiplier);
+    }
+
+    /// <summary>
     /// Server: begin a new trajectory segment (ricochet/deflect) at the current age and publish it so every
     /// peer re-derives the bent path. Effects call this through the owner's NetworkedMotion.
     /// </summary>
@@ -189,6 +214,16 @@ public sealed class NetworkedMotion : NetworkBehaviour
     }
 
     // Server-authoritative segment changes reach clients as SyncVar changes; fold them into _state.
+    //
+    // These also carry the SPAWN self-heal for on-spawn speed buffs: the seg SyncVars ride the spawn message with
+    // their server-seeded (buffed) values, and FishNet caches their initial OnChange until after Initialize, then
+    // flushes them (InvokeOnStartSyncTypeCallbacks, asServer:false) — AFTER OnStartNetwork has built _state and
+    // subscribed these handlers. So on every receiving client the server-authoritative OriginSpeed lands in _state
+    // during the SAME spawn iteration, before the next Update/Render. If the client applied the same buff locally
+    // (normal case) the fold is an idempotent no-op; if the client MISSED the passive, the fold corrects speed
+    // immediately — no persistent divergence, no visible pop. The server value always wins on receivers. This
+    // safety net exists ONLY for properties with a sync channel (speed) — scale/tint have none and keep their
+    // per-peer spawn-instant snapshot by design.
     private void OnSegPosChanged(Vector3 _, Vector3 next, bool asServer) { if (!asServer) _state.OriginPos = next; }
     private void OnSegForwardChanged(Vector3 _, Vector3 next, bool asServer) { if (!asServer) _state.OriginForward = next; }
     private void OnSegSpeedChanged(float _, float next, bool asServer) { if (!asServer) _state.OriginSpeed = next; }
@@ -203,6 +238,7 @@ public sealed class NetworkedMotion : NetworkBehaviour
         _state = default;
         _initialized = false;
         _payloadApplied = false;
+        _speedMultiplier = 1f;   // per-spawn buff layer back to identity; baseline InitialSpeed is left untouched
         SpawnTick = default;
         SpawnPosition = Vector3.zero;
         SpawnForward = Vector3.zero;

@@ -58,6 +58,20 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour, IProjectileEffectPr
 
     public int PassivesCount { get { GetPassives(_passivesBuf); return _passivesBuf.Count; } }
 
+    /// <summary>
+    /// Fill <paramref name="results"/> with the on-spawn buffs contributed by this pawn's current passives, for
+    /// the on-spawn buff path (<c>SpawnBuffReceiver</c>). This is a FRESH PER-PEER read off the replicated child
+    /// passives — it runs identically on observers, and is deliberately NOT routed through the server-only owner
+    /// aggregation (<see cref="_ownerSurface"/> et al.), which only the server ever reads.
+    /// </summary>
+    public void GetSpawnBuffs(List<IEffect<OnSpawnContext>> results)
+    {
+        results.Clear();
+        GetPassives(_passivesBuf);                 // child enumeration, replicated on every peer
+        foreach (var p in _passivesBuf)
+            if (p.OnSpawn != null) results.AddRange(p.OnSpawn);
+    }
+
     // ---- server: acquisition (called by pickups) ----
 
     [Server]

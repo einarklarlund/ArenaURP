@@ -47,7 +47,6 @@ public sealed class ServerCollision : NetworkBehaviour
     private Health _health;
     private Damage _damage;
     private NetPlayerOwnership _ownership;
-    private NetworkPlayerManager _players;
 
     // Projectile-channel one-shot-on-enter dedupe guard (was ProjectileState.LastHitProjectileId).
     private int _guard = SC.ServerCollisionProcessor.NoGuard;
@@ -103,7 +102,7 @@ public sealed class ServerCollision : NetworkBehaviour
         var state = _motion.State;
         Vector3 vel = NetworkedMotionProcessor.VelocityAt(strategy, in state);
         int ownerId = _ownership != null ? _ownership.SpawnOwnerId : -1;
-        NetworkPlayer owner = ResolvePlayer(ownerId);
+        NetworkPlayer owner = NetPlayerResolver.Resolve(ownerId);
         ProjectileEffects ownerOps = GetOwnerOperations(owner);
 
         // ---- world channel: the strategy chooses the cast segment (a beam casts forward; a mover sweeps prev->new) ----
@@ -219,21 +218,8 @@ public sealed class ServerCollision : NetworkBehaviour
     }
 
     // ---- owner lookup (server-side; the owner's operations are never payloaded) ----
-
-    private NetworkPlayerManager Players => _players != null
-        ? _players
-        : (_players = FindAnyObjectByType<NetworkPlayerManager>());
-
-    private NetworkPlayer ResolvePlayer(int objectId)
-    {
-        var players = Players;
-        if (players == null || objectId < 0)
-            return null;
-        foreach (var player in players.ActivePlayers)
-            if (player != null && player.ObjectId == objectId)
-                return player;
-        return null;
-    }
+    // Owner id -> NetworkPlayer resolution lives in the shared NetPlayerResolver so this and SpawnBuffReceiver
+    // can't drift.
 
     private static ProjectileEffects GetOwnerOperations(NetworkPlayer owner)
     {

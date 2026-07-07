@@ -130,3 +130,30 @@ public sealed class AbilityAim : IAimContext
         Direction = direction;
     }
 }
+
+/// <summary>
+/// A networked object was just SPAWNED and the owner's passive abilities get one chance to transform it — on
+/// EVERY peer, at the spawn instant (see <c>SpawnBuffReceiver</c>). Exposes only the base
+/// <see cref="IEffectContext"/> capability: the spawned object (<see cref="Owner"/> / <see cref="Source"/>) and
+/// the firer (<see cref="OwnerPlayer"/> / <see cref="Instigator"/>). Deliberately NOT a surface/aim/damage/motion
+/// context — an on-spawn buff reaches its target system by <c>GetComponent</c> off the spawned object (a generic
+/// sibling like <c>NetworkedMotion</c> or <c>SpawnScale</c>), and typing buffs to this exact context keeps the
+/// variance-aware picker from offering them in the collision lists (and vice-versa).
+/// </summary>
+public sealed class OnSpawnContext : IEffectContext
+{
+    /// <summary>The just-spawned object being buffed (same value as <see cref="Source"/>, named for the buff site).</summary>
+    public GameObject Owner { get; }
+
+    /// <summary>The firer whose passives are transforming the spawn (same value as <see cref="Instigator"/>).</summary>
+    public NetworkPlayer OwnerPlayer { get; }
+
+    public GameObject Source => Owner;
+    public NetworkPlayer Instigator => OwnerPlayer;
+
+    public OnSpawnContext(GameObject owner, NetworkPlayer ownerPlayer)
+    {
+        Owner = owner;
+        OwnerPlayer = ownerPlayer;
+    }
+}
