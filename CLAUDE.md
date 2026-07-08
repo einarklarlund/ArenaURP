@@ -21,9 +21,9 @@ ParrelSync is installed for multi-instance editor testing of networked play.
 
 ## Tests
 
-- Edit-mode NUnit tests live in `Assets/Tests/EditMode/` under the `Arena.Tests` asmdef (Editor-only, `nunit.framework.dll`).
-- Run via Unity's **Test Runner** window (Window > General > Test Runner) or CLI: `Unity -batchmode -runTests -testPlatform editmode -projectPath .`.
-- Tests target the **pure `Arena.*.Core` assemblies** (Movement, MovementEffects, Knockback, Weapon, Temperature, Bot) — they construct config/state/input structs directly and assert on the returned state. No GameObject lifecycle, no FishNet, no PlayMode tests.
+- Edit-mode NUnit tests live in `Assets/Tests/EditMode/` under the `Arena.Tests` asmdef (Editor-only, `nunit.framework.dll`). They target the **pure `Arena.*.Core` assemblies** — construct config/state/input structs directly, assert on the returned state; no GameObject lifecycle, no FishNet.
+- PlayMode integration tests live in `Assets/Tests/PlayMode/` under `Arena.PlayTests` (FishNet host fixtures: `NetworkedPlayModeTestFixture`, `TwoPeerPlayModeTestFixture`, `CombatPlayModeTestFixture`; typed seams via `*TestRig` classes in Assembly-CSharp reached by reflection). **Every networked change gets a PlayMode test.**
+- Run via Unity's **Test Runner** window, the in-editor `EditModeTestRunner`/`PlayModeTestRunner` helpers (results in `Temp/edit-mode-test-results.json` / Unity's `TestResults.xml`), or CLI: `Unity -batchmode -runTests -testPlatform <editmode|playmode> -projectPath .`.
 
 ## Architecture: the Processor + thin-MonoBehaviour pattern
 
@@ -42,14 +42,14 @@ Systems don't reference each other directly. Instead, `PawnMovement` and `PawnWe
 
 ### Pawn composition
 
-`Pawn` (`Assets/Scripts/Pawn/Pawn.cs`) is the network identity hub: `SyncVar<NetworkPlayer> ControllingPlayer`, `SyncVar<int> Health`, damage events. It deliberately knows little — sibling components (`PawnMovement`, `PawnWeapon`, `PawnInput`, `PawnTemperature`, `PawnInventory`, `PawnAmmo`, `PawnKnockback`, `PawnInteraction`, …) live on the same prefab and reference each other through serialized fields. `PawnInput` has two implementations behind one base: `HumanPawnInput` (client-owned) and `BotPawnInput` (server-owned, written by `BotBrain`). All `Pawn<X>` updaters early-out on `if (!input.IsActive) return;` so the same prefab works for both.
+`Pawn` (`Assets/Scripts/Pawn/Pawn.cs`) is the network identity hub: `SyncVar<NetworkPlayer> ControllingPlayer`, plus a thin facade over the sibling generic `Health` component (the ONE health system and sole `IDamageable` — used by pawns, projectiles, and props alike; `Pawn` forwards `Health`/`MaxHealth` and re-raises its damage/death events but is not itself `IDamageable`). It deliberately knows little — sibling components (`PawnMovement`, `PawnWeapon`, `PawnInput`, `PawnTemperature`, `PawnKnockback`, `PawnInteraction`, `PawnActiveAbilities`, `PawnPassiveAbilities`, …) live on the same prefab and reference each other through serialized fields. `PawnInput` has three implementations behind one base: `HumanPawnInput` (client-owned), `BotPawnInput` (server-owned, written by `BotBrain`), and `ScriptedPawnInput` (editor-only, for combat tests). All `Pawn<X>` updaters early-out on `if (!input.IsActive) return;` so the same prefab works for both.
 
 ### Match orchestration
 
 Server-only flow lives in `Assets/Scripts/Managers/`:
 
 - `MatchMediator` is the central server-side wiring point — it subscribes `NetworkPlayerManager`, `PawnManager`, `MatchFlowManager`, and `DeathmatchManager` to each other. New cross-manager events should be wired here, not inside the managers themselves.
-- `MatchFlowManager.State` is a `SyncVar<MatchState>` (`Pregame` / `During` / `Postgame`) — drive lifecycle changes by mutating it on the server.
+- `MatchFlowManager.State` is a `SyncVar<MatchState>` (`Pregame` / `PregameCountdown` / `During` / `PostgameCountdown` / `Postgame`) — drive lifecycle changes by mutating it on the server.
 - UI events are split: `LocalUIEvents` (purely local actions/HUD) and `NetworkUIEvents` (events that originate from synced state).
 
 ### Bootstrap / build stages
@@ -61,10 +61,10 @@ Scenes: `Boot.unity` (entry) → `Offline.unity` / `Online.unity` / `Debug.unity
 ## Conventions worth knowing before editing
 
 - The "logic in Core, glue in Pawn" rule above is enforced by asmdef boundaries — `Arena.<X>.Core` cannot reference UnityEngine wrappers, FishNet, or other gameplay code. If you need a new dependency in a processor, prefer adding a field to its `Config`/`Input` struct over adding an asmdef reference.
-- Server-authoritative: any new gameplay state mutation should run inside a `[Server]` method or be triggered from one. Client-side prediction exists for projectile spawns (see `Networking/BulletPredictedSpawn.cs`) — follow that pattern rather than inventing a new one.
+- Server-authoritative: any new gameplay state mutation should run inside a `[Server]` method or be triggered from one. Client-predicted projectile spawns go through FishNet's predicted-spawn path — `PawnWeapon.ExecuteShot` instantiates with the firer's own `NetworkManager` (`GetPooledInstantiated(..., asServer:false)`) then `ServerManager.Spawn(nob, Owner)`; follow that pattern rather than inventing a new one.
 - `Pawn` and `NetworkPlayer` are reused for **both human and bot players** (`NetworkPlayer.IsBot`). Don't add code paths that assume a client connection on a player.
 - **Abilities are instance prefabs.** An `AbilityType` SO is identity only (display name, icon, `InstancePrefab`); granting one spawns its prefab and parents it under the pawn's NetworkObject via `NetworkObject.SetParent` (never raw `transform.SetParent` — only SetParent replicates the hierarchy). Gameplay config/state lives on the prefab's `ActiveAbility` / `PassiveAbility` components (`UsesRemaining` is a SyncVar). `PawnActiveAbilities.Actives` is a `SyncList<ActiveAbility>` ROSTER of instance references (slot order + change hooks); the ordering is load-bearing: **Spawn before Add, RemoveAt before Despawn** (an unspawned ref serializes as permanent null; removal-first keeps deltas off dead objects and drives the HUD). Passives have no removal path, so `PawnPassiveAbilities` derives membership from child enumeration. No AbilityDatabase index sync — identity resolves locally via the instance's `TypeObjectRoot`.
-- **Spawning anything a player can own (projectiles, ability children): stamp `NetPlayerOwnership.SpawnOwnerId` yourself.** There is no spawn factory — the sequence is `GetPooledInstantiated` at the spawn pose, set `SpawnOwnerId` (the firer's `NetworkPlayer.ObjectId`), then `ServerManager.Spawn`. The id must be set *before* `Spawn` because it rides the spawn payload (`WritePayload` runs after the OnStart callbacks inside the `Spawn` call). It cannot be self-derived by the component: bots have no owning connection, so `NetworkObject.Owner` won't stand in for it. Everything else self-configures — `TypeObjectRoot` applies type config at Awake, and `NetworkedMotion` derives its tick/pos/forward anchor in `OnStartNetwork` from the instantiate pose. Current spawn sites: `PawnWeapon.ExecuteShot` and the `SpawnNetworkObjects` effect; keep new ones to that shape.
+- **Spawning anything a player can own (projectiles, ability children): stamp `NetPlayerOwnership.SpawnOwnerId` yourself.** There is no spawn factory — the sequence is `GetPooledInstantiated` at the spawn pose, set `SpawnOwnerId` (the firer's `NetworkPlayer.ObjectId`), then `ServerManager.Spawn`. The id must be set *before* `Spawn` because it rides the spawn payload (`WritePayload` runs after the OnStart callbacks inside the `Spawn` call). It cannot be self-derived by the component: bots have no owning connection, so `NetworkObject.Owner` won't stand in for it. Everything else self-configures — gameplay config is authored on the prefab's components (the type SO is identity-only; `TypeObjectRoot` just holds the back-ref), and `NetworkedMotion` derives its tick/pos/forward anchor in `OnStartNetwork` from the instantiate pose. Current spawn sites: `PawnWeapon.ExecuteShot` and the `SpawnNetworkObjects` effect; keep new ones to that shape.
 
 ## Unity MCP
 

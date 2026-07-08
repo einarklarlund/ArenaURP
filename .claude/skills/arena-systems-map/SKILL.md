@@ -1,0 +1,35 @@
+---
+name: arena-systems-map
+description: The story of this codebase — how players/pawns, projectiles, matches, and passive/active abilities work, expressed as the handful of design decisions that shape every system, with pointers to the skill that governs each. Use this when orienting in the project, planning or scoping a NEW feature or system, deciding which existing mechanism/skill applies to a change, or explaining how one of the main game functions works. Consult it FIRST when a task spans more than one system or you're unsure where new logic, config, or communication belongs; the linked skills then give the detailed rules.
+---
+
+# Arena systems map
+
+One governing idea: **a server-authoritative simulation whose logic lives in pure, EditMode-tested cores.** Every decision below is a consequence, and each has a skill with the detailed rules.
+
+## The decisions
+
+1. **Server-authoritative over FishNet.** The server is the single source of truth; clients send intent and observe synced results. Send nothing a peer can derive or look up — identity in, state looked up. → [[fishnet-conventions]]
+2. **Functional core, imperative shell.** Gameplay logic lives in pure `Arena.<X>.Core` processors (`Process(state, in config, in input, dt) → newState`); the `Pawn<X>` MonoBehaviour is a thin shell that builds the input struct, calls the processor, applies the result. Query results go in as data, effects come out as data — never an injected `IWorld`. → [[functional-core-imperative-shell]]
+3. **Few communication mechanisms.** Systems influence each other through producer-owned contribution lists folded per tick (modifiers, impulses) or notifications (events, SyncVar.OnChange, the MatchMediator) — and we actively consolidate rather than invent new channels. → [[cross-component-communication]]
+4. **Kinds are identity-only type objects.** A projectile/ability *kind* is an empty ScriptableObject (name, icon, `InstancePrefab`) plus its own prefab copy; all gameplay config is authored on the prefab's generic components, so every peer has it locally and nothing rides the wire. Instances self-initialize on every peer — that's what makes client-predicted spawn correct. → [[type-object-pattern]]
+5. **Behaviour is authored effect commands.** Swappable behaviour (hit reactions, ability effects, buffs) is a library of `IEffect<TContext>` commands typed to the SYSTEM capability they touch, picked in the inspector on typed `[SerializeReference, EffectSelector]` lists. → [[effect-commands]]
+6. **Every networked change gets a PlayMode test; everything else gets the cheapest test that catches it.** → [[integration-testing]]
+
+## The game in those terms
+
+**A player** is a `NetworkPlayer` (SyncVars: `Username`, `IsReady`, `Score`, `ControlledPawn`, `RespawnTimeEnd`; `IsBot` is a plain server-side field) controlling a **Pawn**. The pawn prefab is a composition of thin shells — `PawnMovement`, `PawnWeapon`, `PawnTemperature`, `PawnKnockback`, `PawnColor`, `PawnInteraction` — each delegating to its pure processor. One `PawnInput` base with `HumanPawnInput` / `BotPawnInput` / `ScriptedPawnInput` behind it means humans, bots, and tests drive the identical prefab (decision 2; every updater early-outs on `!input.IsActive`). Health is the one generic `Health` component (the sole `IDamageable`, used by pawns, bullets, and props alike); `Pawn` is a thin facade over it.
+
+**Cross-pawn influence** is decision 3: `PawnTemperature`, `PawnMovementEffects`, and `PawnPassiveAbilities` contribute `MovementModifier`/`WeaponModifier` structs into `PawnMovement.Modifiers`/`PawnWeapon.Modifiers`, folded by the processors every tick (neutral identity = absent contributor changes nothing); `PawnKnockback` pushes consume-once impulses into `PendingImpulses`.
+
+**A projectile** is decisions 4+5+1 together. A kind is an empty `ProjectileType` + its own prefab copy carrying: `NetworkedMotion` (closed-form deterministic motion ticked independently on every peer — only the per-spawn anchor of tick/origin/direction rides the spawn payload), `ServerCollision` (server-only sphere-casts, classifies hits via the pure `ServerCollisionProcessor`, then runs the prefab's authored `OnSurface`/`OnPlayer`/`OnProjectile` effect lists — a classified hit resolves ATOMICALLY: every authored effect runs even if the projectile dies mid-list), `Health` (durability), `Damage`. Spawning is the inline three-step at each site: `GetPooledInstantiated` → stamp `NetPlayerOwnership.SpawnOwnerId` → `ServerManager.Spawn` (sites: `PawnWeapon.ExecuteShot`, the `SpawnNetworkObjects` effect). The owner's ability contributions are never payloaded — the server looks them up from the owner id at hit time; per-peer on-spawn buffs are applied by `SpawnBuffReceiver` from the replicated passives.
+
+**A match** is decision 3 at manager scale. `MatchFlowManager.State` is a `SyncVar<MatchState>` (`Pregame → PregameCountdown → During → PostgameCountdown → Postgame`); `DeathmatchManager` owns score/win; `PawnManager` owns spawn/respawn; `NetworkPlayerManager` owns the roster. They never reference each other — `MatchMediator` is the single wiring point that subscribes them together. UI hears about it via `NetworkUIEvents`/`LocalUIEvents` (static buses, both with `Reset()`).
+
+**Abilities** are decisions 4+5. Granting one spawns its kind's prefab and parents it under the pawn's NetworkObject via `NetworkObject.SetParent` (never raw transform parenting — only SetParent replicates). **Actives** (`PawnActiveAbilities`): a `SyncList<ActiveAbility>` roster for slot order + HUD — ordering is load-bearing: *Spawn before Add, RemoveAt before Despawn*; using one builds an `AbilityAim` context and runs the instance's authored `OnUse` list. **Passives** (`PawnPassiveAbilities`): no roster — membership is derived from the replicated child instances; each `PassiveAbility` authors up to three families of effects: `StatBuffs` (standing modifier contributions, re-derived on every roster change), `ProjectileOn*` (folded into the owner's projectiles server-side at hit time), and `OnSpawn` (per-peer transforms of just-spawned owned objects: speed/scale/max-health).
+
+## Open design questions (don't improvise these)
+
+- **How runtime buffs reach a projectile's damage** — `DealDamage` reads the source's base `Damage.Amount` only. This is the NEXT DESIGN TASK; candidates: a `Damage.Modifiers` contribution list (Family A) vs. a context-carried contribution. Design it in a dedicated session, not as a side effect of another feature.
+- **Debuffs** — `ApplyDebuff` is a stub; there is no debuff system yet.
+- **Ammo** — stubbed (`HasAmmo = true`); `AmmoPerFire` config exists but is not consumed.

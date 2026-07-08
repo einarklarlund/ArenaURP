@@ -1,101 +1,50 @@
 ---
 name: fishnet-conventions
-description: FishNet networking conventions for this server-authoritative Unity arena shooter — when to send data over the wire and (more importantly) when NOT to. Covers the payload-avoidance rule (derive state on the server instead of shipping it; the owner-lookup pattern), server-authoritative cast-based collision, syncing ScriptableObject identity as a database index via a custom serializer, and the rule that every networked change gets a PlayMode test. Biased for a SOLO dev on FishNet (Tugboat/CanoeWebRTC) using the Processor + thin-MonoBehaviour pattern. Use this BEFORE adding a SyncVar/SyncList/RPC, extending a spawn payload, syncing an asset reference, writing collision/pickup/projectile detection, or any server-authoritative gameplay mutation.
+description: FishNet networking conventions for this server-authoritative Unity arena shooter — when to send data over the wire and (more importantly) when NOT to. Covers the payload-avoidance rule (derive/look up on the server from an id; the owner-lookup pattern), server-authoritative cast-based collision (never trigger callbacks), syncing an asset as a database index (WeaponDatabase — the ability/projectile types deliberately DON'T need one), SyncVar/RPC authority discipline, and the non-negotiable floor that every networked change gets a PlayMode test. Use this BEFORE adding a SyncVar/SyncList/RPC, extending a spawn payload, syncing an asset reference, writing collision/pickup/contact detection, or any server-authoritative gameplay mutation.
 ---
 
-# FishNet conventions (curated for a solo, server-authoritative Unity dev)
+# FishNet conventions
 
-Server-authoritative means the **server is the single source of truth** for gameplay state; clients send
-intent and observe synced results. The cheapest networked system is the one that sends the least. These
-rules keep this codebase fast, deterministic, and debuggable.
+Server-authoritative: the **server is the single source of truth**; clients send intent and observe synced results. The cheapest networked system is the one that sends the least.
 
-## Rule 1 — Don't send what the server can already derive (payload avoidance)
+## Rule 1 — Don't send what the receiver can derive (payload avoidance)
 
-**Before adding a field to a spawn payload, a SyncVar, or an RPC argument, ask: can the receiver compute
-or look this up from state it already has?** If yes, don't send it.
+Before adding a field to a spawn payload, SyncVar, or RPC: **can the receiver compute or look this up from state it already has?** Send a small stable id; resolve the rich state where it's consumed.
 
-The decisive case in this codebase is **projectile effects**. A projectile carries the bare minimum on
-its spawn payload — owner id (on `NetPlayerOwnership.WritePayload`), spawn tick + origin pose + motion
-config (on `NetworkedMotion.WritePayload`). It does **not** carry the effects/modifiers its owner's
-abilities contribute. Instead, collisions are resolved **server-side**, and there `ServerCollision`
-**looks up its owner** (owner id → player via `NetworkPlayerManager` → `ControlledPawn` →
-`IProjectileEffectProvider.GetReactions()`) and runs the owner's reactions alongside the type's. The
-owner's loadout already lives on the server; shipping it on every bullet would be bytes spent to send
-state the authoritative peer can read for free. (This used to route through `ProjectileWorldProvider`,
-since deleted — `ServerCollision` resolves the owner itself now.)
+The decisive example is **projectile owner effects**: a bullet's payload carries only `SpawnOwnerId` + the per-spawn motion anchor. The owner's ability contributions are never sent — collisions resolve server-side, where `ServerCollision` looks the owner up (owner id → `NetPlayerResolver` → `ControlledPawn` → `IProjectileEffectProvider.GetProjectileEffects()`). The loadout already lives on the server; shipping it per bullet would be bytes spent on state the authoritative peer reads for free. Per-kind config (speed, radius, effect lists) is even cheaper: it's authored on the prefab, so every peer has it locally — see [[type-object-pattern]]'s three data classes (per-kind → prefab, per-spawn anchor → payload, server-only → gated behaviour).
 
-The pattern, generalized:
-- **Identity in, state looked-up.** Send a small stable id (owner id, a database index). Resolve the rich
-  state from it on the server.
-- This only works because the consuming code runs in ONE authoritative place (the server). If you were
-  tempted to send the data "so clients can do X," first check whether X needs to happen on clients at all
-  — server-authoritative effects (damage/spawn/debuff) don't.
+Smell: widening a `WritePayload`/RPC signature with gameplay config the owning player's components already hold.
 
-Smell: you're widening a `WritePayload`/RPC signature to carry gameplay config that the owning player's
-components already hold. Stop — resolve it server-side from an id instead.
+## Rule 2 — Contact detection is a server tick + cast, never trigger callbacks
 
-(Closed-form motion config — speed/accel/gravity/etc. that every peer needs to render the trajectory — is
-a deliberate, eyes-open **exception**. It currently rides the `NetworkedMotion` spawn payload (a handful
-of floats per spawn), set by the type's `Initialize`, because we chose to make `NetworkedMotion`
-**type-agnostic** (no `ProjectileType` ref) and all kinds share one prefab — so it can't resolve the
-config locally. The cheaper alternative is to bake the config on a **per-type prefab** (then every peer
-has it for free and it drops off the payload); take that the day kinds get distinct prefabs. The point
-stands: prefer resolving locally; if you must send, know why — here it bought a fully-generic component.)
+`OnTriggerEnter`/`OnCollisionEnter` fire on every peer off client physics and aren't authoritative. Resolve "did X touch Y" on the **server tick** with an explicit query, mapped to entities via `GetComponentInParent`:
 
-## Rule 2 — Collision/detection is server-authoritative and cast-based, not trigger callbacks
+- `ServerCollision.ServerTick` (subscribed in `OnStartServer`): SphereCast against the world along the strategy's sweep + OverlapSphere against projectiles.
+- `AbilityPickup`: server-side `Physics.OverlapSphereNonAlloc` on `TimeManager.OnTick`.
 
-Resolve "did X touch Y" on the **server tick** with an explicit physics query, not `OnTriggerEnter`/
-`OnCollisionEnter` (which fire on every peer off client-side physics and aren't authoritative).
+Motion is closed-form/deterministic on every peer, so only the server ticks collision — no `[Replicate]`/`[Reconcile]` needed. Mirror this shape for anything new that detects contact.
 
-- Projectiles: `ServerCollision.ServerTick` runs only on the server, sweeps a SphereCast against the world
-  and an OverlapSphere against other projectiles (the physics is inline now that `ProjectileWorldProvider`
-  is gone), maps colliders to entities via `GetComponentInParent<Pawn>`/`<NetworkedMotion>`, then runs the
-  hit reactions. No `[Replicate]`/`[Reconcile]` — motion is closed-form/deterministic so only the server
-  needs to tick collisions.
-- Pickups follow the same shape: `AbilityPickup` subscribes `TimeManager.OnTick` in `OnStartServer`, does
-  a server-side `Physics.OverlapSphereNonAlloc`, and grants on overlap. It deliberately does NOT use
-  `OnTriggerEnter`.
+## Rule 3 — You can't sync an asset reference; sync a database index
 
-When you add anything that detects contact, mirror this: server tick + overlap/cast + `GetComponentInParent`.
+FishNet serializes NetworkObject/NetworkBehaviour refs and primitives — not ScriptableObject refs. Where a synced asset identity is genuinely needed, use a Resources registry + custom serializer: `WeaponData` syncs as its index in `WeaponDatabase` (FishNet codegen auto-discovers `Write*`/`Read*` extension methods, so `SyncVar<WeaponData>` stays ergonomic). New assets must be added to the database or the index won't resolve.
 
-## Rule 3 — You cannot sync a ScriptableObject reference; sync a database index
+But first ask whether you need it at all: **ability and projectile types have no database** — identity travels as the spawned instance itself (its prefab's `TypeObjectRoot` back-ref resolves the SO locally on every peer). Prefer that shape for anything that exists in the world.
 
-FishNet serializes NetworkBehaviour/NetworkObject references (by ObjectId) and primitives/enums — NOT
-arbitrary `UnityEngine.Object`/ScriptableObject references. To sync "which AbilityType / WeaponData":
+## Rule 4 — Server writes; clients send intent
 
-1. Put the assets in a registry SO indexed by list position (`AbilityDatabase`, `WeaponDatabase`), loaded
-   from `Resources` so every peer has the same instance and indices line up.
-2. Write a custom FishNet serializer that writes the index and resolves it back:
-   `AbilityTypeSerializer.WriteAbilityType`/`ReadAbilityType`. FishNet's codegen auto-discovers
-   `Write*`/`Read*` extension methods on `Writer`/`Reader` and uses them for `SyncList<T>`, struct fields,
-   and RPC args. Then you can keep an ergonomic `SyncList<AbilityType>`.
-3. Adding a new asset means adding it to the database (or the index won't resolve on other peers).
-
-## Rule 4 — SyncVar/SyncList write on the server; clients send intent via [ServerRpc]
-
-- Declare synced state `public readonly SyncVar<T> X = new(default, new SyncTypeSettings(WritePermission.ServerOnly))`
-  / `SyncList<T>`. Mutate only inside `[Server]` methods.
-- Clients request changes through `[ServerRpc]` (e.g. `PawnAbilities.ServerCycleSelected`/`ServerUseSelected`);
-  the server validates and writes the SyncVar; clients react via `.OnChange`.
-- `SyncList.OnChange` signature here: `(SyncListOperation op, int index, T oldItem, T newItem, bool asServer)`.
-- Extract the body of a `[ServerRpc]` into a plain `[Server]` method when a test/rig needs to invoke the
-  real logic (calling an RPC directly is awkward) — see `PawnAbilities.ServerUse`.
+- Synced state: `SyncVar<T>`/`SyncList<T>` with `WritePermission.ServerOnly`, mutated only in `[Server]` methods.
+- Clients request via `[ServerRpc]`; the server validates and writes; clients react via `.OnChange`.
+- Extract an RPC's body into a plain `[Server]` method when a test/rig needs to call the real logic.
+- Initial-value timing (payload before `OnStartNetwork`, SyncVars applied then OnChange flushed after Initialize) is verified in the [[fishnet-initial-syncvar-onchange-timing]] memory — the foundation for "seed on server, self-heal on clients" designs.
 
 ## Rule 5 — Every networked change gets a PlayMode test
 
-Networked behaviour (anything touching SyncVar/SyncList/RPC, spawn payloads, server ticks, collision,
-ownership) cannot be proven by EditMode alone — the bug lives in the live FishNet host. **Whenever you
-change networked behaviour, cover it with a PlayMode test** via the `NetworkedPlayModeTestFixture`
-(single-host) + an editor-only `*TestRig` reached by reflection (Assembly-CSharp is unreferenceable from
-the test asmdef). Keep the deterministic decision logic in a pure Core processor (EditMode-tested) and let
-the PlayMode test cover only the live-engine seam. See the [[integration-testing]] skill for the
-EditMode-vs-PlayMode split and how to keep these cheap; this rule is the non-negotiable floor for
-networked code.
+Anything touching SyncVar/SyncList/RPC, payloads, server ticks, collision, or ownership can only break on a live FishNet host. Cover it via `NetworkedPlayModeTestFixture` (single host; two-peer fixture for replication/divergence), with the deterministic decision logic still in a pure Core processor under EditMode. See [[integration-testing]].
 
-## Quick checklist
+## Checklist
 
-- Adding a payload/SyncVar/RPC field? → Can the server derive it from an id? (Rule 1)
-- Detecting contact? → server tick + cast, not a trigger. (Rule 2)
-- Syncing an asset? → database index + custom serializer. (Rule 3)
-- Mutating gameplay state? → `[Server]`, with clients sending `[ServerRpc]` intent. (Rule 4)
-- Changed any of the above? → write the PlayMode test. (Rule 5)
+- New payload/SyncVar/RPC field? → derivable from an id? (1)
+- Contact? → server tick + cast. (2)
+- Asset over the wire? → database index — or better, instance identity. (3)
+- Gameplay mutation? → `[Server]`; client intent via `[ServerRpc]`. (4)
+- Changed any of it? → PlayMode test. (5)

@@ -1,228 +1,50 @@
 ---
 name: functional-core-imperative-shell
-description: Where gameplay logic GOES — in a pure "functional core" of plain functions (Arena.*.Core processors), NOT in the thin MonoBehaviour "imperative shell" (Pawn<X>) that only does I/O. Covers the default rule (any new or edited gameplay logic belongs in the Core processor; the MonoBehaviour stays a thin shell that builds an input struct, calls Process, and applies the result) AND the harder case of a core that must read the world or cause side effects without injecting an `IWorld` seam whose only second implementation is a test double. ALSO covers shell hygiene: validating serialized/injected references at runtime with a Debug.LogError null-guard (passing `this` as context) instead of letting a missing reference fail silently or NullReferenceException deep in a call. Biased for a SOLO Unity dev using the Processor + thin-MonoBehaviour pattern over FishNet prediction. Use this BEFORE adding or modifying ANY gameplay behavior in a Pawn<X> / NetworkBehaviour / MonoBehaviour — decide where the logic lives first, and default to the Core processor, not the shell. Also use whenever a Core processor needs to read the world (raycasts, neighbor queries, lookups) or cause side effects (damage, spawn, despawn, VFX); when deciding between an injected `IWorld`-style seam and a data boundary; when you catch yourself adding an interface "so it's testable"; or when adding a MonoBehaviour that depends on a serialized reference and you want to guard against it being unassigned.
+description: Where gameplay logic GOES — in a pure functional core (Arena.*.Core processors), NOT in the thin MonoBehaviour shell (Pawn<X>) that only does I/O. Use this BEFORE adding or modifying ANY gameplay behaviour in a MonoBehaviour/NetworkBehaviour — decide where the logic lives first and default to the Core processor. Also use when a core must read the world (raycasts, overlaps, lookups) or cause side effects (damage, spawn, VFX) — pass query results IN as data and return decisions/effects OUT as data, never inject an IWorld seam whose only second implementation is a test double; when you catch yourself adding an interface "so it's testable"; and for shell hygiene: required serialized references get a Debug.LogError(…, this) null-guard that bails, never a silent no-op or a downstream NRE.
 ---
 
-# Functional Core, Imperative Shell (curated for a solo, code-first, test-driven Unity dev)
+# Functional core, imperative shell
 
-This skill extends the project's Processor + thin-`MonoBehaviour` convention to the hard case: a
-system whose logic must **read the world and cause side effects**, not just transform its own state.
-Pawn movement is easy to keep pure — its input is a struct and its output is a struct. Projectiles,
-abilities, AOE, sensors, and anything that casts rays / deals damage / spawns objects are harder,
-because the obvious move is to inject a `IWorld` service into the Core so it can "ask the engine
-things." That move is usually a mistake. This skill says what to do instead.
+**Dependencies point inward, as data — not as a callback seam.** A core is pure functions: deterministic, no `Physics`/`Time`/FishNet/GameObject mutation. The shell is a thin MonoBehaviour doing ALL I/O. They communicate only through plain values:
 
-This skill governs the **vertical** boundary (a shell and its own pure processor). The **horizontal**
-boundary — how one system passes data to *another* system without coupling to its behavior — is
-[[cross-component-communication]]; reach for that when the question is "how does A talk to B," not "where
-does this logic go."
+- The shell gathers what the core needs (cast results, overlaps, lookups) and passes it **in as data**.
+- The core returns what it wants done **out as data** — a new state, a classification, an effect list. It performs nothing.
+- The call arrow is shell → core only. That's what makes the core EditMode-testable with plain structs and deterministic for networking.
 
-Honor the same standing biases as [[game-programming-patterns]] and [[integration-testing]]:
+House shape: `static Process(state, in config, in input, dt) → newState` in an `Arena.<X>.Core` asmdef; the `Pawn<X>` shell builds the input from `PawnInput.Data`, calls it, applies the result. Reference implementation for the hard case: the projectile — `ServerCollision` (shell) casts and overlaps; the pure `ServerCollisionProcessor` classifies (`TryClassifyWorldHit` → owner-safe enemy/surface/projectile); the shell then runs the Unity-coupled [[effect-commands]] the classification routes to. The core decides *what kind of hit happened*; the shell decides *what to do about it*.
 
-1. **Solo developer** — future-you maintains every abstraction alone.
-2. **Code over editor.**
-3. **Maintainable/extensible over performance** — spend complexity only to remove a coupling you can feel.
-4. **Unity** — let the engine do engine things; don't wrap them in ceremony.
-5. **Edit/play-mode tests** — testability is a goal, but a *test double is not a justification for an abstraction.*
+## The anti-pattern: an interface whose only second implementation is a test double
 
----
+The tempting shape is `interface IProjectileWorld { CastWorld(...); ApplyDamage(...); Spawn(...); … }` injected into the core. Three things are wrong, in increasing order:
 
-## The governing rule
+1. **Interface segregation** — every caller receives the whole surface; the width betrays a Facade over "everything stateful".
+2. **One real implementation** — the fake is a *consequence* of the interface, not a reason for it. "I need it to write a test double" is the weakest justification for an abstraction.
+3. **It forces the core out of its pure assembly** — a core that *calls* a service touching Physics/FishNet can't live in `Arena.*.Core`, and its riskiest logic (gating, owner-safety, dedupe) becomes PlayMode-only to test. Backwards.
 
-**Dependencies point inward, as data — not as a callback seam.**
-
-A functional core is a set of **pure functions**: deterministic, no `Physics`, no `Time`, no FishNet,
-no `MonoBehaviour`, no GameObject mutation. The imperative shell is a thin `MonoBehaviour` that does
-**all** I/O. The two communicate only through plain values:
-
-- The shell gathers whatever the core needs to know — raycast results, the nearest enemy's position,
-  overlapping entities — and passes them **in as data** (a query-result struct).
-- The core returns whatever it wants done — damage, spawns, despawns, VFX — **out as data** (a list of
-  effect structs). It does not perform them.
-- The shell reads the returned effects and executes them, applying any authority/replay gating.
-
-```
-        ┌──────────────────────── shell (MonoBehaviour) ────────────────────────┐
-input → │  gather queries (cast/overlap/lookup)  →  call core  →  apply effects  │ → world
-        └────────────────────────────────│──────────────────────│───────────────┘
-                                     query data            effect data
-                                          ↓                      ↑
-                                   ┌──── functional core (pure) ────┐
-                                   │  newState, effects = f(state,  │
-                                   │            type, queries, dt)  │
-                                   └────────────────────────────────┘
-```
-
-The call arrow points **shell → core** only. The core never holds, calls, or knows about the shell or
-the engine. This is what makes the core trivially unit-testable with plain structs **and** keeps it
-deterministic for FishNet prediction/reconcile (same inputs → same outputs, replayable).
-
-This codebase's reference implementation is the projectile system. The shell components (`NetworkedMotion`,
-`ServerCollision`) cast, overlap, and resolve GameObjects; the pure cores (`Arena.NetworkedMotion.Core`,
-`Arena.ServerCollision.Core`, …) take `WorldHit`/overlap states in and return motion + a hit
-*classification* (`HitInfo`: owner-safe, enemy/surface/projectile) out. The shell then runs the
-Unity-coupled `IEffect` commands that the classification routes to — the core decides *what kind of
-hit happened*; the shell decides *what to do about it* and performs the I/O. (We did **not** inject a
-"world" into the core — see the anti-pattern below; and we did **not** keep an effect-DATA list either —
-the shell runs the effect commands directly, see [[scriptableobject-commands]]. Collision is server-only,
-so there's no client/reconcile gating to apply.)
-
----
-
-## The anti-pattern this skill exists to prevent
-
-**Do not introduce an interface whose only second implementation is a test double.**
-
-The tempting shape is an injected service:
-
-```csharp
-// SMELL: a wide "world" interface the core calls into.
-public interface IProjectileWorld {
-    bool CastWorld(Vector3 from, Vector3 to, float r, out WorldHit hit);
-    void ApplyDamage(int target, int amount, ...);
-    int  Spawn(ProjectileType t, ...);
-    void Despawn(int id);
-    // ...9 methods...
-}
-ProjectileState Step(ProjectileState s, ..., IProjectileWorld world); // core CALLS the world
-```
-
-Three things are wrong with it, in increasing order of importance:
-
-1. **Interface Segregation.** Most callers use a sliver of it. A `Ricochet` reaction that only reflects
-   a velocity still receives the whole 9-method surface. The interface is wide because it's really a
-   Facade over "everything stateful," which is a sign the boundary is in the wrong place.
-2. **It only has one real implementation.** The production class and a `FakeWorld` are not two
-   implementations earning a Strategy — the fake is a *consequence* of the interface, not a reason for
-   it. "I need it to write a test double" is the weakest possible justification for an abstraction. If
-   the seam would have exactly one production impl forever, you inverted a dependency you didn't need to.
-3. **It forces the core out of its pure assembly.** This is the decisive one in *this* project. The
-   `Arena.*.Core` asmdefs are engine-free and cannot reference `Assembly-CSharp` or FishNet. The moment
-   the core *calls into* a service that touches `Physics`/FishNet, the core can no longer live in its
-   pure assembly — it collapses into `Assembly-CSharp`, and its orchestration logic (the bug-prone
-   gating / owner-safety / reconcile-dedupe code) becomes **PlayMode-only** to test. You trade cheap,
-   exhaustive EditMode coverage of the riskiest code for slow, scenario-heavy PlayMode setup. That is
-   backwards for an overhead-averse solo dev.
-
-The data-boundary version has none of these problems: no interface, no fake, the core stays pure and
-EditMode-testable, and the shell is the one concrete thing — tested (if at all) by a few integration
-tests against the *real* engine, per [[integration-testing]]'s "test the seam you don't trust" rule.
-
-**When an interface IS earned here:** genuine polymorphism with multiple *real* implementations. The
-motion strategies (`LinearMotion`/`ArcMotion`/`LaserMotion`) are a legitimate `IMotionStrategy`
-Strategy — three real behaviors selected at runtime, not one impl plus a mock. That interface stays.
-The distinction: an interface earns its place when you'd have ≥2 production implementations even if you
-never wrote a single test.
-
----
+An interface IS earned by ≥2 *production* implementations (`IMotionStrategy`: Linear/Arc/Laser). The test: would you have two implementations even if you never wrote a test?
 
 ## How to apply it
 
-1. **Find the I/O.** List everything the system reads from the world and everything it does to the
-   world. Reads become **query inputs**; writes become **returned effects**.
-2. **Split the data dependency into phases if needed.** Sometimes a query depends on a result the core
-   just computed (e.g. you can't cast the collision ray until movement has produced the new position).
-   Don't smuggle a callback in to bridge it — *phase* the core into functions the shell drives in order:
-   `PositionAtAge` → (shell casts) → `TryClassifyWorldHit` → (shell overlaps) → `TryClassifyProjectileHit`.
-   One wide `Step(world)` becomes a slightly chattier pure API plus orchestration in the shell. That's
-   the trade, and it's a good one: the chatter is all pure and testable.
-3. **Decide how writes leave the core — as data, or as a decision the shell acts on.** Two shapes, both
-   keep the core pure:
-   - **Return effects as value structs** — a small tagged struct accumulated into a reused buffer; the
-     core appends, never executes. Use this when the effect *decision* must stay pure/gateable — notably
-     predicted `[Replicate]` code that re-runs on reconcile and must execute once.
-   - **Return a classification/decision and let the shell run a Unity-coupled command** — what this
-     project's server-only projectile collision does: the core returns a `HitInfo` (*what kind* of hit),
-     and the shell runs `IEffect` command objects that do the I/O directly. No effect-data list, no
-     executor switch (see [[scriptableobject-commands]]). Prefer this when the effects are server-only and
-     want the freedom to touch many systems; reserve the value-struct boundary for the predicted case.
-4. **Prefer making side effects unnecessary-to-gate over building a gate.** Gating only exists because
-   the effect-producing code runs on more than one peer or re-runs during a reconcile replay. If you
-   can make that code run in exactly ONE authoritative context, the gate disappears entirely — which is
-   simpler than any gate. Concretely: if motion is deterministic (closed-form from spawn data), you
-   don't need to predict-and-reconcile it per peer, so you don't need to run the side-effect-producing
-   collision step anywhere but the server. Then the shell just applies every returned effect — there's
-   no "should this run here?" question because it only ever runs on the server. **This codebase took
-   exactly that route: an early design had an `EffectGate` (server/owner/replay matrix); making
-   collisions server-authoritative-only deleted the need for it.** Only if you genuinely must predict
-   effects on clients (e.g. predicted cosmetic VFX for feel) do you reintroduce gating — and then keep
-   the *rule* pure (`ShouldApply(kind, isServer, isOwner, fresh)`) so it's unit-tested without a fake,
-   rather than scattering `if (IsServer && !replaying)` through the shell.
-5. **Shared/scene-level I/O can be a concrete `MonoBehaviour` service** (registry, prefab catalog,
-   player lookup, child spawning). Let the shell call it directly — concrete, no interface. It's a
-   collaborator with one real implementation; that's fine *because the shell, not the pure core, depends
-   on it.* The rule is only that the **core** stays pure; the shell may freely use concrete engine
-   objects.
+1. **Find the I/O.** Reads become query inputs; writes become returned decisions/effects.
+2. **Phase the core when a query depends on a computed result** (can't cast until movement produced the new position): `PositionAtAge` → shell casts → `TryClassifyWorldHit` → shell overlaps → `TryClassifyProjectileHit`. A slightly chattier pure API + shell orchestration beats a smuggled callback.
+3. **Two shapes for writes, both pure:** return **effect data** (required inside predicted `[Replicate]` code, which re-runs on reconcile and must gate execution to the authoritative tick), or return a **classification** the shell maps to command objects (the server-only default here).
+4. **Prefer deleting the gate over building one.** Gating exists only because effect-producing code runs on multiple peers or replays. Making collision server-authoritative-only deleted this codebase's `EffectGate` entirely — running in exactly one authoritative context beats any gate. If you must predict effects, keep the rule pure (`ShouldApply(kind, isServer, isOwner, fresh)`) and unit-test it.
+5. **Shared scene services (registries, lookups) stay concrete** — the shell may call them directly; only the core must stay pure.
 
----
+## Shell hygiene: guard required references, fail loud
 
-## Guard the references the shell depends on (fail loud, not silent)
-
-The shell's whole job is I/O: it reads serialized inspector references and engine handles, then drives
-the core and applies the result. When one of those references is **unassigned** — a forgotten
-inspector slot, a prefab variant that didn't get wired, a `GetComponent` that returned null — the shell
-has nothing to do its job with. The two default failure modes are both bad:
-
-- **Silent no-op** — an `if (x == null) return;` that swallows the problem. The object just quietly does
-  nothing, and you debug a "why isn't this spawning / moving / configuring" ghost with no clue where to
-  look. This is the failure that bit us on `TypeObjectRoot` (a missing `type` made the instance silently
-  fail to configure itself).
-- **NullReferenceException deep in a call** — the null propagates and blows up three frames later in code
-  that looks correct, pointing the stack trace at the symptom, not the unassigned field.
-
-**Rule: any MonoBehaviour reference the object cannot function without gets a runtime null-guard that
-`Debug.LogError`s — with `this` as the context object — and then bails out of the operation.** The log
-names *which* instance and *which* field, so a misconfigured prefab/scene object is a one-line console
-fix instead of a debugging session. Passing `this` makes the log clickable straight to the offending
-object in the hierarchy.
+A shell reference the object cannot function without (forgotten inspector slot, unwired variant, null `GetComponent`) must not fail as a silent `if (x == null) return;` nor as an NRE three frames later. **Guard it with `Debug.LogError` naming the field, pass `this` as context (clickable in the hierarchy), then bail** (`return`/`enabled = false`):
 
 ```csharp
-private void Awake()
-{
-    if (type == null)
-    {
-        Debug.LogError($"{name}: TypeObjectRoot has no 'type' assigned — this instance cannot " +
-            "configure itself. Assign the ScriptableTypeObject baked into this prefab.", this);
-        return;                       // bail; don't fall through into a guaranteed NRE
-    }
-    type.Initialize(gameObject);
+if (type == null) {
+    Debug.LogError($"{name}: TypeObjectRoot has no 'type' assigned — cannot configure itself.", this);
+    return;
 }
 ```
 
-Notes:
+Guard "cannot function without", not everything — over-guarding optional fields trains you to ignore the console. Lifetime refs: guard once in `Awake`/`OnStartNetwork`. Per-tick resolves: guard at the call site, log once (cache a `_warned` bool). This is shell-only — a core's inputs are structs; there's nothing to null-guard.
 
-- **Log *then return*.** A guard that logs but keeps going just trades a silent bug for a logged one
-  followed by the same NRE. The `return` (or `enabled = false`, or skip-this-tick) is what makes the
-  guard actually protect the rest of the method. `TypeObjectRoot.EnsureInitialized` is the reference
-  example: it early-returns before touching `type`.
-- **Guard "cannot function without," not everything.** Genuinely optional references (an effect that's
-  fine being absent) don't need a LogError — only the ones whose absence means the object is broken.
-  Over-guarding optional fields trains you to ignore the console.
-- **Where to put it.** A field needed for the object's whole lifetime → guard once in `Awake`/`Start`/
-  `OnStartNetwork`/`OnEnable` and disable or early-return. A reference resolved per-tick or per-call →
-  guard at the call site. Either way, log once per failure, not every frame — a per-`Update` LogError
-  floods the console; cache a `_warned` bool or do the check in a one-time setup method.
-- This is **shell-only.** The pure core never holds references to guard — its inputs are structs, and a
-  missing struct field is a value, not a null reference. This rule is exactly the kind of I/O concern the
-  shell exists to own.
+## Testing shape & smells
 
-## Testing shape
-
-- **Functional core → EditMode unit tests.** Construct state + type + query-result structs, call the
-  function, assert on the returned state and the returned effect list. No fake, no scene, milliseconds.
-  This is *simpler* than maintaining a mock of a wide interface.
-- **Gating rule (only if you have one) → EditMode unit test** of the pure helper (server/owner/replay matrix). If you eliminated gating by making effects server-authoritative-only (point 4), there's nothing to test here — which is the better outcome.
-- **Shell → a few PlayMode integration tests**, only for the seams you don't trust (real cast hits a
-  real collider, reconcile doesn't double-apply). Earn each one per [[integration-testing]]; most of
-  what you'd reach for PlayMode to check is already covered by the core's EditMode tests.
-
----
-
-## Smell checklist
-
-- About to add an `interface IFooWorld` and the only implementors will be `FooWorld` + `FakeFooWorld`? **Stop.** Use a data boundary; the core returns effects, the shell does I/O.
-- A "pure" Core processor takes a service parameter it *calls*? It isn't pure, and it can't stay in `Arena.*.Core`. Invert it: pass query results in, return effects out.
-- An interface keeps growing methods as the system grows? It's a Facade over "the world" in disguise — the boundary belongs as data, not behavior.
-- Reaching for PlayMode to test branchy decision logic (owner-safety, dedupe, any gating you kept)? That logic should be in the pure core and covered in EditMode; PlayMode is for the engine glue only.
-- Conversely: about to collapse four real runtime behaviors into one class with a `switch` *just* to avoid an interface? An interface with ≥2 real implementations is earned — keep it (see `IMotionStrategy`).
-- A shell MonoBehaviour with a serialized reference it *needs*, and no null-guard on it? A bare `if (x == null) return;` (silent) or no check at all (NRE later)? **Add a `Debug.LogError(..., this)` guard that names the field and bails** — fail loud, not silent. See "Guard the references the shell depends on."
+- Core → EditMode: construct structs, call, assert on returned state/effects. Gating rule (if any) → EditMode. Shell → a few PlayMode tests for the seams you don't trust ([[integration-testing]]).
+- Smells: a "pure" processor taking a service it calls; an interface growing methods as the system grows (a world-facade in disguise); reaching for PlayMode to test branchy decision logic (it belongs in the core); a required serialized ref with no loud guard. Conversely: collapsing ≥2 real behaviours into a `switch` just to avoid an interface — keep the interface.
