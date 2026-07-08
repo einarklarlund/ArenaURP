@@ -116,6 +116,18 @@ public interface IMotionContext : IEffectContext
 {
     /// <summary>The source's motion system (its live velocity / segment anchor).</summary>
     NetworkedMotion Motion { get; }
+
+    /// <summary>
+    /// Where the source mover's CENTRE sits at this contact — the point a redirect (ricochet/deflect) resumes the
+    /// trajectory from. For a world hit this stands off the impact <see cref="IAimContext.Point"/> (a point on the
+    /// struck collider's SURFACE, reported by the sweep) by the mover's collision radius along the
+    /// <see cref="ISurfaceContext.Normal"/>, so the resumed segment starts the mover TANGENT to the surface rather
+    /// than embedded a radius deep in it (which would immediately re-collide — the sticking/jitter a naive resume
+    /// at the surface point causes). Resolved by the context builder, which owns the radius; the impact
+    /// <see cref="IAimContext.Point"/> stays the surface point for damage/VFX. In the projectile-vs-projectile
+    /// channel the impact point is already this mover's centre, so the two coincide.
+    /// </summary>
+    Vector3 SourceCenterPoint { get; }
 }
 
 /// <summary>

@@ -30,7 +30,10 @@ public sealed class DeflectProjectile : IEffect<ProjectileProjectileCollision>
             otherVelocity = NetworkedMotionProcessor.VelocityAt(ctx.OtherMotion.Strategy, in os);
         }
 
+        // Resume from the mover's centre (SourceCenterPoint); in this projectile-vs-projectile channel that is the
+        // classified Point itself (this mover's own position), so this is unchanged behaviour — but it keeps both
+        // segment-redirect effects consistently anchored on the source centre rather than a bare impact point.
         if (DeflectMath.TryRedirect(otherForward, otherVelocity, vel.magnitude, state.OriginSpeed, out Vector3 dir, out float speed))
-            ctx.Motion.BeginSegment(ctx.Point, dir, speed);
+            ctx.Motion.BeginSegment(ctx.SourceCenterPoint, dir, speed);
     }
 }

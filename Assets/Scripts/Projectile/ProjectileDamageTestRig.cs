@@ -40,6 +40,33 @@ public static class ProjectileDamageTestRig
     public static float OriginSpeed(UnityEngine.GameObject bullet)
         => bullet.GetComponent<NetworkedMotion>().State.OriginSpeed;
 
+    /// <summary>The z of a live projectile's current motion heading (segment-origin forward) — negative once it has
+    /// ricocheted back off a +z-facing wall. Reads the server instance's motion state.</summary>
+    public static float MotionForwardZ(UnityEngine.GameObject bullet)
+        => bullet.GetComponent<NetworkedMotion>().State.OriginForward.z;
+
+    /// <summary>The z of a live projectile's current segment ORIGIN — where its trajectory resumed. After a ricochet
+    /// off a +z-facing wall this should stand a collision-radius off the wall face (the mover's centre), not sit on
+    /// the surface. Reads the server instance's motion state.</summary>
+    public static float MotionOriginZ(UnityEngine.GameObject bullet)
+        => bullet.GetComponent<NetworkedMotion>().State.OriginPos.z;
+
+    /// <summary>
+    /// Author <paramref name="count"/> Ricochet operations on a live bullet's OnSurface, clearing any authored
+    /// kill reaction so the bullet survives to bounce. TWO Ricochets stands in for the powerup-stacking case a
+    /// bouncy shot actually hits — one authored on the projectile's own OnSurface, another contributed by the
+    /// owner's "bouncy" passive — which must still bounce, not cancel (reflecting the same incoming direction is
+    /// idempotent; reflecting the live velocity twice composes to the identity and drives straight through).
+    /// Mutates only this spawned instance's [SerializeReference] list, never the asset.
+    /// </summary>
+    public static void AuthorRicochetOnSurface(UnityEngine.GameObject bullet, int count)
+    {
+        var collision = bullet.GetComponent<ServerCollision>();
+        collision.OnSurface.Clear();
+        for (int i = 0; i < count; i++)
+            collision.OnSurface.Add(Commands.Ricochet());
+    }
+
     /// <summary>Set the per-spawn speed buff directly on a live projectile (used to construct the two-peer self-heal gap).</summary>
     public static void SetSpeedMultiplier(UnityEngine.GameObject bullet, float multiplier)
         => bullet.GetComponent<NetworkedMotion>().SetSpeedMultiplier(multiplier);
@@ -51,6 +78,14 @@ public static class ProjectileDamageTestRig
     /// <summary>The authored baseline localScale.x of a projectile kind (off its InstancePrefab's transform).</summary>
     public static float TypeLocalScaleXAt(string assetPath)
         => AssetDatabase.LoadAssetAtPath<ProjectileType>(assetPath).InstancePrefab.transform.localScale.x;
+
+    /// <summary>The current effective collision radius of a live spawned projectile (baseline × any on-spawn scale buff).</summary>
+    public static float CollisionRadius(UnityEngine.GameObject bullet)
+        => bullet.GetComponent<ServerCollision>().EffectiveRadius;
+
+    /// <summary>The authored baseline collision radius of a projectile kind (off its InstancePrefab's ServerCollision).</summary>
+    public static float TypeCollisionRadiusAt(string assetPath)
+        => AssetDatabase.LoadAssetAtPath<ProjectileType>(assetPath).InstancePrefab.GetComponent<ServerCollision>().Radius;
 
     /// <summary>
     /// Rewrite a live bullet's OnPlayer operations to [LoseHealth, DealDamage] — LETHAL FIRST. With a 1-HP

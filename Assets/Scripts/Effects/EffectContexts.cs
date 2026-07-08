@@ -16,11 +16,12 @@ public sealed class ProjectileSurfaceCollision : IMotionSurfaceContext, IHealthC
     public Vector3 Point { get; }
     public Vector3 Normal { get; }
     public Vector3 Direction { get; }
+    public Vector3 SourceCenterPoint { get; }
     public NetworkedMotion Motion { get; }
     public Health SelfHealth { get; }
 
     public ProjectileSurfaceCollision(GameObject source, NetworkPlayer instigator,
-        Vector3 point, Vector3 normal, Vector3 direction,
+        Vector3 point, Vector3 normal, Vector3 direction, Vector3 sourceCenterPoint,
         NetworkedMotion motion, Health selfHealth)
     {
         Source = source;
@@ -28,6 +29,7 @@ public sealed class ProjectileSurfaceCollision : IMotionSurfaceContext, IHealthC
         Point = point;
         Normal = normal;
         Direction = direction;
+        SourceCenterPoint = sourceCenterPoint;
         Motion = motion;
         SelfHealth = selfHealth;
     }
@@ -48,13 +50,14 @@ public sealed class ProjectilePlayerCollision :
     public Vector3 Point { get; }
     public Vector3 Normal { get; }
     public Vector3 Direction { get; }
+    public Vector3 SourceCenterPoint { get; }
     public Damage DamageSource { get; }
     public IDamageable DamageTarget { get; }
     public NetworkedMotion Motion { get; }
     public Health SelfHealth { get; }
 
     public ProjectilePlayerCollision(GameObject source, NetworkPlayer instigator,
-        Vector3 point, Vector3 normal, Vector3 direction,
+        Vector3 point, Vector3 normal, Vector3 direction, Vector3 sourceCenterPoint,
         Damage damageSource, IDamageable damageTarget,
         NetworkedMotion motion, Health selfHealth)
     {
@@ -63,6 +66,7 @@ public sealed class ProjectilePlayerCollision :
         Point = point;
         Normal = normal;
         Direction = direction;
+        SourceCenterPoint = sourceCenterPoint;
         DamageSource = damageSource;
         DamageTarget = damageTarget;
         Motion = motion;
@@ -84,6 +88,7 @@ public sealed class ProjectileProjectileCollision :
     public Vector3 Point { get; }
     public Vector3 Normal { get; }
     public Vector3 Direction { get; }
+    public Vector3 SourceCenterPoint { get; }
     public Damage DamageSource { get; }
     public IDamageable DamageTarget { get; }
     public NetworkedMotion Motion { get; }
@@ -93,7 +98,7 @@ public sealed class ProjectileProjectileCollision :
     public NetworkedMotion OtherMotion { get; }
 
     public ProjectileProjectileCollision(GameObject source, NetworkPlayer instigator,
-        Vector3 point, Vector3 normal, Vector3 direction,
+        Vector3 point, Vector3 normal, Vector3 direction, Vector3 sourceCenterPoint,
         Damage damageSource, IDamageable damageTarget,
         NetworkedMotion motion, Health selfHealth, NetworkedMotion otherMotion)
     {
@@ -102,6 +107,7 @@ public sealed class ProjectileProjectileCollision :
         Point = point;
         Normal = normal;
         Direction = direction;
+        SourceCenterPoint = sourceCenterPoint;
         DamageSource = damageSource;
         DamageTarget = damageTarget;
         Motion = motion;

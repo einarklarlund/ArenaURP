@@ -27,10 +27,20 @@ public sealed class ServerCollision : NetworkBehaviour
     [SerializeField] private LayerMask projectileMask;  // Bullet-To-Bullet
 
     [Header("Collision (per-kind config, authored on the prefab)")]
-    [Tooltip("Cast/overlap radius of this projectile.")]
+    [Tooltip("Cast/overlap radius of this projectile. This is the authored BASELINE — the per-spawn buff layer " +
+             "(SetRadiusMultiplier) folds over it; the sweep uses EffectiveRadius, never this raw field.")]
     public float Radius = 0.05f;
     [Tooltip("Seconds before the projectile self-despawns.")]
     public float Lifetime = 5f;
+
+    // Per-spawn buff layer over the authored Radius baseline (pooling two-layer rule): effective = Radius * multiplier.
+    // Reset to identity in ResetState so pooled reuse starts unbuffed; the baseline field is never wiped. Set through
+    // the idempotent SetRadiusMultiplier, the shape shared with SpawnScale.SetScaleMultiplier / SetSpeedMultiplier.
+    private float _radiusMultiplier = 1f;
+
+    // The radius the broadphase actually sweeps/overlaps with — baseline folded with the per-spawn buff layer.
+    // Public as a read-only derived surface (like Radius): the authoritative collision size after any on-spawn buff.
+    public float EffectiveRadius => Radius * _radiusMultiplier;
 
     [Header("Hit reactions (operations run per hit category)")]
     [Tooltip("Operations run when this projectile hits a surface (wall/stage).")]
@@ -77,6 +87,20 @@ public sealed class ServerCollision : NetworkBehaviour
         _guard = SC.ServerCollisionProcessor.NoGuard;
     }
 
+    /// <summary>
+    /// Multiply the authored <see cref="Radius"/> baseline for this spawn — the collision-size buff seam, driven by
+    /// the on-spawn <c>BuffScale</c> off the owner's passives. Idempotent and order-independent (house rule for
+    /// on-spawn buffs; last write wins), mirroring <see cref="SpawnScale.SetScaleMultiplier"/> — collision is
+    /// server-only so there is no sync channel and none is wanted.
+    /// </summary>
+    public void SetRadiusMultiplier(float multiplier) => _radiusMultiplier = multiplier;
+
+    public override void ResetState(bool asServer)
+    {
+        base.ResetState(asServer);
+        _radiusMultiplier = 1f;   // per-spawn buff layer resets to identity; the authored Radius baseline is never wiped
+    }
+
     private void ServerTick()
     {
         if (_motion == null)
@@ -110,13 +134,17 @@ public sealed class ServerCollision : NetworkBehaviour
             ? strategy.CollisionSweep(in state, prevPos, newPos)
             : new MotionSweep(prevPos, newPos);
 
-        if (CastWorld(sweep.From, sweep.To, Radius, out SC.WorldHit hit, out GameObject hitObject) &&
+        if (CastWorld(sweep.From, sweep.To, EffectiveRadius, out SC.WorldHit hit, out GameObject hitObject) &&
             SC.ServerCollisionProcessor.TryClassifyWorldHit(in state, ownerId, vel, in hit, out SC.HitInfo worldInfo))
         {
+            // The sweep reports Point on the struck SURFACE; this mover's centre at contact stands off it by the
+            // sweep radius along the normal. A redirect (ricochet) resumes from there so the mover ends up tangent
+            // to the surface, not embedded a radius deep in it (which would immediately re-collide).
+            Vector3 sourceCenter = worldInfo.Point + worldInfo.Normal * EffectiveRadius;
             if (worldInfo.Category == SC.HitCategory.Enemy)
             {
                 var ctx = new ProjectilePlayerCollision(gameObject, owner,
-                    worldInfo.Point, worldInfo.Normal, worldInfo.Direction,
+                    worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter,
                     _damage, ResolveDamageable(hitObject),
                     _motion, _health);
                 RunEffects(OnPlayer, ctx);
@@ -125,7 +153,7 @@ public sealed class ServerCollision : NetworkBehaviour
             else
             {
                 var ctx = new ProjectileSurfaceCollision(gameObject, owner,
-                    worldInfo.Point, worldInfo.Normal, worldInfo.Direction,
+                    worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter,
                     _motion, _health);
                 RunEffects(OnSurface, ctx);
                 RunEffects(ownerOps.OnSurface, ctx);
@@ -142,7 +170,7 @@ public sealed class ServerCollision : NetworkBehaviour
 
     private void ResolveProjectileChannel(Vector3 selfPos, Vector3 vel, in NetworkedMotionState self, int selfOwnerId, NetworkPlayer owner, in ProjectileEffects ownerOps)
     {
-        int n = OverlapProjectiles(selfPos, Radius, _overlaps, self.Id);
+        int n = OverlapProjectiles(selfPos, EffectiveRadius, _overlaps, self.Id);
         int firstHandled = SC.ServerCollisionProcessor.NoGuard;
         bool stillGuarded = false;
 
@@ -159,8 +187,10 @@ public sealed class ServerCollision : NetworkBehaviour
                 continue;
             }
 
+            // In the projectile channel the classified Point IS this mover's own centre (selfPos), so the
+            // source-centre resume anchor coincides with it — no surface standoff to apply.
             var ctx = new ProjectileProjectileCollision(gameObject, owner,
-                info.Point, info.Normal, info.Direction,
+                info.Point, info.Normal, info.Direction, info.Point,
                 _damage, ResolveDamageable(other.gameObject),
                 _motion, _health, other);
             RunEffects(OnProjectile, ctx);

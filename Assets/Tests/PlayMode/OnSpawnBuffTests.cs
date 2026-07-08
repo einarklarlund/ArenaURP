@@ -10,7 +10,8 @@ namespace Arena.PlayTests
     /// Integration tests for the on-spawn passive-buff path: a spawned projectile snapshots the firer's passives
     /// as resolved on this peer at the spawn instant (SpawnBuffReceiver → PawnPassiveAbilities.GetSpawnBuffs →
     /// each OnSpawn effect), with NOTHING extra on the wire. Exercises both buff categories — speed (Option A
-    /// idempotent motion setter) and scale (the no-sync-channel SpawnScale path) — plus the unbuffed no-op.
+    /// idempotent motion setter) and scale, where the one BuffScale drives both the visual SpawnScale path and the
+    /// server-only ServerCollision radius — plus the unbuffed no-op.
     ///
     /// Mirrors <see cref="OwnerProjectileEffectTests"/>: the bullet is the REAL authored Bullet type, the buff is a
     /// runtime passive granted through AbilityTestRig, and Assembly-CSharp types are reached only through the rigs
@@ -53,6 +54,20 @@ namespace Arena.PlayTests
 
             Assert.AreEqual(baseline * 2f, (float)Dmg("LocalScaleX", bullet), Tol,
                 "the owner's on-spawn scale passive (×2) should scale the just-spawned bullet's localScale");
+        }
+
+        [UnityTest]
+        public IEnumerator On_spawn_scale_buff_scales_the_projectiles_collision_radius()
+        {
+            int ownerId = 0;
+            yield return RegisterOwner(id => ownerId = id, grantMethod: "GrantScaleBuffPassive");
+
+            float baseline = (float)Dmg("TypeCollisionRadiusAt", BulletTypePath);
+            var bullet = SpawnProjectile(BulletTypePath, new Vector3(0, 1, 0), Vector3.forward, ownerId: ownerId);
+            yield return null;
+
+            Assert.AreEqual(baseline * 2f, (float)Dmg("CollisionRadius", bullet), Tol,
+                "the owner's on-spawn scale passive (×2) should scale the just-spawned bullet's collision radius too");
         }
 
         [UnityTest]

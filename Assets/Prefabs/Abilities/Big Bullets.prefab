@@ -64,7 +64,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584181610083823488
+  _initializedTimestamp: -8584181284205507778
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -120,9 +120,7 @@ MonoBehaviour:
   _componentIndexCache: 0
   _addedNetworkObject: {fileID: 6230920335191685443}
   _networkObjectCache: {fileID: 6230920335191685443}
-  StatBuffs:
-  - rid: 4328605929791815682
-  - rid: 4328605929791815683
+  StatBuffs: []
   ProjectileOnSurface: []
   ProjectileOnPlayer: []
   ProjectileOnProjectile: []
@@ -135,11 +133,3 @@ MonoBehaviour:
       type: {class: BuffScale, ns: , asm: Assembly-CSharp}
       data:
         multiplier: 4
-    - rid: 4328605929791815682
-      type: {class: BuffWalkSpeed, ns: , asm: Assembly-CSharp}
-      data:
-        multiplier: 1.4
-    - rid: 4328605929791815683
-      type: {class: BuffWalkAcceleration, ns: , asm: Assembly-CSharp}
-      data:
-        multiplier: 1.2
