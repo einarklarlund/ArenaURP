@@ -76,6 +76,49 @@ namespace Arena.PlayTests
                 $"pawn's Health (before={healthBefore} after={healthAfter})");
         }
 
+        /// <summary>
+        /// Pins the ATOMIC-HIT rule: a classified hit runs ALL its authored operations even if the projectile
+        /// dies mid-list — authored order can never change a hit's outcome. The bullet's OnPlayer list is
+        /// rewritten to [LoseHealth, DealDamage] with 1 HP, so the lethal op runs first; the damage must still
+        /// land on the pawn.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Hit_resolves_atomically_regardless_of_effect_order()
+        {
+            var npmGo = SpawnServerPrefab(NpmPrefabPath, Vector3.zero);
+            var playerGo = SpawnServerPrefab(PlayerPrefabPath, Vector3.zero);
+            var pawnGo = SpawnServerPrefab(PawnPrefabPath, new Vector3(0f, 1f, 5f));
+            for (int i = 0; i < 3; i++) yield return null;
+
+            var npm = npmGo.GetComponent("NetworkPlayerManager");
+            var player = playerGo.GetComponent("NetworkPlayer");
+            var pawn = pawnGo.GetComponent("Pawn");
+            RigInvoke("Wire", npm, player, pawn, StartHealth);
+            int targetPlayerId = (int)RigInvoke("PlayerObjectId", player);
+            int healthBefore = (int)RigInvoke("Health", pawn);
+
+            var bullet = SpawnProjectile(BulletTypePath, new Vector3(0f, 1f, 0f), Vector3.forward,
+                ownerId: targetPlayerId + 1);
+            // Same frame as the spawn, before any server tick can classify a hit.
+            RigInvoke("AuthorLethalFirstOnPlayer", bullet);
+
+            var nob = bullet.GetComponent<NetworkObject>();
+            float elapsed = 0f;
+            while (nob != null && nob.IsSpawned && elapsed < 2f)
+            {
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            yield return null;
+
+            Assert.IsFalse(nob != null && nob.IsSpawned,
+                "the 1-HP bullet should have died on the hit and despawned");
+            int healthAfter = (int)RigInvoke("Health", pawn);
+            Assert.Less(healthAfter, healthBefore,
+                "DealDamage was authored AFTER the lethal LoseHealth and must still land — a hit resolves " +
+                $"atomically (before={healthBefore} after={healthAfter})");
+        }
+
         // ---- rig access (Assembly-CSharp types are unreferenceable, so reflect) ----
 
         static readonly Type RigType = Type.GetType("ProjectileDamageTestRig, Assembly-CSharp");

@@ -234,18 +234,18 @@ public sealed class ServerCollision : NetworkBehaviour
     private static IDamageable ResolveDamageable(GameObject hit)
         => hit != null ? hit.GetComponentInParent<IDamageable>() : null;
 
-    // ---- operation running (short-circuits if the projectile dies mid-list) ----
+    // ---- operation running ----
+    // A classified hit resolves ATOMICALLY: every authored operation for that hit runs (this prefab's list,
+    // then the owner's contributions) even if the projectile dies mid-list, so authored order can never change
+    // a hit's outcome. Death gates only what comes AFTER the hit: the projectile channel, further overlap hits,
+    // and despawn.
 
     private void RunEffects<T>(IReadOnlyList<IEffect<T>> ops, T ctx) where T : IEffectContext
     {
         if (ops == null)
             return;
         for (int i = 0; i < ops.Count; i++)
-        {
             ops[i]?.Apply(ctx);
-            if (IsDead())
-                break;
-        }
     }
 
     private bool IsDead() => _health != null && _health.IsDead;

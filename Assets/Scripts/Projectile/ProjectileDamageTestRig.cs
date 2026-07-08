@@ -53,6 +53,21 @@ public static class ProjectileDamageTestRig
         => AssetDatabase.LoadAssetAtPath<ProjectileType>(assetPath).InstancePrefab.transform.localScale.x;
 
     /// <summary>
+    /// Rewrite a live bullet's OnPlayer operations to [LoseHealth, DealDamage] — LETHAL FIRST. With a 1-HP
+    /// bullet the LoseHealth kills it before DealDamage runs, so this pins the atomic-hit rule: every authored
+    /// operation of a classified hit runs even if the projectile dies mid-list (authored order can never change
+    /// a hit's outcome). Mutates only this spawned instance's [SerializeReference] list, never the asset.
+    /// </summary>
+    public static void AuthorLethalFirstOnPlayer(UnityEngine.GameObject bullet)
+    {
+        var collision = bullet.GetComponent<ServerCollision>();
+        collision.OnPlayer.Clear();
+        collision.OnPlayer.Add(Commands.LoseHealth());
+        collision.OnPlayer.Add(Commands.DealDamage());
+        bullet.GetComponent<Health>().ServerInitMax(1);   // one LoseHealth is lethal, whatever the authored durability
+    }
+
+    /// <summary>
     /// Server-spawns a projectile prefab with its <c>NetPlayerOwnership.SpawnOwnerId</c> left at -1 (so a receiving
     /// client's SpawnBuffReceiver no-ops) but a per-spawn speed multiplier set on the SERVER instance BEFORE the
     /// spawn — standing in for a server-side-only buff resolution. The client must then self-heal to the buffed
