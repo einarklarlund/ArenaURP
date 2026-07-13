@@ -13,6 +13,10 @@ public static class Commands
 {
     public static DealDamage DealDamage() => new();
 
+    public static DealKnockback DealKnockback() => new();
+
+    public static DealHitstun DealHitstun() => new();
+
     public static LoseHealth LoseHealth() => new();
 
     public static Ricochet Ricochet() => new();

@@ -14,11 +14,13 @@ namespace Arena.PlayTests
     ///   victim's Health drops and Pawn.OnDamageTaken fires (server-authoritative, always on).
     /// - COLOR: PawnColor flashes the body to its HitColor (red, 0.3s) on any Health change. No ownership
     ///   gate ??? it fires on the host.
-    /// - KNOCKBACK: PawnKnockback turns the hit into an impulse along the shot direction (+Z here) and
-    ///   pushes the non-self-moving victim back. NOTE: Pawn Root ships PawnKnockback.SpeedOnHit = 0 (a
-    ///   no-op!), so this test deliberately enables knockback on the victim to exercise the real path
-    ///   (KnockbackHelper -> PawnMovement.PendingImpulses -> CharacterController). Knockback also only
-    ///   subscribes on the OWNER client, which is why CombatTestRig spawns pawns owned by the host.
+    /// - KNOCKBACK: the bullet's DealKnockback operation reads its KnockbackDealer and shoves the victim along
+    ///   the shot direction (+Z here). Strength is authored on the BULLET, not the victim, so this test needs no
+    ///   setup for it: KnockbackDealer -> KnockbackReceiver (folds resistance) -> PawnMovement.PendingImpulses
+    ///   -> CharacterController. The rig's pawns are server-spawned with no owner, so the receiver takes its
+    ///   no-owner branch and applies the impulse on the server.
+    ///
+    /// - HITSTUN: covered separately in HitstunTests.
     ///
     /// Driven through CombatTestRig via the typed CombatPlayModeTestFixture API.
     /// </summary>
@@ -26,7 +28,6 @@ namespace Arena.PlayTests
     {
         const int StartHealth = 21;
         const int ProjectileDamage = 3;   // ProjectileType "DevilDaggers".Damage
-        const float KnockbackSpeed = 12f; // Pawn Root ships 0; we enable it on the victim.
 
         [UnityTest]
         public IEnumerator Shooting_an_enemy_deals_damage_knocks_it_back_and_flashes_its_color()
@@ -38,9 +39,6 @@ namespace Arena.PlayTests
 
             // Let both pawns drop onto the floor and settle before aiming.
             yield return new WaitForSeconds(0.3f);
-
-            // Knockback ships disabled (SpeedOnHit=0); enable it on the victim to make it observable.
-            SetKnockbackSpeed(target, KnockbackSpeed);
 
             BeginCapture(target);
             Vector3 startPos = Position(target);

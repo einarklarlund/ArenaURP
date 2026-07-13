@@ -59,7 +59,8 @@ namespace Arena.PlayTests
         protected void SetFiring(GameObject pawn, bool fire) => Invoke("SetFiring", pawn, fire);
         protected void Stop(GameObject pawn) => Invoke("Stop", pawn);
         protected void SetWeapon(GameObject pawn, string weaponDataPath) => Invoke("SetWeapon", pawn, weaponDataPath);
-        protected void SetKnockbackSpeed(GameObject pawn, float speed) => Invoke("SetKnockbackSpeed", pawn, speed);
+        protected void SetKnockbackResistance(GameObject pawn, float multiplier) => Invoke("SetKnockbackResistance", pawn, multiplier);
+        protected void SetHitstunResistance(GameObject pawn, float multiplier) => Invoke("SetHitstunResistance", pawn, multiplier);
 
         protected void GivePassive(GameObject pawn, string abilityPath) => Invoke("GivePassive", pawn, abilityPath);
         protected void GiveActive(GameObject pawn, string abilityPath) => Invoke("GiveActive", pawn, abilityPath);
@@ -92,9 +93,8 @@ namespace Arena.PlayTests
         protected int DamageEventCount(GameObject pawn) => (int)Invoke("DamageEventCount", pawn);
         protected int DeathEventCount(GameObject pawn) => (int)Invoke("DeathEventCount", pawn);
         protected int LastDamageAmount(GameObject pawn) => (int)Invoke("LastDamageAmount", pawn);
-        protected int ImpulseCountAtLastHit(GameObject pawn) => (int)Invoke("ImpulseCountAtLastHit", pawn);
-        protected float ImpulseMagnitudeAtLastHit(GameObject pawn) => (float)Invoke("ImpulseMagnitudeAtLastHit", pawn);
         protected bool IsPawnOwner(GameObject pawn) => (bool)Invoke("IsPawnOwner", pawn);
+        protected bool IsStunned(GameObject pawn) => (bool)Invoke("IsStunned", pawn);
 
         // ---- coroutine polling helpers -----------------------------------------------------
 

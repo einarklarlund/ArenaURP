@@ -1,8 +1,13 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Pure, stateless helper that computes knockback impulse vectors.
-/// Has zero Unity lifecycle dependencies.
+/// Pure, stateless functional core of the knockback system: turn a hit direction plus authored config into an
+/// impulse vector, and fold modifier lists into it. Zero Unity lifecycle dependencies.
+///
+/// A knockback exchange folds TWICE, once per end, and this core supplies both:
+/// the dealer calls <see cref="ResolveImpulse"/> (config + its outgoing modifiers), the receiver calls
+/// <see cref="ResolveIncoming"/> (that impulse + its own resistance modifiers).
 /// </summary>
 public static class KnockbackHelper
 {
@@ -24,4 +29,35 @@ public static class KnockbackHelper
 
         return config.SpeedOnHit * dir;
     }
+
+    /// <summary>
+    /// Folds a modifier list into a single multiplier. An empty or null list yields the identity (1), so an
+    /// absent contributor changes nothing.
+    /// </summary>
+    public static float FoldMultiplier(IReadOnlyList<KnockbackModifier> modifiers)
+    {
+        float multiplier = 1f;
+        if (modifiers == null)
+            return multiplier;
+
+        for (int i = 0; i < modifiers.Count; i++)
+            multiplier *= modifiers[i].ImpulseMultiplier;
+
+        return multiplier;
+    }
+
+    /// <summary>
+    /// The OUTGOING impulse a dealer emits: its authored config aimed along the hit direction, scaled by the
+    /// dealer's own modifiers. Never mutates the authored config.
+    /// </summary>
+    public static Vector3 ResolveImpulse(Vector3 hitDirection, in KnockbackConfig config,
+        IReadOnlyList<KnockbackModifier> modifiers)
+        => ComputeImpulse(hitDirection, in config) * FoldMultiplier(modifiers);
+
+    /// <summary>
+    /// The INCOMING impulse a receiver accepts: the dealt impulse scaled by the receiver's own resistance
+    /// modifiers. A multiplier of 0 absorbs the hit entirely.
+    /// </summary>
+    public static Vector3 ResolveIncoming(Vector3 impulse, IReadOnlyList<KnockbackModifier> modifiers)
+        => impulse * FoldMultiplier(modifiers);
 }

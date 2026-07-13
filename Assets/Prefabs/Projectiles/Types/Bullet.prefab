@@ -110,6 +110,8 @@ GameObject:
   - component: {fileID: 1301860381354357671}
   - component: {fileID: 8258599476529368086}
   - component: {fileID: 5787041171014183143}
+  - component: {fileID: 7399000305494032952}
+  - component: {fileID: 2214597886880612033}
   m_Layer: 9
   m_Name: Bullet
   m_TagString: Untagged
@@ -270,12 +272,20 @@ MonoBehaviour:
   OnPlayer:
   - rid: 6758500664911593568
   - rid: 6758500664911593569
+  - rid: 4328605929791815766
+  - rid: 4328605929791815767
   OnProjectile: []
   references:
     version: 2
     RefIds:
     - rid: 4328605929791815757
       type: {class: Ricochet, ns: , asm: Assembly-CSharp}
+      data: 
+    - rid: 4328605929791815766
+      type: {class: DealKnockback, ns: , asm: Assembly-CSharp}
+      data: 
+    - rid: 4328605929791815767
+      type: {class: DealHitstun, ns: , asm: Assembly-CSharp}
       data: 
     - rid: 6758500664911593567
       type: {class: LoseHealth, ns: , asm: Assembly-CSharp}
@@ -381,6 +391,35 @@ MonoBehaviour:
   _componentIndexCache: 6
   _addedNetworkObject: {fileID: -339553929967437806}
   _networkObjectCache: {fileID: -339553929967437806}
+--- !u!114 &7399000305494032952
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5204570706634878648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e88b485d68444391807a10db9a4d651, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KnockbackDealer
+  config:
+    SpeedOnHit: 7
+    MinimumAngleOnHit: 35
+--- !u!114 &2214597886880612033
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5204570706634878648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0807c9e04740a442db8d540bf266aef6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitstunDealer
+  config:
+    Seconds: 0.2
 --- !u!1 &7664607775731829085
 GameObject:
   m_ObjectHideFlags: 0

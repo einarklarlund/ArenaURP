@@ -40,6 +40,8 @@ public static class WeaponProcessor
         shotsToFire = 0;
 
         // --- Handle active burst ---
+        // Hitstun deliberately does NOT reach here: a burst already committed plays out to completion. Stun gates
+        // the START of the next fire event, below.
         if (state.IsBurstActive)
         {
             shotsToFire = AdvanceBurst(ref state, in config, deltaTime);
@@ -53,7 +55,7 @@ public static class WeaponProcessor
 
         bool cooldownReady = state.TimeSinceLastFire >= effectiveFireRate;
 
-        if (wantsToFire && cooldownReady && input.HasAmmo)
+        if (wantsToFire && !input.Stunned && cooldownReady && input.HasAmmo)
         {
             state.TimeSinceLastFire = 0f;
             state = StartBurst(state, in config, out shotsToFire);

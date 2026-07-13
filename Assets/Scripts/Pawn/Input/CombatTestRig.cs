@@ -50,7 +50,8 @@ public static class CombatTestRig
     static PawnColor Color_(GameObject go) => go.GetComponentInChildren<PawnColor>(true);
     static PawnActiveAbilities ActiveAbilities(GameObject go) => go.GetComponentInChildren<PawnActiveAbilities>(true);
     static PawnPassiveAbilities PassiveAbilities(GameObject go) => go.GetComponentInChildren<PawnPassiveAbilities>(true);
-    static PawnKnockback Knockback(GameObject go) => go.GetComponentInChildren<PawnKnockback>(true);
+    static KnockbackReceiver Knockback(GameObject go) => go.GetComponentInChildren<KnockbackReceiver>(true);
+    static HitstunReceiver Hitstun(GameObject go) => go.GetComponentInChildren<HitstunReceiver>(true);
 
     static NetworkPlayerManager Players() => Object.FindAnyObjectByType<NetworkPlayerManager>();
 
@@ -74,9 +75,10 @@ public static class CombatTestRig
         Quaternion rot = facing.sqrMagnitude > 1e-5f
             ? Quaternion.LookRotation(new Vector3(facing.x, 0f, facing.z).normalized) : Quaternion.identity;
         var pawnGo = Object.Instantiate(prefab, position, rot);
-        // Server-spawned (no owning client) — these are server-driven pawns, like bots. All the
-        // effects we assert run server-authoritative: damage (ServerOnly Health), color
-        // (Health.OnChange), and knockback (PawnKnockback now subscribes on the server too).
+        // Server-spawned (no owning client) — these are server-driven pawns, like bots, so ScriptedPawnInput.IsActive
+        // (IsServerInitialized) makes the server simulate their movement and weapon. All the effects we assert run
+        // server-authoritative: damage (ServerOnly Health), color (Health.OnChange), knockback (KnockbackReceiver
+        // takes its no-owner branch and applies the impulse here), and hitstun (a ServerOnly SyncVar tick).
         nm.ServerManager.Spawn(pawnGo);
         var pawn = pawnGo.GetComponent<Pawn>();
 
@@ -153,16 +155,32 @@ public static class CombatTestRig
             .SetValue(Weapon(pawnGo), wd);
     }
 
-    /// <summary>Override this pawn's knockback SpeedOnHit at runtime. Pawn Root ships SpeedOnHit=0
-    /// (knockback is a no-op), so a test that wants to observe knockback sets a non-zero speed on
-    /// the victim. Reflects the private serialized KnockbackConfig struct on PawnKnockback.</summary>
-    public static void SetKnockbackSpeed(GameObject pawnGo, float speed)
+    /// <summary>Contribute a standing knockback-resistance modifier to this pawn's receiver (the receiving end of
+    /// the fold). 1 = unchanged, 0 = knockback-immune. How hard a hit shoves is the DEALER's config, authored on
+    /// the projectile prefab, so a test tunes the victim's resistance rather than its "knockback strength".</summary>
+    public static void SetKnockbackResistance(GameObject pawnGo, float multiplier)
     {
         var kb = Knockback(pawnGo);
-        var f = typeof(PawnKnockback).GetField("config", BindingFlags.NonPublic | BindingFlags.Instance);
-        var cfg = (KnockbackConfig)f.GetValue(kb);
-        cfg.SpeedOnHit = speed;
-        f.SetValue(kb, cfg);
+        if (kb == null) throw new System.Exception("CombatTestRig: pawn has no KnockbackReceiver");
+        kb.Modifiers.Clear();
+        kb.Modifiers.Add(new KnockbackModifier { ImpulseMultiplier = multiplier });
+    }
+
+    /// <summary>Contribute a standing hitstun-resistance modifier to this pawn's receiver. 1 = unchanged,
+    /// 0 = stun-immune.</summary>
+    public static void SetHitstunResistance(GameObject pawnGo, float multiplier)
+    {
+        var hs = Hitstun(pawnGo);
+        if (hs == null) throw new System.Exception("CombatTestRig: pawn has no HitstunReceiver");
+        hs.Modifiers.Clear();
+        hs.Modifiers.Add(new HitstunModifier { DurationMultiplier = multiplier });
+    }
+
+    /// <summary>Whether this pawn is currently in hitstun (weapon may not start a new fire event).</summary>
+    public static bool IsStunned(GameObject pawnGo)
+    {
+        var hs = Hitstun(pawnGo);
+        return hs != null && hs.IsStunned;
     }
 
     // ---- abilities (server-authoritative paths) --------------------------------------------
@@ -252,9 +270,6 @@ public static class CombatTestRig
         public System.Action<DamageInfo> Dmg;
         public System.Action<DamageInfo> Death;
         public Pawn Pawn;
-        public PawnMovement Movement;     // read PendingImpulses at the moment of damage (it clears next frame)
-        public int ImpulseCountAtHit;
-        public float ImpulseMagAtHit;
     }
 
     static readonly Dictionary<Pawn, Capture> _caps = new();
@@ -264,14 +279,11 @@ public static class CombatTestRig
     {
         var pawn = PawnOf(pawnGo);
         if (_caps.ContainsKey(pawn)) return;
-        var cap = new Capture { Pawn = pawn, Movement = Movement(pawnGo) };
+        var cap = new Capture { Pawn = pawn };
         cap.Dmg = info =>
         {
             cap.DamageEvents++;
             cap.Last = info;
-            var imp = cap.Movement != null ? cap.Movement.PendingImpulses : null;
-            cap.ImpulseCountAtHit = imp != null ? imp.Count : -1;
-            cap.ImpulseMagAtHit = (imp != null && imp.Count > 0) ? imp[imp.Count - 1].magnitude : 0f;
         };
         cap.Death = _ => cap.DeathEvents++;
         pawn.OnDamageTaken += cap.Dmg;
@@ -288,13 +300,10 @@ public static class CombatTestRig
     public static int LastDamageAmount(GameObject pawnGo)
         => _caps.TryGetValue(PawnOf(pawnGo), out var c) ? c.Last.Amount : 0;
 
-    // Knockback readbacks: PawnKnockback subscribes before the rig's capture, so at the damage event
-    // its impulse is already in PendingImpulses (which clears next frame). Captured here so a test can
-    // assert the impulse magnitude/direction directly, not just the resulting displacement.
-    public static int ImpulseCountAtLastHit(GameObject pawnGo)
-        => _caps.TryGetValue(PawnOf(pawnGo), out var c) ? c.ImpulseCountAtHit : -2;
-    public static float ImpulseMagnitudeAtLastHit(GameObject pawnGo)
-        => _caps.TryGetValue(PawnOf(pawnGo), out var c) ? c.ImpulseMagAtHit : -1f;
+    // NOTE: there is deliberately no "impulse at the damage event" readback. Knockback is no longer a reaction to
+    // damage — DealKnockback is its own operation, resolved after DealDamage in the hit's operation list — so
+    // PendingImpulses is still empty when OnDamageTaken fires. Assert on the resulting displacement instead.
+
     public static bool IsPawnOwner(GameObject pawnGo) => PawnOf(pawnGo).IsOwner;
 
     /// <summary>Unsubscribe every capture. Call in test teardown so the static latches don't dangle

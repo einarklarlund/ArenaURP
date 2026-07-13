@@ -38,12 +38,18 @@ public sealed class ProjectileSurfaceCollision : IMotionSurfaceContext, IHealthC
 /// <summary>
 /// A projectile hit a PLAYER. Exposes every system a projectile hit can reach: the damage EXCHANGE
 /// (<see cref="IDamageExchangeContext"/> — the source's <see cref="Damage"/> + owner buffs, and the struck
-/// <see cref="IDamageable"/>), the surface (<see cref="ISurfaceContext"/>), and the source's own motion + health.
-/// So <see cref="DealDamage"/>, <see cref="Ricochet"/>, <see cref="LoseHealth"/> et al. are all authorable, each
+/// <see cref="IDamageable"/>), the knockback and hitstun EXCHANGES (the source's <see cref="KnockbackDealer"/> /
+/// <see cref="HitstunDealer"/> and the struck receivers), the surface (<see cref="ISurfaceContext"/>), and the
+/// source's own motion + health. So <see cref="DealDamage"/>, <see cref="DealKnockback"/>,
+/// <see cref="DealHitstun"/>, <see cref="Ricochet"/>, <see cref="LoseHealth"/> et al. are all authorable, each
 /// reaching only the system it names.
+///
+/// The three "deal" exchanges are INDEPENDENT: a projectile may shove without damaging, stun without shoving, or
+/// any combination, purely by which components it carries and which operations are authored on it.
 /// </summary>
 public sealed class ProjectilePlayerCollision :
-    IDamageExchangeContext, IMotionSurfaceContext, IHealthContext
+    IDamageExchangeContext, IKnockbackExchangeContext, IHitstunExchangeContext,
+    IMotionSurfaceContext, IHealthContext
 {
     public GameObject Source { get; }
     public NetworkPlayer Instigator { get; }
@@ -53,12 +59,18 @@ public sealed class ProjectilePlayerCollision :
     public Vector3 SourceCenterPoint { get; }
     public Damage DamageSource { get; }
     public IDamageable DamageTarget { get; }
+    public KnockbackDealer KnockbackSource { get; }
+    public KnockbackReceiver KnockbackTarget { get; }
+    public HitstunDealer HitstunSource { get; }
+    public HitstunReceiver HitstunTarget { get; }
     public NetworkedMotion Motion { get; }
     public Health SelfHealth { get; }
 
     public ProjectilePlayerCollision(GameObject source, NetworkPlayer instigator,
         Vector3 point, Vector3 normal, Vector3 direction, Vector3 sourceCenterPoint,
         Damage damageSource, IDamageable damageTarget,
+        KnockbackDealer knockbackSource, KnockbackReceiver knockbackTarget,
+        HitstunDealer hitstunSource, HitstunReceiver hitstunTarget,
         NetworkedMotion motion, Health selfHealth)
     {
         Source = source;
@@ -69,6 +81,10 @@ public sealed class ProjectilePlayerCollision :
         SourceCenterPoint = sourceCenterPoint;
         DamageSource = damageSource;
         DamageTarget = damageTarget;
+        KnockbackSource = knockbackSource;
+        KnockbackTarget = knockbackTarget;
+        HitstunSource = hitstunSource;
+        HitstunTarget = hitstunTarget;
         Motion = motion;
         SelfHealth = selfHealth;
     }

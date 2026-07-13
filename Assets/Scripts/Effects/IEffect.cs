@@ -108,6 +108,49 @@ public interface IDamageTargetContext : IEffectContext
 }
 
 /// <summary>
+/// The KNOCKBACK-DEALING system is reachable: the operation can read how hard the source shoves via its
+/// <see cref="KnockbackDealer"/> component (its authored impulse config folded with the dealer's outgoing
+/// modifiers). Consumed by <see cref="DealKnockback"/>.
+/// </summary>
+public interface IKnockbackSourceContext : IEffectContext
+{
+    /// <summary>The component that authors this source's outgoing knockback.</summary>
+    KnockbackDealer KnockbackSource { get; }
+}
+
+/// <summary>
+/// The KNOCKBACK-RECEIVING system is reachable: something that can be shoved was hit. Exposes the struck
+/// <see cref="KnockbackReceiver"/>, resolved by the site that knows what was hit, so a knockback operation needs
+/// no "can this thing be shoved" <c>GetComponent</c>. Consumed by <see cref="DealKnockback"/>.
+/// </summary>
+public interface IKnockbackTargetContext : IEffectContext
+{
+    /// <summary>The knockback-receiving system that was struck.</summary>
+    KnockbackReceiver KnockbackTarget { get; }
+}
+
+/// <summary>
+/// The HITSTUN-DEALING system is reachable: the operation can read how long the source staggers what it hits via
+/// its <see cref="HitstunDealer"/> component. Consumed by <see cref="DealHitstun"/>.
+/// </summary>
+public interface IHitstunSourceContext : IEffectContext
+{
+    /// <summary>The component that authors this source's outgoing hitstun.</summary>
+    HitstunDealer HitstunSource { get; }
+}
+
+/// <summary>
+/// The HITSTUN-RECEIVING system is reachable: something that can be staggered was hit. Exposes the struck
+/// <see cref="HitstunReceiver"/>, resolved by the site that knows what was hit. Consumed by
+/// <see cref="DealHitstun"/>.
+/// </summary>
+public interface IHitstunTargetContext : IEffectContext
+{
+    /// <summary>The hitstun-receiving system that was struck.</summary>
+    HitstunReceiver HitstunTarget { get; }
+}
+
+/// <summary>
 /// The MOTION system of the source is reachable: the operation can read and steer the source's live
 /// <see cref="NetworkedMotion"/> (reflect, redirect). Consumed by <see cref="Ricochet"/> and
 /// <see cref="DeflectProjectile"/>.
@@ -153,6 +196,21 @@ public interface IHealthContext : IEffectContext
 /// the one context <see cref="DealDamage"/> needs — both systems guaranteed, no archetype knowledge.
 /// </summary>
 public interface IDamageExchangeContext : IDamageSourceContext, IDamageTargetContext, IAimContext { }
+
+/// <summary>
+/// A knockback EXCHANGE: a source that deals knockback struck something that can be shoved, along a known
+/// direction (<see cref="IKnockbackSourceContext"/> + <see cref="IKnockbackTargetContext"/> +
+/// <see cref="IAimContext"/>). What <see cref="DealKnockback"/> needs — the direction aims the impulse.
+/// </summary>
+public interface IKnockbackExchangeContext : IKnockbackSourceContext, IKnockbackTargetContext, IAimContext { }
+
+/// <summary>
+/// A hitstun EXCHANGE: a source that deals hitstun struck something that can be staggered
+/// (<see cref="IHitstunSourceContext"/> + <see cref="IHitstunTargetContext"/>). Deliberately NOT an
+/// <see cref="IAimContext"/> — a stun is a duration, with no geometry — so <see cref="DealHitstun"/> is
+/// authorable anywhere the two systems meet, whether or not the site has a point/direction.
+/// </summary>
+public interface IHitstunExchangeContext : IHitstunSourceContext, IHitstunTargetContext { }
 
 /// <summary>
 /// A motion redirect off a face: the source's motion system plus a surface normal (<see cref="IMotionContext"/> +

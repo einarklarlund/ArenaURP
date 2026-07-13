@@ -19,6 +19,12 @@ public struct WeaponInput
     /// <summary>Whether the pawn has enough ammo for the current weapon's AmmoPerFire.</summary>
     public bool HasAmmo;
 
+    /// <summary>
+    /// Whether the pawn is in hitstun and may not START a new fire event. An already-committed burst is NOT
+    /// interrupted — see <see cref="WeaponProcessor.Process"/>. Sourced from the pawn's HitstunReceiver.
+    /// </summary>
+    public bool Stunned;
+
     /// <summary>Active weapon modifiers, stacked multiplicatively.</summary>
     public List<WeaponModifier> Modifiers;
 
@@ -27,5 +33,6 @@ public struct WeaponInput
         FireHeld = false,
         FirePressed = false,
         HasAmmo = true,
+        Stunned = false,
     };
 }

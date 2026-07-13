@@ -11,6 +11,7 @@
   <Project Path="Unity.FishNet.Codegen.csproj" />
   <Project Path="Arena.NetworkedMotion.Core.csproj" />
   <Project Path="FishNet.Demos.csproj" />
+  <Project Path="Arena.Hitstun.Core.csproj" />
   <Project Path="Arena.Movement.Core.csproj" />
   <Project Path="ParrelSync.csproj" />
   <Project Path="Arena.ServerCollision.Core.csproj" />

@@ -56,6 +56,8 @@ public sealed class ServerCollision : NetworkBehaviour
     private NetworkedMotion _motion;
     private Health _health;
     private Damage _damage;
+    private KnockbackDealer _knockback;
+    private HitstunDealer _hitstun;
     private NetPlayerOwnership _ownership;
 
     // Projectile-channel one-shot-on-enter dedupe guard (was ProjectileState.LastHitProjectileId).
@@ -67,10 +69,41 @@ public sealed class ServerCollision : NetworkBehaviour
 
     private void Awake()
     {
+        // This projectile IS the source of every hit it resolves, so its outgoing systems are resolved ONCE here
+        // and handed to every context built below. An operation never asks for them.
         _motion = GetComponent<NetworkedMotion>();
         _health = GetComponent<Health>();
         _damage = GetComponent<Damage>();
+        _knockback = GetComponent<KnockbackDealer>();
+        _hitstun = GetComponent<HitstunDealer>();
         _ownership = GetComponent<NetPlayerOwnership>();
+
+        WarnOnMissingDealers();
+    }
+
+    /// <summary>
+    /// An operation whose source system is absent is a SILENT no-op — a bullet that authored DealDamage but has no
+    /// Damage component simply stops hurting anyone, with nothing in the console. The capability contract only
+    /// holds if the prefab carries the component, so say so loudly at load rather than at 3am.
+    /// </summary>
+    private void WarnOnMissingDealers()
+    {
+        if (_damage == null && AuthorsPlayerOperation<DealDamage>())
+            Debug.LogError($"{name}: authors {nameof(DealDamage)} but has no {nameof(Damage)} component; it will deal no damage.", this);
+        if (_knockback == null && AuthorsPlayerOperation<DealKnockback>())
+            Debug.LogError($"{name}: authors {nameof(DealKnockback)} but has no {nameof(KnockbackDealer)} component; it will not knock back.", this);
+        if (_hitstun == null && AuthorsPlayerOperation<DealHitstun>())
+            Debug.LogError($"{name}: authors {nameof(DealHitstun)} but has no {nameof(HitstunDealer)} component; it will not stun.", this);
+    }
+
+    private bool AuthorsPlayerOperation<T>()
+    {
+        if (OnPlayer == null)
+            return false;
+        for (int i = 0; i < OnPlayer.Count; i++)
+            if (OnPlayer[i] is T)
+                return true;
+        return false;
     }
 
     public override void OnStartServer()
@@ -146,6 +179,8 @@ public sealed class ServerCollision : NetworkBehaviour
                 var ctx = new ProjectilePlayerCollision(gameObject, owner,
                     worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter,
                     _damage, ResolveDamageable(hitObject),
+                    _knockback, ResolveKnockbackReceiver(hitObject),
+                    _hitstun, ResolveHitstunReceiver(hitObject),
                     _motion, _health);
                 RunEffects(OnPlayer, ctx);
                 RunEffects(ownerOps.OnPlayer, ctx);
@@ -259,10 +294,17 @@ public sealed class ServerCollision : NetworkBehaviour
         return default;
     }
 
-    // Resolve the damage-receiving system of a struck GameObject once, at the site that knows what was hit — so
-    // the damage operation takes a resolved IDamageable from the context instead of gambling a GetComponent.
+    // Resolve the struck entity's RECEIVING systems once, here at the site that knows what was hit — so each
+    // operation takes a resolved handle from the context instead of gambling a GetComponent. All three walk UP
+    // from the struck collider, which is why every receiver lives on the entity ROOT.
     private static IDamageable ResolveDamageable(GameObject hit)
         => hit != null ? hit.GetComponentInParent<IDamageable>() : null;
+
+    private static KnockbackReceiver ResolveKnockbackReceiver(GameObject hit)
+        => hit != null ? hit.GetComponentInParent<KnockbackReceiver>() : null;
+
+    private static HitstunReceiver ResolveHitstunReceiver(GameObject hit)
+        => hit != null ? hit.GetComponentInParent<HitstunReceiver>() : null;
 
     // ---- operation running ----
     // A classified hit resolves ATOMICALLY: every authored operation for that hit runs (this prefab's list,

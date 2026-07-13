@@ -29,7 +29,7 @@ public class KnockbackMovementIntegrationTests
 
     /// <summary>
     /// Simulates the airborne integration loop a pawn would experience after taking a hit:
-    /// the impulse is applied on the first tick (as PawnKnockback would push it into
+    /// the impulse is applied on the first tick (as KnockbackReceiver would push it into
     /// PendingImpulses), and subsequent ticks integrate velocity into a position estimate.
     /// </summary>
     private Vector3 SimulateAirborneDisplacement(List<Vector3> impulsesFirstFrameOnly, int frames = 30)
@@ -64,7 +64,7 @@ public class KnockbackMovementIntegrationTests
     [Test]
     public void KnockbackImpulse_DisplacesPawnInHitDirection_ViaMovementProcessor()
     {
-        // Arrange: compute the impulse the way PawnKnockback does, for a hit from +X.
+        // Arrange: compute the impulse the way a KnockbackDealer does, for a hit from +X.
         Vector3 hitDirection = new Vector3(1f, 0f, 0f);
         Vector3 impulse = KnockbackHelper.ComputeImpulse(hitDirection, in _knockbackConfig);
 

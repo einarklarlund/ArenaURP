@@ -506,6 +506,8 @@ GameObject:
   - component: {fileID: 1159318610755632454}
   - component: {fileID: 4500148841451139641}
   - component: {fileID: 496888658077780900}
+  - component: {fileID: 3322776701892305187}
+  - component: {fileID: 4255844378497566376}
   m_Layer: 7
   m_Name: Pawn Root
   m_TagString: Untagged
@@ -528,7 +530,6 @@ Transform:
   m_Children:
   - {fileID: 916791765297252954}
   - {fileID: 1575051875707792718}
-  - {fileID: 1650728035250711748}
   - {fileID: 2062779666545931285}
   - {fileID: 6748686094811716303}
   - {fileID: 6974999352412329892}
@@ -645,7 +646,7 @@ MonoBehaviour:
   - {fileID: 4374827591302998991}
   - {fileID: 1975820720333990052}
   - {fileID: 1555019613777059898}
-  - {fileID: 4389033491855740370}
+  - {fileID: 0}
   - {fileID: 8310406695014145685}
   - {fileID: 4197683245214701733}
   - {fileID: 8741177467162054113}
@@ -792,6 +793,37 @@ MonoBehaviour:
   onServerDeath:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &3322776701892305187
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4613304413970483175}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2ec4658d6b324d4996c38f6c23fab9a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KnockbackReceiver
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 8049762553664656302}
+  _networkObjectCache: {fileID: 0}
+  movement: {fileID: 1975820720333990052}
+--- !u!114 &4255844378497566376
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4613304413970483175}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 101df8d02d50449698adafef41c7151a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitstunReceiver
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 8049762553664656302}
+  _networkObjectCache: {fileID: 0}
 --- !u!1 &4680480237612131196
 GameObject:
   m_ObjectHideFlags: 0
@@ -956,56 +988,4 @@ MonoBehaviour:
   weaponData: {fileID: 11400000, guid: a605a9340871345b48c78d3346b2cabf, type: 2}
   input: {fileID: 0}
   pawnCollider: {fileID: 7538533630776666726}
---- !u!1 &5972829445371107754
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1650728035250711748}
-  - component: {fileID: 4389033491855740370}
-  m_Layer: 7
-  m_Name: Knockback
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1650728035250711748
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5972829445371107754}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6715682311924083683}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4389033491855740370
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5972829445371107754}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c2ec4658d6b324d4996c38f6c23fab9a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnKnockback
-  _componentIndexCache: 4
-  _addedNetworkObject: {fileID: 8049762553664656302}
-  _networkObjectCache: {fileID: 8049762553664656302}
-  pawn: {fileID: 3390302888177528954}
-  movement: {fileID: 1975820720333990052}
-  input: {fileID: 0}
-  config:
-    SpeedOnHit: 0
-    MinimumAngleOnHit: 45
+  hitstun: {fileID: 4255844378497566376}
