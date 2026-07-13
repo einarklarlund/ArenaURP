@@ -35,20 +35,15 @@ public sealed class ProjectileSurfaceCollision : IMotionSurfaceContext, IHealthC
 }
 
 /// <summary>
-/// A projectile hit a PLAYER. Exposes every system a projectile hit can reach: the damage EXCHANGE
-/// (<see cref="IDamageExchangeContext"/> — the source's <see cref="Damage"/> + owner buffs, and the struck
-/// <see cref="IDamageable"/>), the knockback and hitstun EXCHANGES (the source's <see cref="KnockbackDealer"/> /
-/// <see cref="HitstunDealer"/> and the struck receivers), the surface (<see cref="ISurfaceContext"/>), and the
-/// source's own motion + health. So <see cref="DealDamage"/>, <see cref="DealKnockback"/>,
-/// <see cref="DealHitstun"/>, <see cref="Ricochet"/>, <see cref="LoseHealth"/> et al. are all authorable, each
-/// reaching only the system it names.
+/// A projectile hit a PLAYER. Exposes the surface geometry (<see cref="ISurfaceContext"/>) and the source's own
+/// motion + health, so <see cref="Ricochet"/>, <see cref="LoseHealth"/>, the spawners et al. are authorable.
 ///
-/// The three "deal" exchanges are INDEPENDENT: a projectile may shove without damaging, stun without shoving, or
-/// any combination, purely by which components it carries and which operations are authored on it.
+/// The hit EXCHANGES (damage/knockback/hitstun) are NOT reachable here: they fire from COMPONENT PRESENCE
+/// (dealer on the projectile ∧ receiver on the victim), dispatched by ServerCollision in the same atomic hit —
+/// so they stay independent (shove without damaging, stun without shoving) purely by which dealer components the
+/// prefab carries. See ADR 0002.
 /// </summary>
-public sealed class ProjectilePlayerCollision :
-    IDamageExchangeContext, IKnockbackExchangeContext, IHitstunExchangeContext,
-    IMotionSurfaceContext, IHealthContext
+public sealed class ProjectilePlayerCollision : IMotionSurfaceContext, IHealthContext
 {
     public GameObject Source { get; }
     public NetworkPlayer Instigator { get; }
@@ -56,20 +51,11 @@ public sealed class ProjectilePlayerCollision :
     public Vector3 Normal { get; }
     public Vector3 Direction { get; }
     public Vector3 SourceCenterPoint { get; }
-    public Damage DamageSource { get; }
-    public IDamageable DamageTarget { get; }
-    public KnockbackDealer KnockbackSource { get; }
-    public KnockbackReceiver KnockbackTarget { get; }
-    public HitstunDealer HitstunSource { get; }
-    public HitstunReceiver HitstunTarget { get; }
     public NetworkedMotion Motion { get; }
     public Health SelfHealth { get; }
 
     public ProjectilePlayerCollision(GameObject source, NetworkPlayer instigator,
         Vector3 point, Vector3 normal, Vector3 direction, Vector3 sourceCenterPoint,
-        Damage damageSource, IDamageable damageTarget,
-        KnockbackDealer knockbackSource, KnockbackReceiver knockbackTarget,
-        HitstunDealer hitstunSource, HitstunReceiver hitstunTarget,
         NetworkedMotion motion, Health selfHealth)
     {
         Source = source;
@@ -78,25 +64,22 @@ public sealed class ProjectilePlayerCollision :
         Normal = normal;
         Direction = direction;
         SourceCenterPoint = sourceCenterPoint;
-        DamageSource = damageSource;
-        DamageTarget = damageTarget;
-        KnockbackSource = knockbackSource;
-        KnockbackTarget = knockbackTarget;
-        HitstunSource = hitstunSource;
-        HitstunTarget = hitstunTarget;
         Motion = motion;
         SelfHealth = selfHealth;
     }
 }
 
 /// <summary>
-/// A projectile hit ANOTHER projectile. Exposes the same systems as a player hit (a projectile can carry a
-/// <see cref="Health"/> and be an <see cref="IDamageable"/> target), PLUS the OTHER projectile's motion system
-/// via <see cref="OtherMotion"/> — read by <see cref="DeflectProjectile"/>, which stays typed to this concrete
-/// context precisely because it depends on the target being a projectile.
+/// A projectile hit ANOTHER projectile. Exposes the same systems as a player hit PLUS the OTHER projectile's
+/// motion system via <see cref="OtherMotion"/> — read by <see cref="DeflectProjectile"/>, which stays typed to
+/// this concrete context precisely because it depends on the target being a projectile.
+///
+/// The hit exchanges deliberately do NOT fire in the projectile channel today: no content deals
+/// projectile-vs-projectile damage, and running them here on component presence would let every damage-dealing
+/// bullet destroy other bullets. If that interaction is ever wanted, it needs its own decision (a dealer-side
+/// victim mask) — see ADR 0002.
 /// </summary>
-public sealed class ProjectileProjectileCollision :
-    IDamageExchangeContext, IMotionSurfaceContext, IHealthContext
+public sealed class ProjectileProjectileCollision : IMotionSurfaceContext, IHealthContext
 {
     public GameObject Source { get; }
     public NetworkPlayer Instigator { get; }
@@ -104,8 +87,6 @@ public sealed class ProjectileProjectileCollision :
     public Vector3 Normal { get; }
     public Vector3 Direction { get; }
     public Vector3 SourceCenterPoint { get; }
-    public Damage DamageSource { get; }
-    public IDamageable DamageTarget { get; }
     public NetworkedMotion Motion { get; }
     public Health SelfHealth { get; }
 
@@ -114,7 +95,6 @@ public sealed class ProjectileProjectileCollision :
 
     public ProjectileProjectileCollision(GameObject source, NetworkPlayer instigator,
         Vector3 point, Vector3 normal, Vector3 direction, Vector3 sourceCenterPoint,
-        Damage damageSource, IDamageable damageTarget,
         NetworkedMotion motion, Health selfHealth, NetworkedMotion otherMotion)
     {
         Source = source;
@@ -123,8 +103,6 @@ public sealed class ProjectileProjectileCollision :
         Normal = normal;
         Direction = direction;
         SourceCenterPoint = sourceCenterPoint;
-        DamageSource = damageSource;
-        DamageTarget = damageTarget;
         Motion = motion;
         SelfHealth = selfHealth;
         OtherMotion = otherMotion;

@@ -9,13 +9,13 @@ namespace Arena.PlayTests
     /// PlayMode coverage for the two new hit exchanges, end to end through the real networked path that no
     /// EditMode test can reach:
     ///
-    ///   ServerCollision (resolves dealer + receiver) -> DealKnockback / DealHitstun (couriers)
+    ///   ServerCollision (presence-dispatch: dealer component ∧ receiver component; ADR 0002)
     ///     -> KnockbackDealer.EffectiveImpulse / HitstunDealer.EffectiveSeconds   (dealer folds its modifiers)
     ///     -> KnockbackReceiver.ApplyImpulse / HitstunReceiver.ApplyHitstun        (receiver folds its resistance)
     ///     -> PawnMovement.PendingImpulses / a ServerOnly SyncVar expiry tick      (the observable effect)
     ///
-    /// The Bullet prefab ships KnockbackDealer(SpeedOnHit=7) and HitstunDealer(Seconds=0.2) and authors
-    /// DealKnockback + DealHitstun on its OnPlayer list, so a plain hit exercises all of it. Both magnitudes are
+    /// The Bullet prefab ships KnockbackDealer(SpeedOnHit=7) and HitstunDealer(Seconds=0.2); carrying the dealer
+    /// component IS what makes a hit shove/stun, so a plain hit exercises all of it. Both magnitudes are
     /// properties of the BULLET now, not of the victim — nothing here configures the pawn except when a test is
     /// deliberately exercising the receiving-end modifier fold.
     ///
@@ -51,7 +51,7 @@ namespace Arena.PlayTests
             SetFiring(shooter, true);
 
             yield return WaitUntil(() => IsStunned(target), timeoutSeconds: 3f);
-            Assert.IsTrue(IsStunned(target), "a bullet carrying DealHitstun should stun the pawn it hits");
+            Assert.IsTrue(IsStunned(target), "a bullet carrying a HitstunDealer should stun the pawn it hits");
             Assert.Less(Health(target), StartHealth, "sanity: the stun came from an actual hit");
 
             SetFiring(shooter, false);
@@ -112,7 +112,7 @@ namespace Arena.PlayTests
             AimAt(shooter, Position(target));
 
             // POSITIVE CONTROL, same pawn: with no resistance the bullet DOES stun it. This is what proves the
-            // Bullet prefab actually carries HitstunDealer + DealHitstun before we assert an absence below.
+            // Bullet prefab actually carries a HitstunDealer before we assert an absence below.
             SetFiring(shooter, true);
             yield return WaitUntil(() => IsStunned(target), timeoutSeconds: 3f);
             Assert.IsTrue(IsStunned(target), "control: an unresisted pawn IS stunned by a hit");
@@ -152,7 +152,46 @@ namespace Arena.PlayTests
             SetFiring(shooter, false);
 
             Assert.Greater(Position(target).z, startZ + 0.1f,
-                "a bullet carrying DealKnockback should shove the victim away from the shooter (+Z)");
+                "a bullet carrying a KnockbackDealer should shove the victim away from the shooter (+Z)");
+        }
+
+        // ---- composability (presence-dispatch; ADR 0002) -----------------------------------------
+
+        /// <summary>
+        /// The exchange switch IS the dealer component: strip HitstunDealer off every bullet in flight and the
+        /// hitstun exchange falls silent while the SAME hits' damage exchange still lands. Damage landing is the
+        /// in-test positive control (the hits really resolved); the stun-happens control is the hitstun tests
+        /// above, which run the identical setup unstripped.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Stripping_the_hitstun_dealer_component_silences_only_that_exchange()
+        {
+            var pair = SpawnFacingPair(8f, health: StartHealth);
+            var shooter = pair[0];
+            var target = pair[1];
+            yield return new WaitForSeconds(0.3f);
+
+            AimAt(shooter, Position(target));
+            SetFiring(shooter, true);
+
+            // Strip every frame so no bullet can land with its dealer intact; watch for any stun the whole time.
+            bool everStunned = false;
+            float t = 0f;
+            while (Health(target) >= StartHealth && t < 4f)
+            {
+                StripHitstunDealersFromLiveProjectiles();
+                everStunned |= IsStunned(target);
+                t += Time.deltaTime;
+                yield return null;
+            }
+            SetFiring(shooter, false);
+            everStunned |= IsStunned(target);
+
+            Assert.Less(Health(target), StartHealth,
+                "sanity + positive control: the dealer-stripped bullets still hit and their damage exchange landed");
+            Assert.IsFalse(everStunned,
+                "with the HitstunDealer component destroyed the hitstun exchange must not fire — component " +
+                "presence is the switch, and the other exchanges on the same hit are unaffected");
         }
 
         [UnityTest]

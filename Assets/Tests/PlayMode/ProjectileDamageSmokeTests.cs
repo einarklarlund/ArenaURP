@@ -13,8 +13,8 @@ namespace Arena.PlayTests
     /// collider back to a NetworkPlayer and lands damage on the controlled Pawn. End-to-end runtime chain:
     ///
     ///   ServerCollision.ServerTick -> SphereCast (collider -> GetComponentInParent&lt;Pawn&gt; ->
-    ///   ControllingPlayer.ObjectId) -> classify as enemy -> the type's OnEnemy DealDamage effect reads the
-    ///   owner's Damage and calls the target's IDamageable.TakeDamage -> Health SyncVar drops -> despawn.
+    ///   ControllingPlayer.ObjectId) -> classify as enemy -> the damage EXCHANGE fires from component presence
+    ///   (the bullet's Damage ∧ the pawn's IDamageable) -> Health SyncVar drops -> despawn.
     ///
     /// Fires the REAL authored `Bullet` ProjectileType (whose OnEnemy reaction deals its Damage), spawned
     /// via the production path (`ProjectileType.Create`), so this also catches asset/wiring regressions.
@@ -77,10 +77,10 @@ namespace Arena.PlayTests
         }
 
         /// <summary>
-        /// Pins the ATOMIC-HIT rule: a classified hit runs ALL its authored operations even if the projectile
-        /// dies mid-list — authored order can never change a hit's outcome. The bullet's OnPlayer list is
-        /// rewritten to [LoseHealth, DealDamage] with 1 HP, so the lethal op runs first; the damage must still
-        /// land on the pawn.
+        /// Pins the ATOMIC-HIT rule: a classified hit resolves its exchanges AND all authored reactions as one
+        /// unit even if the projectile dies mid-hit. The bullet's OnPlayer list is rewritten to [LoseHealth]
+        /// with 1 HP, so the bullet dies inside the hit; the damage exchange (component presence, no authored
+        /// row) must still land on the pawn — dying cannot retract it.
         /// </summary>
         [UnityTest]
         public IEnumerator Hit_resolves_atomically_regardless_of_effect_order()
@@ -115,8 +115,8 @@ namespace Arena.PlayTests
                 "the 1-HP bullet should have died on the hit and despawned");
             int healthAfter = (int)RigInvoke("Health", pawn);
             Assert.Less(healthAfter, healthBefore,
-                "DealDamage was authored AFTER the lethal LoseHealth and must still land — a hit resolves " +
-                $"atomically (before={healthBefore} after={healthAfter})");
+                "the bullet died to its own LoseHealth inside the hit and the damage exchange must still land — " +
+                $"a hit resolves atomically (before={healthBefore} after={healthAfter})");
         }
 
         // ---- rig access (Assembly-CSharp types are unreferenceable, so reflect) ----

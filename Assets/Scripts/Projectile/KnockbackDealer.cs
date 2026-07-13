@@ -3,8 +3,9 @@ using UnityEngine;
 
 /// <summary>
 /// Generic knockback-DEALING component: how hard this entity shoves what it hits, AUTHORED ON THE PREFAB. The
-/// sibling of <see cref="Damage"/> for the knockback exchange; <see cref="DealKnockback"/> reads it through the
-/// context's knockback-source capability and hands the impulse to the struck <see cref="KnockbackReceiver"/>.
+/// sibling of <see cref="Damage"/> for the knockback exchange; carrying it IS what makes this entity's hits
+/// shove — ServerCollision fires the exchange from component presence (ADR 0002) and hands
+/// <see cref="EffectiveImpulse"/> to the struck <see cref="KnockbackReceiver"/>.
 ///
 /// Knockback is server-authoritative and only read server-side, so it needs no networking of its own.
 ///

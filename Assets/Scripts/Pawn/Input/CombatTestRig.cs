@@ -301,8 +301,22 @@ public static class CombatTestRig
         => _caps.TryGetValue(PawnOf(pawnGo), out var c) ? c.Last.Amount : 0;
 
     // NOTE: there is deliberately no "impulse at the damage event" readback. Knockback is no longer a reaction to
-    // damage — DealKnockback is its own operation, resolved after DealDamage in the hit's operation list — so
+    // damage — it is its own exchange, fired from component presence beside the damage exchange (ADR 0002) — so
     // PendingImpulses is still empty when OnDamageTaken fires. Assert on the resulting displacement instead.
+
+    /// <summary>
+    /// Destroy the HitstunDealer on every live projectile (composability pin, ADR 0002): with the component gone
+    /// the hitstun exchange must fall silent while the damage exchange on the same hit still lands. Idempotent —
+    /// call it every frame while bullets are in flight so none lands with its dealer intact. Returns how many
+    /// dealers were stripped this call.
+    /// </summary>
+    public static int StripHitstunDealersFromLiveProjectiles()
+    {
+        var dealers = UnityEngine.Object.FindObjectsByType<HitstunDealer>(FindObjectsSortMode.None);
+        foreach (var d in dealers)
+            UnityEngine.Object.Destroy(d);
+        return dealers.Length;
+    }
 
     public static bool IsPawnOwner(GameObject pawnGo) => PawnOf(pawnGo).IsOwner;
 

@@ -3,8 +3,9 @@ using UnityEngine;
 
 /// <summary>
 /// Generic hitstun-DEALING component: how long this entity staggers what it hits, AUTHORED ON THE PREFAB. The
-/// sibling of <see cref="Damage"/> for the hitstun exchange; <see cref="DealHitstun"/> reads it through the
-/// context's hitstun-source capability and hands the duration to the struck <see cref="HitstunReceiver"/>.
+/// sibling of <see cref="Damage"/> for the hitstun exchange; carrying it IS what makes this entity's hits
+/// stagger — ServerCollision fires the exchange from component presence (ADR 0002) and hands
+/// <see cref="EffectiveSeconds"/> to the struck <see cref="HitstunReceiver"/>.
 ///
 /// Hitstun is dealt server-side (hit operations are server-only), so this component needs no networking; the
 /// resulting stun WINDOW is what replicates, from the receiver.

@@ -13,16 +13,15 @@ using UnityEngine;
 /// serialized/ctor config.
 ///
 /// SYSTEM BOUNDARIES, NOT OBJECT TYPES. A context describes "what happened + what you're allowed to reach", and
-/// the REACH is expressed as the SYSTEM COMPONENTS the operation participates in — the damage system
-/// (<see cref="IDamageSourceContext"/> / <see cref="IDamageTargetContext"/>), the motion system
+/// the REACH is expressed as the SYSTEM COMPONENTS the operation participates in — the motion system
 /// (<see cref="IMotionContext"/>), the health system (<see cref="IHealthContext"/>) — resolved ONCE by the site
-/// that built the context (which already knows the participants). So an operation couples to
-/// "something that deals damage" and "something that can take damage", NOT to "a projectile" or "a pawn": the
-/// same <see cref="DealDamage"/> lands on a pawn, a destructible prop, or a damageable projectile. Operations
-/// are the Unity-coupling layer — they still <c>Instantiate</c>, FishNet-spawn, and call <c>IDamageable</c>
-/// directly — but they no longer <c>GetComponent</c> a system off a raw archetype GameObject and gamble it is
-/// there; the context hands them the resolved system handle. Non-trivial math belongs in a pure <c>*.Core</c>
-/// helper (RicochetMath, SpawnFanMath, DeflectMath, DamageProcessor).
+/// that built the context (which already knows the participants). So an operation couples to a system, NOT to
+/// "a projectile" or "a pawn". Operations are the Unity-coupling layer — they still <c>Instantiate</c>,
+/// FishNet-spawn, and act on resolved handles directly — but they never <c>GetComponent</c> a system off a raw
+/// archetype GameObject and gamble it is there; the context hands them the resolved system handle. (The hit
+/// EXCHANGES — damage/knockback/hitstun — are not operations at all: they fire from component presence at the
+/// site; ADR 0002.) Non-trivial math belongs in a pure <c>*.Core</c> helper (RicochetMath, SpawnFanMath,
+/// DeflectMath, DamageProcessor).
 ///
 /// <typeparamref name="TContext"/> is contravariant (<c>in</c>): an operation typed to a leaner context (a
 /// single system capability) is usable wherever a richer context is expected.
@@ -84,73 +83,6 @@ public interface ISurfaceContext : IAimContext
 }
 
 /// <summary>
-/// The DAMAGE-DEALING system is reachable: the operation can read how much damage the source deals via its
-/// <see cref="Damage"/> component (its authored base amount, resolved through
-/// <see cref="Arena.Damage.DamageProcessor"/>). Consumed by <see cref="DealDamage"/>. (How buffs/modifiers reach
-/// a source's damage is a separate, deliberately deferred design — this capability exposes only the source's own
-/// <see cref="Damage"/> component.)
-/// </summary>
-public interface IDamageSourceContext : IEffectContext
-{
-    /// <summary>The component that authors this source's base outgoing damage.</summary>
-    Damage DamageSource { get; }
-}
-
-/// <summary>
-/// The DAMAGE-RECEIVING system is reachable: something that can take damage was hit. Exposes the struck
-/// <see cref="IDamageable"/> directly (the pawn's, prop's, or projectile's health system) — guaranteed present,
-/// so damage operations need no "did I hit something damageable" null-check. Consumed by <see cref="DealDamage"/>.
-/// </summary>
-public interface IDamageTargetContext : IEffectContext
-{
-    /// <summary>The damage-receiving system that was struck.</summary>
-    IDamageable DamageTarget { get; }
-}
-
-/// <summary>
-/// The KNOCKBACK-DEALING system is reachable: the operation can read how hard the source shoves via its
-/// <see cref="KnockbackDealer"/> component (its authored impulse config folded with the dealer's outgoing
-/// modifiers). Consumed by <see cref="DealKnockback"/>.
-/// </summary>
-public interface IKnockbackSourceContext : IEffectContext
-{
-    /// <summary>The component that authors this source's outgoing knockback.</summary>
-    KnockbackDealer KnockbackSource { get; }
-}
-
-/// <summary>
-/// The KNOCKBACK-RECEIVING system is reachable: something that can be shoved was hit. Exposes the struck
-/// <see cref="KnockbackReceiver"/>, resolved by the site that knows what was hit, so a knockback operation needs
-/// no "can this thing be shoved" <c>GetComponent</c>. Consumed by <see cref="DealKnockback"/>.
-/// </summary>
-public interface IKnockbackTargetContext : IEffectContext
-{
-    /// <summary>The knockback-receiving system that was struck.</summary>
-    KnockbackReceiver KnockbackTarget { get; }
-}
-
-/// <summary>
-/// The HITSTUN-DEALING system is reachable: the operation can read how long the source staggers what it hits via
-/// its <see cref="HitstunDealer"/> component. Consumed by <see cref="DealHitstun"/>.
-/// </summary>
-public interface IHitstunSourceContext : IEffectContext
-{
-    /// <summary>The component that authors this source's outgoing hitstun.</summary>
-    HitstunDealer HitstunSource { get; }
-}
-
-/// <summary>
-/// The HITSTUN-RECEIVING system is reachable: something that can be staggered was hit. Exposes the struck
-/// <see cref="HitstunReceiver"/>, resolved by the site that knows what was hit. Consumed by
-/// <see cref="DealHitstun"/>.
-/// </summary>
-public interface IHitstunTargetContext : IEffectContext
-{
-    /// <summary>The hitstun-receiving system that was struck.</summary>
-    HitstunReceiver HitstunTarget { get; }
-}
-
-/// <summary>
 /// The MOTION system of the source is reachable: the operation can read and steer the source's live
 /// <see cref="NetworkedMotion"/> (reflect, redirect). Consumed by <see cref="Ricochet"/> and
 /// <see cref="DeflectProjectile"/>.
@@ -186,31 +118,13 @@ public interface IHealthContext : IEffectContext
 }
 
 // ---- composite capabilities: named combinations, for operations that touch more than one system at once ----
-// C# can't express "IDamageSourceContext AND IDamageTargetContext" as a single generic argument, so an operation
-// that reaches two systems names the composite. Every context that exposes both systems implements the composite,
+// C# can't express "IMotionContext AND ISurfaceContext" as a single generic argument, so an operation that
+// reaches two systems names the composite. Every context that exposes both systems implements the composite,
 // so the variance-aware picker offers the operation on exactly those sites.
-
-/// <summary>
-/// A damage EXCHANGE: a source that deals damage struck something that can take it, at a known point/direction
-/// (<see cref="IDamageSourceContext"/> + <see cref="IDamageTargetContext"/> + <see cref="IAimContext"/>). This is
-/// the one context <see cref="DealDamage"/> needs — both systems guaranteed, no archetype knowledge.
-/// </summary>
-public interface IDamageExchangeContext : IDamageSourceContext, IDamageTargetContext, IAimContext { }
-
-/// <summary>
-/// A knockback EXCHANGE: a source that deals knockback struck something that can be shoved, along a known
-/// direction (<see cref="IKnockbackSourceContext"/> + <see cref="IKnockbackTargetContext"/> +
-/// <see cref="IAimContext"/>). What <see cref="DealKnockback"/> needs — the direction aims the impulse.
-/// </summary>
-public interface IKnockbackExchangeContext : IKnockbackSourceContext, IKnockbackTargetContext, IAimContext { }
-
-/// <summary>
-/// A hitstun EXCHANGE: a source that deals hitstun struck something that can be staggered
-/// (<see cref="IHitstunSourceContext"/> + <see cref="IHitstunTargetContext"/>). Deliberately NOT an
-/// <see cref="IAimContext"/> — a stun is a duration, with no geometry — so <see cref="DealHitstun"/> is
-/// authorable anywhere the two systems meet, whether or not the site has a point/direction.
-/// </summary>
-public interface IHitstunExchangeContext : IHitstunSourceContext, IHitstunTargetContext { }
+//
+// NOTE the hit EXCHANGES (damage/knockback/hitstun) are deliberately NOT capabilities: an exchange fires from
+// COMPONENT PRESENCE (dealer on the projectile ∧ receiver on the victim), dispatched by ServerCollision at the
+// site — there is no courier effect to type. See ADR 0002.
 
 /// <summary>
 /// A motion redirect off a face: the source's motion system plus a surface normal (<see cref="IMotionContext"/> +

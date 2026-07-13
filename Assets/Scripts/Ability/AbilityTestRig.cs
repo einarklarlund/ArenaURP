@@ -11,7 +11,8 @@ using UnityEngine;
 /// </summary>
 public static class AbilityTestRig
 {
-    /// <summary>Prefab-backed test passive whose PassiveAbility contributes an extra DealDamage on player hits.</summary>
+    /// <summary>Prefab-backed test passive whose PassiveAbility contributes an InstantiateGameObjects reaction
+    /// (a TestHitMarker at the hit point) on player hits — the observable for the owner-lookup pin.</summary>
     const string TestProjectilePassivePath = "Assets/Tests/PlayMode/Prefabs/TestBonusDamagePassive.asset";
 
     static readonly List<ActiveAbility> ActivesBuf = new();
@@ -38,10 +39,11 @@ public static class AbilityTestRig
     }
 
     /// <summary>
-    /// Grant the prefab-backed test passive that adds an extra DealDamage to the owner's projectiles on
-    /// enemy hit. Exercises the owner-lookup path (projectile finds owner's effects server-side, no
-    /// payload). DealDamage is stateless (it reads the projectile's own Damage component), so the
-    /// contributed hit deals the projectile's damage a second time.
+    /// Grant the prefab-backed test passive that contributes an on-player-hit reaction (instantiate a
+    /// TestHitMarker at the hit point) to the owner's projectiles. Exercises the owner-lookup path
+    /// (projectile finds owner's effects server-side, no payload) with an inert, directly observable effect.
+    /// The old shape — an extra DealDamage stacking the exchange — died with the couriers (ADR 0002); owner
+    /// damage bonuses are the deferred damage-buff channel's job.
     /// </summary>
     public static void GrantProjectilePassive(GameObject pawn)
         => AddPassive(pawn, TestProjectilePassivePath);

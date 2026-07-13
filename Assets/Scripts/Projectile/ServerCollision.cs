@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Arena.Damage;
 using Arena.NetworkedMotion;
 using FishNet.Object;
 using UnityEngine;
@@ -7,10 +8,13 @@ using SC = Arena.ServerCollision;
 /// <summary>
 /// The server-only collision driver of a projectile. Each tick it advances the sibling
 /// <see cref="NetworkedMotion"/>'s age, casts the world broadphase and overlaps the projectile broadphase
-/// itself, classifies each hit with the pure <see cref="SC.ServerCollisionProcessor"/>, builds the matching
-/// concrete operation context (<see cref="ProjectileSurfaceCollision"/> / <see cref="ProjectilePlayerCollision"/>
-/// / <see cref="ProjectileProjectileCollision"/>), and runs this prefab's authored operations for that
-/// category, then the owner's runtime contributions (passive abilities / powerups, looked up server-side).
+/// itself, classifies each hit with the pure <see cref="SC.ServerCollisionProcessor"/>, then resolves the hit:
+/// on an enemy hit it first runs the hit EXCHANGES from component presence (dealer on this projectile ∧ receiver
+/// on the victim — damage/knockback/hitstun, see <see cref="ResolveExchanges"/>; ADR 0002), then builds the
+/// matching concrete reaction context (<see cref="ProjectileSurfaceCollision"/> /
+/// <see cref="ProjectilePlayerCollision"/> / <see cref="ProjectileProjectileCollision"/>) and runs this prefab's
+/// authored reactions for that category, then the owner's runtime contributions (passive abilities / powerups,
+/// looked up server-side).
 ///
 /// It holds no ProjectileType: its collision radius, lifetime, and hit operations are AUTHORED ON THE PREFAB
 /// (prefab-per-kind), so they are runtime-tunable per instance and identical on every peer with nothing on the
@@ -77,33 +81,6 @@ public sealed class ServerCollision : NetworkBehaviour
         _knockback = GetComponent<KnockbackDealer>();
         _hitstun = GetComponent<HitstunDealer>();
         _ownership = GetComponent<NetPlayerOwnership>();
-
-        WarnOnMissingDealers();
-    }
-
-    /// <summary>
-    /// An operation whose source system is absent is a SILENT no-op — a bullet that authored DealDamage but has no
-    /// Damage component simply stops hurting anyone, with nothing in the console. The capability contract only
-    /// holds if the prefab carries the component, so say so loudly at load rather than at 3am.
-    /// </summary>
-    private void WarnOnMissingDealers()
-    {
-        if (_damage == null && AuthorsPlayerOperation<DealDamage>())
-            Debug.LogError($"{name}: authors {nameof(DealDamage)} but has no {nameof(Damage)} component; it will deal no damage.", this);
-        if (_knockback == null && AuthorsPlayerOperation<DealKnockback>())
-            Debug.LogError($"{name}: authors {nameof(DealKnockback)} but has no {nameof(KnockbackDealer)} component; it will not knock back.", this);
-        if (_hitstun == null && AuthorsPlayerOperation<DealHitstun>())
-            Debug.LogError($"{name}: authors {nameof(DealHitstun)} but has no {nameof(HitstunDealer)} component; it will not stun.", this);
-    }
-
-    private bool AuthorsPlayerOperation<T>()
-    {
-        if (OnPlayer == null)
-            return false;
-        for (int i = 0; i < OnPlayer.Count; i++)
-            if (OnPlayer[i] is T)
-                return true;
-        return false;
     }
 
     public override void OnStartServer()
@@ -176,11 +153,9 @@ public sealed class ServerCollision : NetworkBehaviour
             Vector3 sourceCenter = worldInfo.Point + worldInfo.Normal * EffectiveRadius;
             if (worldInfo.Category == SC.HitCategory.Enemy)
             {
+                ResolveExchanges(hitObject, in worldInfo, owner);
                 var ctx = new ProjectilePlayerCollision(gameObject, owner,
                     worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter,
-                    _damage, ResolveDamageable(hitObject),
-                    _knockback, ResolveKnockbackReceiver(hitObject),
-                    _hitstun, ResolveHitstunReceiver(hitObject),
                     _motion, _health);
                 RunEffects(OnPlayer, ctx);
                 RunEffects(ownerOps.OnPlayer, ctx);
@@ -226,7 +201,6 @@ public sealed class ServerCollision : NetworkBehaviour
             // source-centre resume anchor coincides with it — no surface standoff to apply.
             var ctx = new ProjectileProjectileCollision(gameObject, owner,
                 info.Point, info.Normal, info.Direction, info.Point,
-                _damage, ResolveDamageable(other.gameObject),
                 _motion, _health, other);
             RunEffects(OnProjectile, ctx);
             RunEffects(ownerOps.OnProjectile, ctx);
@@ -294,9 +268,46 @@ public sealed class ServerCollision : NetworkBehaviour
         return default;
     }
 
-    // Resolve the struck entity's RECEIVING systems once, here at the site that knows what was hit — so each
-    // operation takes a resolved handle from the context instead of gambling a GetComponent. All three walk UP
-    // from the struck collider, which is why every receiver lives on the entity ROOT.
+    // ---- the hit exchanges (presence-dispatch; ADR 0002) ----
+    // An exchange fires iff this projectile carries the DEALER component and the struck entity carries the
+    // RECEIVER — no courier effect, no authored row: carrying KnockbackDealer but not Damage IS "shove without
+    // damaging". Each end folds only its own modifiers. Runs inside the same atomic classified hit as the
+    // reaction lists, BEFORE them; a projectile dying to its own LoseHealth reaction cannot retract an exchange.
+    // Deliberately NOT run in the projectile channel (see ProjectileProjectileCollision's doc).
+
+    private void ResolveExchanges(GameObject hitObject, in SC.HitInfo info, NetworkPlayer owner)
+    {
+        if (_damage != null)
+        {
+            var damageable = ResolveDamageable(hitObject);
+            if (damageable != null)
+                damageable.TakeDamage(new DamageInfo
+                {
+                    Amount = DamageProcessor.Resolve(_damage.Amount),
+                    Attacker = owner,
+                    HitPoint = info.Point,
+                    Direction = info.Direction,
+                    Type = DamageType.Bullet,
+                });
+        }
+
+        if (_knockback != null)
+        {
+            var receiver = ResolveKnockbackReceiver(hitObject);
+            if (receiver != null)
+                receiver.ApplyImpulse(_knockback.EffectiveImpulse(info.Direction));
+        }
+
+        if (_hitstun != null)
+        {
+            var receiver = ResolveHitstunReceiver(hitObject);
+            if (receiver != null)
+                receiver.ApplyHitstun(_hitstun.EffectiveSeconds);
+        }
+    }
+
+    // Resolve the struck entity's RECEIVING systems once, here at the site that knows what was hit. All three
+    // walk UP from the struck collider, which is why every receiver lives on the entity ROOT.
     private static IDamageable ResolveDamageable(GameObject hit)
         => hit != null ? hit.GetComponentInParent<IDamageable>() : null;
 
@@ -307,10 +318,10 @@ public sealed class ServerCollision : NetworkBehaviour
         => hit != null ? hit.GetComponentInParent<HitstunReceiver>() : null;
 
     // ---- operation running ----
-    // A classified hit resolves ATOMICALLY: every authored operation for that hit runs (this prefab's list,
-    // then the owner's contributions) even if the projectile dies mid-list, so authored order can never change
-    // a hit's outcome. Death gates only what comes AFTER the hit: the projectile channel, further overlap hits,
-    // and despawn.
+    // A classified hit resolves ATOMICALLY: the exchanges and every authored operation for that hit run (this
+    // prefab's list, then the owner's contributions) even if the projectile dies mid-hit, so authored order can
+    // never change a hit's outcome. Death gates only what comes AFTER the hit: the projectile channel, further
+    // overlap hits, and despawn.
 
     private void RunEffects<T>(IReadOnlyList<IEffect<T>> ops, T ctx) where T : IEffectContext
     {

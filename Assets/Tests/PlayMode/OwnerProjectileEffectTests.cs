@@ -9,12 +9,17 @@ namespace Arena.PlayTests
 {
     /// <summary>
     /// Integration test for the owner-lookup projectile-effect path: a bullet finds its OWNER on the
-    /// server and applies the owner's projectile passive (here, bonus damage on enemy hit), proving the
-    /// chain Projectile -> owner reactions -> WorldEffect -> target, with NO extra spawn payload. The
-    /// owner's effect is read server-side from the live owner, not shipped with the projectile.
+    /// server and runs the owner's contributed reaction on enemy hit (here, instantiating a marker object
+    /// at the hit point), proving the chain Projectile -> owner reactions -> effect -> world, with NO extra
+    /// spawn payload. The owner's effect is read server-side from the live owner, not shipped with the
+    /// projectile.
+    ///
+    /// The exact-1x damage assertion is the flip side of the same pin: under presence-dispatch (ADR 0002)
+    /// the damage exchange fires once from component presence, so an owner contribution can no longer stack
+    /// it (the old bonus-damage trick) — outgoing damage buffs are the deferred damage-buff channel's job.
     ///
     /// The bullet is the REAL authored Bullet type (own damage read from the asset via the rig); the owner
-    /// bonus is a runtime passive granted through AbilityTestRig. The Assembly-CSharp types are
+    /// contribution is a runtime passive granted through AbilityTestRig. The Assembly-CSharp types are
     /// unreferenceable from this asmdef, so all typed access goes through the rigs by reflection.
     /// </summary>
     public sealed class OwnerProjectileEffectTests : NetworkedPlayModeTestFixture
@@ -28,7 +33,7 @@ namespace Arena.PlayTests
         protected override string ScenePath => "Assets/Tests/PlayMode/Scenes/TestProjectileDamage.unity";
 
         [UnityTest]
-        public IEnumerator Owners_projectile_passive_adds_bonus_damage_on_hit_without_payload()
+        public IEnumerator Owners_projectile_passive_runs_on_hit_without_payload()
         {
             var npmGo = SpawnServerPrefab(NpmPrefabPath, Vector3.zero);
 
@@ -46,11 +51,14 @@ namespace Arena.PlayTests
             Dmg("Wire", npm, ownerPlayerGo.GetComponent("NetworkPlayer"), ownerPawnGo.GetComponent("Pawn"), StartHealth);
             int ownerId = (int)Dmg("PlayerObjectId", ownerPlayerGo.GetComponent("NetworkPlayer"));
 
-            // The owner equips "your bullets deal their damage AGAIN on enemy hit" — found server-side at hit
-            // time. DealDamage is stateless (it reads the projectile's own Damage component), so the passive's
-            // contribution equals the bullet's type damage.
+            // The owner equips "your bullets leave a marker at the enemy hit point" — found server-side at hit
+            // time. The marker instantiation is inert (a plain non-networked GameObject), so the pin has no
+            // gameplay side effects to confound the damage assertion.
             Ability("GrantProjectilePassive", ownerPawnGo);
             for (int i = 0; i < 2; i++) yield return null;
+
+            Assert.IsNull(GameObject.Find("TestHitMarker(Clone)"),
+                "precondition: no marker exists before the hit");
 
             int before = (int)Dmg("Health", targetPawnGo.GetComponent("Pawn"));
             int typeDamage = (int)Dmg("TypeDamageAt", BulletTypePath);
@@ -63,8 +71,12 @@ namespace Arena.PlayTests
             yield return null;
 
             int after = (int)Dmg("Health", targetPawnGo.GetComponent("Pawn"));
-            Assert.AreEqual(typeDamage * 2, before - after,
-                "the bullet's own damage PLUS the owner's looked-up projectile passive (its damage again) should both land");
+            Assert.IsNotNull(GameObject.Find("TestHitMarker(Clone)"),
+                "the owner's looked-up projectile passive must run on the hit — its contributed effect " +
+                "instantiates a marker at the hit point");
+            Assert.AreEqual(typeDamage, before - after,
+                "the damage exchange fires exactly ONCE from component presence — an owner contribution can " +
+                "no longer stack it (outgoing damage buffs are the deferred damage-buff channel)");
         }
 
         static readonly Type DmgRigType = Type.GetType("ProjectileDamageTestRig, Assembly-CSharp");

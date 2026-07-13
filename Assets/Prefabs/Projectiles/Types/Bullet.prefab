@@ -270,10 +270,7 @@ MonoBehaviour:
   - rid: 6758500664911593567
   - rid: 4328605929791815757
   OnPlayer:
-  - rid: 6758500664911593568
   - rid: 6758500664911593569
-  - rid: 4328605929791815766
-  - rid: 4328605929791815767
   OnProjectile: []
   references:
     version: 2
@@ -281,17 +278,8 @@ MonoBehaviour:
     - rid: 4328605929791815757
       type: {class: Ricochet, ns: , asm: Assembly-CSharp}
       data: 
-    - rid: 4328605929791815766
-      type: {class: DealKnockback, ns: , asm: Assembly-CSharp}
-      data: 
-    - rid: 4328605929791815767
-      type: {class: DealHitstun, ns: , asm: Assembly-CSharp}
-      data: 
     - rid: 6758500664911593567
       type: {class: LoseHealth, ns: , asm: Assembly-CSharp}
-      data: 
-    - rid: 6758500664911593568
-      type: {class: DealDamage, ns: , asm: Assembly-CSharp}
       data: 
     - rid: 6758500664911593569
       type: {class: LoseHealth, ns: , asm: Assembly-CSharp}

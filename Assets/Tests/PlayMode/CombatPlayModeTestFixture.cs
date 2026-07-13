@@ -95,6 +95,7 @@ namespace Arena.PlayTests
         protected int LastDamageAmount(GameObject pawn) => (int)Invoke("LastDamageAmount", pawn);
         protected bool IsPawnOwner(GameObject pawn) => (bool)Invoke("IsPawnOwner", pawn);
         protected bool IsStunned(GameObject pawn) => (bool)Invoke("IsStunned", pawn);
+        protected int StripHitstunDealersFromLiveProjectiles() => (int)Invoke("StripHitstunDealersFromLiveProjectiles");
 
         // ---- coroutine polling helpers -----------------------------------------------------
 

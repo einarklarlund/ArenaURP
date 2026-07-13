@@ -88,17 +88,17 @@ public static class ProjectileDamageTestRig
         => AssetDatabase.LoadAssetAtPath<ProjectileType>(assetPath).InstancePrefab.GetComponent<ServerCollision>().Radius;
 
     /// <summary>
-    /// Rewrite a live bullet's OnPlayer operations to [LoseHealth, DealDamage] — LETHAL FIRST. With a 1-HP
-    /// bullet the LoseHealth kills it before DealDamage runs, so this pins the atomic-hit rule: every authored
-    /// operation of a classified hit runs even if the projectile dies mid-list (authored order can never change
-    /// a hit's outcome). Mutates only this spawned instance's [SerializeReference] list, never the asset.
+    /// Rewrite a live bullet's OnPlayer reactions to [LoseHealth] and make it 1-HP, so the bullet DIES inside the
+    /// hit that damages the pawn. This pins the atomic-hit rule under presence-dispatch (ADR 0002): the damage
+    /// EXCHANGE (fired from the Damage component, not an authored row) and every authored reaction resolve as one
+    /// hit even though the projectile dies mid-hit — dying cannot retract the exchange. Mutates only this spawned
+    /// instance's [SerializeReference] list, never the asset.
     /// </summary>
     public static void AuthorLethalFirstOnPlayer(UnityEngine.GameObject bullet)
     {
         var collision = bullet.GetComponent<ServerCollision>();
         collision.OnPlayer.Clear();
         collision.OnPlayer.Add(Commands.LoseHealth());
-        collision.OnPlayer.Add(Commands.DealDamage());
         bullet.GetComponent<Health>().ServerInitMax(1);   // one LoseHealth is lethal, whatever the authored durability
     }
 

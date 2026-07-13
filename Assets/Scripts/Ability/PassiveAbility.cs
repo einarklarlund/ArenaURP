@@ -27,7 +27,7 @@ public sealed class PassiveAbility : NetworkBehaviour
     [SerializeReference, EffectSelector]
     public List<IEffect<ProjectileSurfaceCollision>> ProjectileOnSurface = new();
 
-    [Tooltip("Added to the owner's projectiles' player-hit operations (e.g. an extra DealDamage).")]
+    [Tooltip("Added to the owner's projectiles' player-hit reactions (e.g. an on-hit instantiation or ricochet).")]
     [SerializeReference, EffectSelector]
     public List<IEffect<ProjectilePlayerCollision>> ProjectileOnPlayer = new();
 
