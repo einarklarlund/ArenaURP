@@ -289,7 +289,7 @@ public sealed class ServerCollision : NetworkBehaviour
     private static ProjectileEffects GetOwnerOperations(NetworkPlayer owner)
     {
         var pawn = owner != null ? owner.ControlledPawn.Value : null;
-        if (pawn != null && pawn.TryGetComponent<IProjectileEffectProvider>(out var source))
+        if (pawn != null && pawn.TryGetComponent<PawnPassiveAbilities>(out var source))
             return source.GetProjectileEffects();
         return default;
     }

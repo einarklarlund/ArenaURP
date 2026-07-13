@@ -11,11 +11,11 @@ using UnityEngine;
 /// This component folds each equipped passive's multipliers into the pawn's <see cref="PawnMovement"/> /
 /// <see cref="PawnWeapon"/> modifier lists (Remove-old / Add-new, the PawnTemperature discipline) and
 /// aggregates the passives' authored projectile operations for the owner-contribution path
-/// (<see cref="IProjectileEffectProvider"/> — read server-side by ServerCollision, never payloaded).
+/// (<see cref="GetProjectileEffects"/> — read server-side by ServerCollision, never payloaded).
 /// Instances call <see cref="NotifyInventoryChanged"/> from their network start/stop. Active abilities live
 /// on the sibling <see cref="PawnActiveAbilities"/>.
 /// </summary>
-public sealed class PawnPassiveAbilities : NetworkBehaviour, IProjectileEffectProvider
+public sealed class PawnPassiveAbilities : NetworkBehaviour
 {
     [Header("Wiring")]
     [SerializeField] private PawnMovement movement;
@@ -134,9 +134,9 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour, IProjectileEffectPr
         TryGetComponent<Pawn>(out var pawn) ? pawn.ControllingPlayer.Value : null;
 
     /// <summary>
-    /// <see cref="IProjectileEffectProvider"/>: expose the owner's aggregated projectile operations as a
-    /// per-category bundle. Read SERVER-SIDE during collision resolution — looked up from the live owner,
-    /// never serialized onto the projectile. ServerCollision decides which category applies to a given hit.
+    /// The owner's aggregated projectile operations as a per-category bundle. Read SERVER-SIDE during
+    /// collision resolution — looked up from the live owner, never serialized onto the projectile.
+    /// ServerCollision decides which category applies to a given hit.
     /// </summary>
     public ProjectileEffects GetProjectileEffects() => new(_ownerSurface, _ownerPlayer, _ownerProjectile);
 

@@ -23,15 +23,3 @@ public readonly struct ProjectileEffects
         OnProjectile = onProjectile;
     }
 }
-
-/// <summary>
-/// Implemented by a pawn-side component (<c>PawnPassiveAbilities</c>) that contributes EXTRA projectile operations
-/// to the projectiles a player owns (from equipped passive abilities / powerups). The projectile's
-/// ServerCollision resolves its owner server-side and reads this bundle; the operations are NEVER sent on the
-/// spawn payload.
-/// </summary>
-public interface IProjectileEffectProvider
-{
-    /// <summary>The owner's per-category projectile operations, aggregated from equipped passives.</summary>
-    ProjectileEffects GetProjectileEffects();
-}
