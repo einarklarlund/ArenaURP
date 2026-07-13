@@ -6,9 +6,9 @@ using UnityEngine;
 /// The stateful half of an always-on ability, living on the ability's INSTANCE prefab — a logical
 /// NetworkObject spawned by <see cref="PawnPassiveAbilities"/> and parented under the owning pawn. The stat
 /// buffs and the extra projectile operations are serialized prefab data (runtime-tunable per instance); while
-/// this instance exists under a pawn, <see cref="PawnPassiveAbilities"/> runs each stat buff to fold one
-/// modifier into the pawn's movement/weapon modifier lists and aggregates the projectile lists for the
-/// owner-contribution path.
+/// this instance exists under a pawn, <see cref="PawnPassiveAbilities"/> folds the authored
+/// <see cref="MovementBuff"/>/<see cref="WeaponBuff"/> modifiers into the pawn's movement/weapon modifier
+/// lists and aggregates the projectile lists for the owner-contribution path.
 ///
 /// Identity (display name / icon) resolves through the sibling <see cref="TypeObjectRoot"/>'s baked
 /// <see cref="AbilityType"/>.
@@ -16,9 +16,11 @@ using UnityEngine;
 public sealed class PassiveAbility : NetworkBehaviour
 {
     [Header("Stat buffs (folded into the pawn's movement/weapon modifiers while equipped)")]
-    [Tooltip("Standing movement/weapon buffs — each contributes one modifier folded by the pawn's processors.")]
-    [SerializeReference, EffectSelector]
-    public List<IEffect<PawnStatBuff>> StatBuffs = new();
+    [Tooltip("Standing movement multipliers folded by the pawn's movement processor while equipped. Identity (all 1) = no effect.")]
+    public MovementModifier MovementBuff = MovementModifier.Identity;
+
+    [Tooltip("Standing weapon multipliers folded by the pawn's weapon processor while equipped. Identity (all 1) = no effect.")]
+    public WeaponModifier WeaponBuff = WeaponModifier.Identity;
 
     [Header("Projectile contributions (extra operations on the owner's projectiles)")]
     [Tooltip("Added to the owner's projectiles' surface-hit operations.")]

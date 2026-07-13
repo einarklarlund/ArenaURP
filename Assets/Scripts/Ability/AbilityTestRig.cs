@@ -60,8 +60,8 @@ public static class AbilityTestRig
 
     /// <summary>
     /// Product of every <see cref="WeaponModifier.FireRateMultiplier"/> currently folded into the pawn's weapon
-    /// (1 when none). Used to assert a passive's authored <c>BuffFireRate</c> stat buff reaches
-    /// <c>PawnWeapon.Modifiers</c> through the PawnStatBuff path.
+    /// (1 when none). Used to assert a passive's authored <c>WeaponBuff</c> stat modifier reaches
+    /// <c>PawnWeapon.Modifiers</c> through the passive re-derive path.
     /// </summary>
     public static float FireRateProduct(GameObject pawn)
     {

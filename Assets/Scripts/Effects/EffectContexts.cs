@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Arena.NetworkedMotion;
 using UnityEngine;
 
@@ -179,39 +178,4 @@ public sealed class OnSpawnContext : IEffectContext
         Owner = owner;
         OwnerPlayer = ownerPlayer;
     }
-}
-
-/// <summary>
-/// The owner's PASSIVE abilities get to fold their standing stat buffs into the pawn. Exposes both modifier
-/// systems as contribution SINKS (<see cref="IMovementModifierContext"/> + <see cref="IWeaponModifierContext"/>),
-/// so one authored list can carry a mix of movement and weapon buffs. Built by <c>PawnPassiveAbilities</c> each
-/// time the passive roster changes; every buff a passive contributes is appended to the two sink lists, which the
-/// facade then applies to the pawn's live <c>PawnMovement.Modifiers</c>/<c>PawnWeapon.Modifiers</c> (and removes
-/// on the next re-derive / when the passive is dropped). A stat buff never touches a pawn component directly — it
-/// only contributes a modifier, matching the "fold at apply time, never mutate authored values" rule. Not a
-/// surface/aim/damage/motion context, so the variance-aware picker keeps buffs out of the collision lists.
-/// </summary>
-public sealed class PawnStatBuff : IMovementModifierContext, IWeaponModifierContext
-{
-    public GameObject Source { get; }
-    public NetworkPlayer Instigator { get; }
-
-    private readonly List<MovementModifier> _movementSink;
-    private readonly List<WeaponModifier> _weaponSink;
-
-    /// <param name="source">The pawn whose passives are contributing the buffs.</param>
-    /// <param name="instigator">The pawn's controlling player (may be null; buffs don't read it).</param>
-    /// <param name="movementSink">List the contributed movement modifiers are appended to.</param>
-    /// <param name="weaponSink">List the contributed weapon modifiers are appended to.</param>
-    public PawnStatBuff(GameObject source, NetworkPlayer instigator,
-        List<MovementModifier> movementSink, List<WeaponModifier> weaponSink)
-    {
-        Source = source;
-        Instigator = instigator;
-        _movementSink = movementSink;
-        _weaponSink = weaponSink;
-    }
-
-    public void AddMovementModifier(MovementModifier modifier) => _movementSink.Add(modifier);
-    public void AddWeaponModifier(WeaponModifier modifier) => _weaponSink.Add(modifier);
 }

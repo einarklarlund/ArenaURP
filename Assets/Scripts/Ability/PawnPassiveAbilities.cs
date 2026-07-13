@@ -93,11 +93,11 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
     }
 
     /// <summary>
-    /// Remove our previous contributions, then run each current passive's authored stat buffs into a
-    /// <see cref="PawnStatBuff"/> context — every buff contributes one modifier, which we then apply to the
-    /// pawn's movement/weapon modifier lists — and re-aggregate the passives' authored projectile operations.
-    /// Runs on every peer; only the peer that actually simulates movement/weapon consumes the modifiers, and
-    /// only the server reads the operations.
+    /// Remove our previous contributions, then collect each current passive's authored stat-buff modifiers
+    /// (identity entries contribute nothing and are skipped) and apply them to the pawn's movement/weapon
+    /// modifier lists, and re-aggregate the passives' authored projectile operations. Runs on every peer;
+    /// only the peer that actually simulates movement/weapon consumes the modifiers, and only the server
+    /// reads the operations.
     /// </summary>
     private void ReapplyPassiveModifiers()
     {
@@ -106,16 +106,11 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
         _ownerPlayer.Clear();
         _ownerProjectile.Clear();
 
-        // Buffs contribute into the tracking lists via the context; we apply those to the live lists below.
-        var buffCtx = new PawnStatBuff(gameObject, ResolveInstigator(), _appliedMove, _appliedWeapon);
-
         GetPassives(_passivesBuf);
         foreach (var p in _passivesBuf)
         {
-            var buffs = p.StatBuffs;
-            if (buffs != null)
-                for (int i = 0; i < buffs.Count; i++)
-                    buffs[i]?.Apply(buffCtx);
+            if (!p.MovementBuff.Equals(MovementModifier.Identity)) _appliedMove.Add(p.MovementBuff);
+            if (!p.WeaponBuff.Equals(WeaponModifier.Identity)) _appliedWeapon.Add(p.WeaponBuff);
             // Aggregate the passive's authored projectile operations so the owner's projectiles can find them.
             if (p.ProjectileOnSurface != null) _ownerSurface.AddRange(p.ProjectileOnSurface);
             if (p.ProjectileOnPlayer != null) _ownerPlayer.AddRange(p.ProjectileOnPlayer);
@@ -128,10 +123,6 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
         if (weapon != null)
             foreach (var w in _appliedWeapon) weapon.Modifiers.Add(w);
     }
-
-    /// <summary>The controlling player to attribute buffs to (unused by the stat buffs today; null-safe).</summary>
-    private NetworkPlayer ResolveInstigator() =>
-        TryGetComponent<Pawn>(out var pawn) ? pawn.ControllingPlayer.Value : null;
 
     /// <summary>
     /// The owner's aggregated projectile operations as a per-category bundle. Read SERVER-SIDE during

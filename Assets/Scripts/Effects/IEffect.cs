@@ -226,25 +226,3 @@ public interface IMotionSurfaceContext : IMotionContext, ISurfaceContext { }
 // dropped (the Remove-old/Add-new discipline). This is the "contribute a modifier folded at apply time, never
 // mutate an authored value" rule expressed as a context.
 
-/// <summary>
-/// The pawn's MOVEMENT-modifier system is reachable as a contribution sink: a buff calls
-/// <see cref="AddMovementModifier"/> to fold one multiplicative <see cref="MovementModifier"/> into the pawn while
-/// the passive is equipped. Consumed by the movement buffs (<see cref="BuffWalkSpeed"/>,
-/// <see cref="BuffWalkAcceleration"/>, <see cref="BuffJumpForce"/>, <see cref="BuffGravity"/>).
-/// </summary>
-public interface IMovementModifierContext : IEffectContext
-{
-    /// <summary>Contribute one movement modifier for as long as the source passive is equipped.</summary>
-    void AddMovementModifier(MovementModifier modifier);
-}
-
-/// <summary>
-/// The pawn's WEAPON-modifier system is reachable as a contribution sink: a buff calls
-/// <see cref="AddWeaponModifier"/> to fold one multiplicative <see cref="WeaponModifier"/> into the pawn while the
-/// passive is equipped. Consumed by the weapon buffs (<see cref="BuffFireRate"/>, <see cref="BuffSpread"/>).
-/// </summary>
-public interface IWeaponModifierContext : IEffectContext
-{
-    /// <summary>Contribute one weapon modifier for as long as the source passive is equipped.</summary>
-    void AddWeaponModifier(WeaponModifier modifier);
-}

@@ -119,16 +119,19 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 6299298251574830886}
   _networkObjectCache: {fileID: 0}
-  StatBuffs:
-  - rid: 4328605929791815684
+  MovementBuff:
+    WalkSpeedMultiplier: 1
+    WalkAccelerationMultiplier: 1
+    JumpForceMultiplier: 1
+    GravityMultiplier: 1
+    PreImpulseVelocityMultiplier: 1
+  WeaponBuff:
+    FireRateMultiplier: 0.5
+    SpreadMultiplier: 1
   ProjectileOnSurface: []
   ProjectileOnPlayer: []
   ProjectileOnProjectile: []
   OnSpawn: []
   references:
     version: 2
-    RefIds:
-    - rid: 4328605929791815684
-      type: {class: BuffFireRate, ns: , asm: Assembly-CSharp}
-      data:
-        multiplier: 0.5
+    RefIds: []

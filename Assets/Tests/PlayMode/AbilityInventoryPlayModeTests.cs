@@ -56,9 +56,9 @@ namespace Arena.PlayTests
         }
 
         /// <summary>
-        /// A passive's authored stat buffs (movement/weapon multipliers, now <c>IEffect&lt;PawnStatBuff&gt;</c>)
-        /// must fold into the pawn's live modifier lists through the same effect-Apply path the projectile/on-spawn
-        /// effects use. Grants a passive carrying <c>BuffFireRate(0.5)</c> and proves it reaches
+        /// A passive's authored stat-buff modifiers (plain <c>MovementBuff</c>/<c>WeaponBuff</c> data on the
+        /// prefab) must fold into the pawn's live modifier lists on the roster re-derive. Grants a passive
+        /// authored with <c>WeaponBuff.FireRateMultiplier = 0.5</c> and proves it reaches
         /// <c>PawnWeapon.Modifiers</c> (TestShooter has no other weapon-modifier producer, so the fold is exact).
         /// </summary>
         [UnityTest]
@@ -75,7 +75,7 @@ namespace Arena.PlayTests
 
             Assert.AreEqual(1, (int)AbRig("PassivesCount", pawn), "passive ability instance under the pawn");
             Assert.AreEqual(0.5f, (float)AbRig("FireRateProduct", pawn), 1e-4f,
-                "BuffFireRate(0.5) authored on the passive must fold into PawnWeapon.Modifiers via the PawnStatBuff path");
+                "WeaponBuff.FireRateMultiplier=0.5 authored on the passive must fold into PawnWeapon.Modifiers on the re-derive");
 
             yield return null;
         }
