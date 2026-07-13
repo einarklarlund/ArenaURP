@@ -113,4 +113,5 @@ InitTestScene*.unity*
 */_Recovery*
 
 # Profiler captures
-ProfilerCaptures/*
+ProfilerCaptures/*.claude/.cs-dirty
+.claude/.habit-count

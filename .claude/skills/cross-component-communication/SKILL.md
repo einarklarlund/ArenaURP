@@ -29,7 +29,9 @@ foreach (var mod in input.Modifiers) speedMult *= mod.WalkSpeedMultiplier;  // p
 movement.Modifiers.Remove(prev); movement.Modifiers.Add(next); // a contributor swaps its OWN entry
 ```
 
-`PawnMovement.Modifiers`, `PawnWeapon.Modifiers`, and `PawnMovement.PendingImpulses` are one family — the only difference is lifetime (a modifier persists until its contributor removes it; an impulse is consume-once, cleared by the producer after folding). The [[effect-commands]] sink contexts (`PawnStatBuff` → `AddMovementModifier`) are this family's authored-data face: a buff contributes a modifier; `PawnPassiveAbilities` owns the Remove-old/Add-new bookkeeping. Contributors: `PawnTemperature`, `PawnMovementEffects`, `PawnPassiveAbilities`, `PawnKnockback`.
+`PawnMovement.Modifiers`, `PawnWeapon.Modifiers`, and `PawnMovement.PendingImpulses` are one family — the only difference is lifetime (a modifier persists until its contributor removes it; an impulse is consume-once, cleared by the producer after folding). The [[effect-commands]] sink contexts (`PawnStatBuff` → `AddMovementModifier`) are this family's authored-data face: a buff contributes a modifier; `PawnPassiveAbilities` owns the Remove-old/Add-new bookkeeping. Contributors: `PawnTemperature`, `PawnMovementEffects`, `PawnPassiveAbilities`, `KnockbackReceiver`.
+
+The hit-exchange components (`Damage`/`KnockbackDealer`/`HitstunDealer` and `Health`/`KnockbackReceiver`/`HitstunReceiver`) are this family too, folded at READ time rather than per tick: each carries a modifier list with a neutral identity, and each end folds only its OWN list — the dealer scales what it emits, the receiver scales what it accepts. The courier effect between them (`DealDamage`/`DealKnockback`/`DealHitstun`) performs no arithmetic, which is what keeps the two ends ignorant of each other.
 
 *Discipline:* a contributor owns only its own entries (never `Clear()` a producer's list — you'd wipe others). Every contribution struct has a **neutral identity** (multiplier `1f`, `Vector3.zero`) so an absent contributor changes nothing.
 

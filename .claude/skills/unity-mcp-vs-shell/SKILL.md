@@ -104,6 +104,37 @@ the project I'm editing." Inside a worktree the decision procedure shifts:
 - After any out-of-band file write that Unity needs to know about (e.g. editing a `.cs` body with `Edit`), run `AssetDatabase.Refresh()` via the MCP so the editor re-imports.
 - Discover advanced/graph tools with `unity_list_advanced_tools` rather than guessing tool names; the reference-resolution helpers (`find_script_references`, `get_prefab_dependencies`, `list_materials_using_shader`, etc.) live there.
 
+## Gotchas hit so far (grow this list)
+
+- **`unity_execute_code` runs as a method body, not a file.** No top-level `using` directives — fully-qualify (`UnityEditor.AssetDatabase`, `UnityEngine.Object`) and disambiguate `Object`. `return` a value to send JSON back.
+- **It compiles against the CURRENTLY-LOADED domain.** Immediately after writing a new `.cs`, `typeof(NewType)` fails with "type not found" even though the code compiles fine. Run `AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport)`, then confirm via reflection over `AppDomain.CurrentDomain.GetAssemblies()`. Check `unity_console_log` (`logType: Error`) for *real* compile errors before concluding anything. (A `Stop` hook now blocks a turn that edited C# without doing this.)
+- **A prefab save can silently revert.** `PrefabUtility.SaveAsPrefabAsset` has been observed to vanish even though an immediate in-memory read-back looked right. Use the `out bool success` overload, follow with `AssetDatabase.SaveAssets()` + `AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate)`, and confirm out-of-band with `git status --porcelain -- <prefab>`. Full recipe in the [[unity-prefab-save-silent-revert]] memory. **Never spend a PlayMode run on prefab-authored behaviour you have not confirmed is on disk** — absence-asserting tests will pass over the hole.
+- **Creating a prefab variant in code:** instantiate the base with `PrefabUtility.InstantiatePrefab(baseGo)` (a *connected* instance), modify it, then `PrefabUtility.SaveAsPrefabAsset(instance, newPath)` — saving a connected instance to a new path produces a Variant. Wire serialized refs with `SerializedObject`/`FindProperty`/`ApplyModifiedPropertiesWithoutUndo`.
+- **Editing a prefab asset in place:** `PrefabUtility.LoadPrefabContents(path)` → mutate → `SetDirty` → `SaveAsPrefabAsset(root, path, out ok)` → `UnloadPrefabContents(root)`. Edits propagate to every variant.
+- **Scene NetworkObjects need a baked SceneId.** A NetworkObject created via script + `EditorSceneManager.SaveScene` ships with `SceneId=0` / `IsSceneObject=false`, so FishNet refuses to spawn it. Bake it: make the scene the ACTIVE scene (`SceneManager.SetActiveScene`), then call `NetworkObject.CreateSceneId(scene, force:true, out _)` (internal static, via reflection) and re-save. The active-scene context is required — it NREs otherwise.
+- **Author scenes additively to protect the open (possibly dirty) scene.** `EditorSceneManager.NewScene(..., NewSceneMode.Additive)` + `SceneManager.MoveGameObjectToScene` + `SaveScene` + `CloseScene`, restoring the previous active scene. Never `OpenScene(..., Single)` on a dirty editor.
+
+## This is enforced by a hook, not by your good intentions
+
+A skill description cannot interrupt a tool call — it only works if it is consulted, and it reliably
+*isn't*, deep into a long task. So the mechanically-checkable half of this skill lives in
+`.claude/hooks/guard-unity-yaml.sh`, wired as a `PreToolUse` hook on `Bash` and `Write|Edit`:
+
+- a text tool (`grep`/`rg`/`cat`/`sed`/`awk`/`head`/`tail`/…) aimed at a `.prefab`/`.unity`/`.asset`/`.meta` → **blocked**
+- a `Write`/`Edit` whose path ends in one of those extensions → **blocked**
+
+Ordinary work is untouched: `find -name "*.prefab"`, `git status -- Assets/`, `grep --include="*.cs"`,
+and paths like `com.unity.render-pipelines/…` all pass.
+
+**Deliberate override:** append `# unity-yaml-ok` to the Bash command. Reading YAML for orientation
+*is* legitimate (the skill says so), and a handful of chores — reading a `.cs.meta` GUID to wire an
+asmdef reference — genuinely want raw text. The hook's job is to make that a *decision* rather than a
+reflex, because the reflex produces confidently wrong answers.
+
+Written after three separate prefab-YAML greps in one session, one of which "found" a component by a
+name that never appears in the file. Getting the right answer from the wrong tool is the failure mode
+this prevents.
+
 ## One-line heuristic
 
 **Text in, text out → shell. GUIDs, the asset graph, or any write to serialized state → Unity MCP.**

@@ -37,6 +37,20 @@ But first ask whether you need it at all: **ability and projectile types have no
 - Extract an RPC's body into a plain `[Server]` method when a test/rig needs to call the real logic.
 - Initial-value timing (payload before `OnStartNetwork`, SyncVars applied then OnChange flushed after Initialize) is verified in the [[fishnet-initial-syncvar-onchange-timing]] memory — the foundation for "seed on server, self-heal on clients" designs.
 
+## Rule 4b — Know WHICH PEER simulates the thing you are mutating
+
+Server-authoritative does not mean server-simulated. Every `Pawn<X>.Update` early-outs on `!input.IsActive`, and:
+
+- **Human pawn** → `HumanPawnInput.IsActive => IsOwner`, so movement and firing are simulated on the **owning client** (the root NetworkTransform is `clientAuthoritative`). The server never runs them.
+- **Bot pawn** → `BotPawnInput.IsActive => IsServerInitialized`, so the **server** simulates.
+- **Scripted test pawn** → same as a bot.
+
+Hit effects, however, run **server-only** (`ServerCollision`). So a server-side write into a pawn's per-tick simulation can land on a peer that never ticks it. This was a real, silent bug: knockback pushed an impulse into `PawnMovement.PendingImpulses` on the server, where a human pawn's `Update` early-outs — the impulse was never consumed *and never cleared*. Knockback simply did not exist for human players on a dedicated server.
+
+**A receiver owns which peer applies its effect.** `KnockbackReceiver.ApplyImpulse` is `[Server]`: it target-RPCs the owner when `Owner.IsValid`, and applies locally otherwise (bots). `HitstunReceiver` publishes a ServerOnly `SyncVar<uint>` **expiry tick** rather than a countdown, precisely because a countdown would have to be ticked in two different places; a tick is a value both peers evaluate against their own `TimeManager.Tick` and agree on. Without it, a stunned client keeps predicting shots the server rejects and the player watches bullets evaporate.
+
+Before adding any receiver or server→pawn write: **name the peer that simulates it.**
+
 ## Rule 5 — Every networked change gets a PlayMode test
 
 Anything touching SyncVar/SyncList/RPC, payloads, server ticks, collision, or ownership can only break on a live FishNet host. Cover it via `NetworkedPlayModeTestFixture` (single host; two-peer fixture for replication/divergence), with the deterministic decision logic still in a pure Core processor under EditMode. See [[integration-testing]].

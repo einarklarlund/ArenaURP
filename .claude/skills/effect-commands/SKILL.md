@@ -64,6 +64,20 @@ A classified hit runs ALL its authored effects — the prefab's list, then the o
 
 **Pooling two-layer rule** (any spawn-time contributor): the authored **baseline** (`InitialSpeed`, prefab scale, `maxHealth`) and the **per-spawn multiplier layer** never share a field; `effective = baseline × multiplier`; the multiplier resets to identity in `ResetState`, the baseline is never wiped. Setters are idempotent and order-independent (`SetSpeedMultiplier`, `SetMaxHealthMultiplier` — the house answer to sibling init with no guaranteed `OnStartNetwork` order). A per-spawn transform mutation needs an owning component with its own `ResetState` (`SpawnScale`) — never a raw `transform.localScale` write, which has no reset owner and leaks across reuse.
 
+## The hit exchange: dealer component + receiver component + courier effect
+
+Damage, knockback, and hitstun are ONE shape, and any new "deal X on hit" copies it:
+
+- **Dealer** on the dealing entity (the projectile): `Damage` / `KnockbackDealer` / `HitstunDealer` — an authored baseline, a public modifier list, and an `Effective*` read-time fold. Server-read only, so no networking.
+- **Receiver** on the struck entity's ROOT (beside `Health`, so one `GetComponentInParent` walk finds it): `KnockbackReceiver` / `HitstunReceiver` — its own resistance modifier list and fold.
+- **Courier effect** typed to a capability composite (`IDamageExchangeContext` / `IKnockbackExchangeContext` / `IHitstunExchangeContext`). It holds **no config and does no arithmetic** — three lines: read the dealer's effective value, hand it to the receiver.
+
+`ServerCollision` resolves both ends once (dealers cached in `Awake`; receivers via `GetComponentInParent` on the struck object) and hands them over. **Each end folds only its own modifiers**, so neither knows the other exists and a new contributor on either side changes nothing else. That is what "modifiers on both ends" means concretely.
+
+The three exchanges are **independent**: a projectile can shove without damaging, or stun without shoving, purely by which components it carries and which effects are authored on it. Never mutate an authored baseline at runtime — contribute a modifier (rule #3 above). Concrete types, not interfaces, on the receiver side ([[no-speculative-interfaces]]): the capability interface belongs on the CONTEXT, never on the component the context resolves.
+
+`ServerCollision.Awake` loudly `LogError`s when an operation is authored but its dealer component is absent — otherwise the bullet silently stops hurting anyone.
+
 ## OPEN: the damage-buff channel (next design task)
 
 `DealDamage` has NO config fields — it reads the source's base `Damage.Amount` through `DamageProcessor.Resolve` (a deliberate seam with an unused multiplier overload). How runtime buffs/crits/level-ups reach a projectile's damage is UNDESIGNED; a `DamageModifier`-fold attempt was reverted. Candidates: a `Damage.Modifiers` contribution list (Family A of [[cross-component-communication]]) vs. a context-carried contribution. **Design it in a dedicated session; do not bolt it onto another feature.**

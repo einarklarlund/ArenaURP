@@ -1,85 +1,63 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code in this repository.
+
+**This file is an INDEX, not a manual.** It holds only what is non-obvious and always relevant. The detail lives in `.claude/skills/`, which load on demand — keep it that way. Start with the `arena-systems-map` skill whenever a task spans more than one system, and `ai-workflow` whenever the *process* feels repetitive or error-prone.
+
+**Before design work or a new feature, read `DESIGN.md`** (roadmap + open questions + ADR index) — several decisions are deliberately deferred there and must not be improvised.
 
 ## Project
 
-Unity 6 (`6000.3.7f1`) URP arena shooter. Multiplayer is server-authoritative via **FishNet** with two transports: **Tugboat** (UDP, standalone) and **CanoeWebRTC** (WebGL via WebRTC + SimpleWebTransport signaling). Solution file: `ArenaURP.slnx`.
+Unity 6 (`6000.3.7f1`) URP arena shooter. Multiplayer is server-authoritative via **FishNet** with two transports: **Tugboat** (UDP, standalone) and **CanoeWebRTC** (WebGL via WebRTC + SimpleWebTransport signaling). Solution: `ArenaURP.slnx`.
 
-Unity Editor path used by scripts: `/Applications/Unity/Hub/Editor/6000.3.7f1/Unity.app/Contents/MacOS/Unity`.
+Editor path used by scripts: `/Applications/Unity/Hub/Editor/6000.3.7f1/Unity.app/Contents/MacOS/Unity`. ParrelSync is installed for multi-instance networked testing.
+
+Scenes: `Boot.unity` (entry) → `Offline.unity` / `Online.unity` / `Debug.unity`. `Networking/Bootstrap.cs` picks Local/Dev/Prod and **swaps the transport** (Tugboat in editor, CanoeWebRTC in WebGL) — never assume the same transport in editor vs. build. `RoomManager` handles WebRTC rooms.
 
 ## Build & Run
 
-Builds are driven from `Assets/Scripts/Editor/BuildScripts.cs`:
+Driven from `Assets/Scripts/Editor/BuildScripts.cs`:
 
-- **WebGL dev build (menu)**: `Build > Build WebGL Development` (uses `BuildScripts.BuildWebGLDevelopment`, output: `builds/webgl`).
-- **WebGL dev build + local server**: `./deploy_local.sh` (closes Unity if running, builds via `-executeMethod BuildScripts.BuildWebGLDevelopment`, then `npx http-server -p 8080`). Use `-s` to skip the build step and just serve.
-- **Standalone build (CLI)**: `Unity -quit -batchmode -projectPath . -executeMethod BuildScripts.BuildProject -buildPlatform <linux|mac|windows> [-development] [-profiler]`. Linux uses the dedicated-server subtarget; mac/windows use the player subtarget. Outputs go to `builds/<platform>_<server|client>/`.
-- **CI**: `.github/workflows` runs `game-ci/unity-builder@v4` for WebGL and deploys `build/WebGL/WebGL` to `gh-pages` on every push to `main`.
-
-ParrelSync is installed for multi-instance editor testing of networked play.
+- **WebGL dev**: menu `Build > Build WebGL Development` → `builds/webgl`.
+- **WebGL dev + local server**: `./deploy_local.sh` (`-s` skips the build and just serves on :8080).
+- **Standalone**: `Unity -quit -batchmode -projectPath . -executeMethod BuildScripts.BuildProject -buildPlatform <linux|mac|windows> [-development] [-profiler]` → `builds/<platform>_<server|client>/`. Linux uses the dedicated-server subtarget.
+- **CI**: `.github/workflows/deploy.yml` builds WebGL and deploys to `gh-pages` on push to `main`.
 
 ## Tests
 
-- Edit-mode NUnit tests live in `Assets/Tests/EditMode/` under the `Arena.Tests` asmdef (Editor-only, `nunit.framework.dll`). They target the **pure `Arena.*.Core` assemblies** — construct config/state/input structs directly, assert on the returned state; no GameObject lifecycle, no FishNet.
-- PlayMode integration tests live in `Assets/Tests/PlayMode/` under `Arena.PlayTests` (FishNet host fixtures: `NetworkedPlayModeTestFixture`, `TwoPeerPlayModeTestFixture`, `CombatPlayModeTestFixture`; typed seams via `*TestRig` classes in Assembly-CSharp reached by reflection). **Every networked change gets a PlayMode test.**
-- Run via Unity's **Test Runner** window, the in-editor `EditModeTestRunner`/`PlayModeTestRunner` helpers (results in `Temp/edit-mode-test-results.json` / Unity's `TestResults.xml`), or CLI: `Unity -batchmode -runTests -testPlatform <editmode|playmode> -projectPath .`.
+EditMode (`Assets/Tests/EditMode/`, asmdef `Arena.Tests`) targets the **pure `Arena.*.Core` assemblies** — construct structs, assert on returned state. PlayMode (`Assets/Tests/PlayMode/`, asmdef `Arena.PlayTests`) uses FishNet host fixtures and reaches Assembly-CSharp through `*TestRig` classes by reflection.
 
-## Architecture: the Processor + thin-MonoBehaviour pattern
+**Delegate test runs to the `unity-validator` subagent** rather than driving the runner from the main thread — it knows the traps (PlayMode's JSON is never written; a stale results file reads as a fresh pass). Rules for what deserves a test, and the gate *"can this test fail?"*, are in the `integration-testing` skill. **Every networked change gets a PlayMode test.**
 
-This is the most important convention in the codebase. Almost every gameplay system is split in two:
+## The one architectural rule
 
-1. **`Arena.<System>.Core` assembly** (pure C#, no `UnityEngine` engine references beyond math types where needed): contains four sibling files — `<X>Config`, `<X>State`, `<X>Input`, and a static `<X>Processor` exposing `Process(state, in config, in input, deltaTime) -> newState`. State flows in and out as structs; the processor has zero Unity lifecycle dependencies. This is what `Arena.Tests` consumes.
-2. **`Pawn<X>` `NetworkBehaviour`** in `Assets/Scripts/Pawn/<X>/`: thin wrapper that reads serialized inspector references, builds an `<X>Input` from `PawnInput.Data` each `Update`, calls `<X>Processor.Process`, and applies the resulting state to Unity components (`CharacterController`, transform, etc.).
+**Gameplay logic goes in a pure `Arena.<System>.Core` processor; the `Pawn<X>` NetworkBehaviour is Unity glue only** — read serialized refs, build an `<X>Input`, call `<X>Processor.Process`, apply the result. Enforced by asmdef boundaries: a Core assembly cannot reference UnityEngine wrappers, FishNet, or other gameplay code. Need a new dependency in a processor? Add a field to its `Config`/`Input` struct instead.
 
-Examples: `MovementProcessor` ↔ `PawnMovement`, `WeaponProcessor` ↔ `PawnWeapon`, `TemperatureProcessor` ↔ `PawnTemperature`, `KnockbackProcessor` ↔ `PawnKnockback`, `MovementEffectsProcessor` ↔ `PawnMovementEffects`. **When adding gameplay logic, put it in the Core processor and write an EditMode test for it; only put Unity glue in the `Pawn<X>` MonoBehaviour.**
+Bot AI follows the same split (`BotBrainLogic`/`BotStateMachine`/`BotInputMath`/`BotVisionMath` ↔ `BotBrain`). → `functional-core-imperative-shell` skill.
 
-Bot AI follows the same split: `BotBrainLogic` / `BotStateMachine` / `BotInputMath` / `BotVisionMath` (pure, in `Arena.Bot.Core`) ↔ `BotBrain` (server-only `NetworkBehaviour` that wires NavMeshAgent + `Sensor` + `BotPawnInput`).
+## Composition & communication
 
-### Cross-system communication: the Modifier list pattern
+`Pawn` is the network identity hub (`SyncVar<NetworkPlayer> ControllingPlayer`) and a thin facade over the sibling generic `Health` — the ONE health system and sole `IDamageable`, shared by pawns, projectiles and props. It deliberately knows little; siblings reference each other through serialized fields.
 
-Systems don't reference each other directly. Instead, `PawnMovement` and `PawnWeapon` each expose a public `List<MovementModifier>` / `List<WeaponModifier>`. Other systems (e.g. `PawnTemperature`) push modifiers in and pull them out as their state changes (`movement.Modifiers.Remove(prev); movement.Modifiers.Add(next);`). The processor folds all current modifiers into the per-tick simulation. Knockback uses a sibling `PendingImpulses` list that the movement processor consumes and `PawnMovement.Update` clears.
+The **hit-RECEIVING** systems (`Health`, `KnockbackReceiver`, `HitstunReceiver`) sit on the entity ROOT, because the collision site resolves each with the same `GetComponentInParent` walk up from the struck collider.
 
-### Pawn composition
+`PawnInput` has three implementations behind one base — `HumanPawnInput` (client-owned), `BotPawnInput` (server-owned), `ScriptedPawnInput` (editor-only) — and every `Pawn<X>` updater early-outs on `if (!input.IsActive) return;`, so one prefab serves humans, bots and tests. **This decides which peer simulates what** → `fishnet-conventions` Rule 4b.
 
-`Pawn` (`Assets/Scripts/Pawn/Pawn.cs`) is the network identity hub: `SyncVar<NetworkPlayer> ControllingPlayer`, plus a thin facade over the sibling generic `Health` component (the ONE health system and sole `IDamageable` — used by pawns, projectiles, and props alike; `Pawn` forwards `Health`/`MaxHealth` and re-raises its damage/death events but is not itself `IDamageable`). It deliberately knows little — sibling components (`PawnMovement`, `PawnWeapon`, `PawnInput`, `PawnTemperature`, `PawnKnockback`, `PawnInteraction`, `PawnActiveAbilities`, `PawnPassiveAbilities`, …) live on the same prefab and reference each other through serialized fields. `PawnInput` has three implementations behind one base: `HumanPawnInput` (client-owned), `BotPawnInput` (server-owned, written by `BotBrain`), and `ScriptedPawnInput` (editor-only, for combat tests). All `Pawn<X>` updaters early-out on `if (!input.IsActive) return;` so the same prefab works for both.
+Systems never call each other. They contribute to collections the producer folds (`PawnMovement.Modifiers`, `PawnWeapon.Modifiers`, `PendingImpulses`) or fire notifications. Managers are wired in exactly one place, `MatchMediator`. → `cross-component-communication` skill.
 
-### Match orchestration
+`MatchFlowManager.State` is a `SyncVar<MatchState>`; drive lifecycle by mutating it on the server. UI events split into `LocalUIEvents` / `NetworkUIEvents`.
 
-Server-only flow lives in `Assets/Scripts/Managers/`:
+## Conventions you must not rediscover
 
-- `MatchMediator` is the central server-side wiring point — it subscribes `NetworkPlayerManager`, `PawnManager`, `MatchFlowManager`, and `DeathmatchManager` to each other. New cross-manager events should be wired here, not inside the managers themselves.
-- `MatchFlowManager.State` is a `SyncVar<MatchState>` (`Pregame` / `PregameCountdown` / `During` / `PostgameCountdown` / `Postgame`) — drive lifecycle changes by mutating it on the server.
-- UI events are split: `LocalUIEvents` (purely local actions/HUD) and `NetworkUIEvents` (events that originate from synced state).
+- **Server-authoritative.** Any gameplay mutation runs inside a `[Server]` method or is triggered from one. → `fishnet-conventions` skill (payload avoidance, SyncVar/RPC discipline, cast-based collision, and **which peer simulates**).
+- **A hit exchange is dealer component + receiver component + courier effect** (damage, knockback, hitstun share one shape; each end folds its own modifiers; never mutate an authored baseline). → `effect-commands` skill.
+- **Swappable behaviour is an `IEffect<TContext>` command** authored on a prefab, typed to a *system capability*, never an object type. → `effect-commands` skill.
+- **A KIND of thing is an identity-only SO + an independent prefab copy** carrying all config; instances self-configure on every peer. Spawning anything a player can own means stamping `NetPlayerOwnership.SpawnOwnerId` *before* `ServerManager.Spawn`. Abilities are instance prefabs with load-bearing roster ordering (**Spawn before Add, RemoveAt before Despawn**). → `type-object-pattern` skill.
+- `Pawn` and `NetworkPlayer` serve **both humans and bots** (`NetworkPlayer.IsBot`). Never assume a client connection on a player.
+- **No interface with one concretion.** The capability interface belongs on the effect *context*, never on the component it resolves.
 
-### Bootstrap / build stages
+## Working with Unity from Claude
 
-`Assets/Scripts/Networking/Bootstrap.cs` runs in the Boot scene and selects between **Local / Dev / Prod** flows based on `EnforceBuildStage` (with sensible `UNITY_EDITOR` / `!UNITY_EDITOR` defaults). It also swaps the FishNet transport: `Tugboat` for editor/standalone, `CanoeWebRTC` for WebGL builds. `RoomManager` handles WebRTC room creation/join. **Do not assume the same transport is active in editor vs. WebGL builds.**
+A project-aware Unity MCP server is connected (`mcp__unity__*`, schemas via `ToolSearch`). **Text search over `.prefab`/`.unity`/`.asset`/`.meta` is wrong** — that YAML stores GUIDs, not names — and a `PreToolUse` hook blocks it. Anything crossing a GUID boundary, or any write to serialized state, goes through the MCP. → `unity-mcp-vs-shell` skill (decision table + gotchas: the stale domain, the silently-reverting prefab save, scene SceneId baking).
 
-Scenes: `Boot.unity` (entry) → `Offline.unity` / `Online.unity` / `Debug.unity`.
-
-## Conventions worth knowing before editing
-
-- The "logic in Core, glue in Pawn" rule above is enforced by asmdef boundaries — `Arena.<X>.Core` cannot reference UnityEngine wrappers, FishNet, or other gameplay code. If you need a new dependency in a processor, prefer adding a field to its `Config`/`Input` struct over adding an asmdef reference.
-- Server-authoritative: any new gameplay state mutation should run inside a `[Server]` method or be triggered from one. Client-predicted projectile spawns go through FishNet's predicted-spawn path — `PawnWeapon.ExecuteShot` instantiates with the firer's own `NetworkManager` (`GetPooledInstantiated(..., asServer:false)`) then `ServerManager.Spawn(nob, Owner)`; follow that pattern rather than inventing a new one.
-- `Pawn` and `NetworkPlayer` are reused for **both human and bot players** (`NetworkPlayer.IsBot`). Don't add code paths that assume a client connection on a player.
-- **Abilities are instance prefabs.** An `AbilityType` SO is identity only (display name, icon, `InstancePrefab`); granting one spawns its prefab and parents it under the pawn's NetworkObject via `NetworkObject.SetParent` (never raw `transform.SetParent` — only SetParent replicates the hierarchy). Gameplay config/state lives on the prefab's `ActiveAbility` / `PassiveAbility` components (`UsesRemaining` is a SyncVar). `PawnActiveAbilities.Actives` is a `SyncList<ActiveAbility>` ROSTER of instance references (slot order + change hooks); the ordering is load-bearing: **Spawn before Add, RemoveAt before Despawn** (an unspawned ref serializes as permanent null; removal-first keeps deltas off dead objects and drives the HUD). Passives have no removal path, so `PawnPassiveAbilities` derives membership from child enumeration. No AbilityDatabase index sync — identity resolves locally via the instance's `TypeObjectRoot`.
-- **Spawning anything a player can own (projectiles, ability children): stamp `NetPlayerOwnership.SpawnOwnerId` yourself.** There is no spawn factory — the sequence is `GetPooledInstantiated` at the spawn pose, set `SpawnOwnerId` (the firer's `NetworkPlayer.ObjectId`), then `ServerManager.Spawn`. The id must be set *before* `Spawn` because it rides the spawn payload (`WritePayload` runs after the OnStart callbacks inside the `Spawn` call). It cannot be self-derived by the component: bots have no owning connection, so `NetworkObject.Owner` won't stand in for it. Everything else self-configures — gameplay config is authored on the prefab's components (the type SO is identity-only; `TypeObjectRoot` just holds the back-ref), and `NetworkedMotion` derives its tick/pos/forward anchor in `OnStartNetwork` from the instantiate pose. Current spawn sites: `PawnWeapon.ExecuteShot` and the `SpawnNetworkObjects` effect; keep new ones to that shape.
-
-## Unity MCP
-
-A project-aware Unity MCP server is available (tools named `mcp__unity__*`, schemas loaded on demand via `ToolSearch`). Prefer it over `find`/`grep` for Unity-shaped questions where text search is the wrong abstraction:
-
-- "Where is this script/asset referenced?" → `find_script_references`, `find_references` (resolves GUIDs, catches prefab/scene refs that grep misses).
-- "What's in this scene/prefab?" → `get_scene_summary`, `get_scene_hierarchy_flat`, `get_prefab_summary`, `get_prefab_dependencies`.
-- "What uses this shader / what's in this asmdef / what's broken?" → `list_materials_using_shader`, `list_scripts_by_assembly`, `get_broken_script_refs`, `get_broken_asset_refs`.
-- Project-wide listings (`list_prefabs`, `list_scriptable_objects`, `list_all_scenes`, etc.) are faster and more reliable than `find` for typed Unity assets.
-
-Grow this section as we hit gotchas — surprising tool behaviors, MCP queries that paid off, paths/conventions that aren't obvious from tool names alone.
-
-### Unity MCP gotchas hit so far
-
-- **`unity_execute_code` runs as a method body, not a file.** No top-level `using` directives — fully-qualify (`UnityEditor.AssetDatabase`, `UnityEngine.Object`) and disambiguate `Object`. `return` to send JSON back.
-- **Creating a prefab variant in code:** instantiate the base with `PrefabUtility.InstantiatePrefab(baseGo)` (a *connected* instance), modify it, then `PrefabUtility.SaveAsPrefabAsset(instance, newPath)` — saving a connected instance to a new path produces a Variant. Wire serialized refs with `SerializedObject`/`FindProperty`/`ApplyModifiedPropertiesWithoutUndo`.
-- **Scene NetworkObjects need a baked SceneId.** A NetworkObject created via script + `EditorSceneManager.SaveScene` ships with `SceneId=0` / `IsSceneObject=false`, so FishNet refuses to spawn it. Bake it: make the scene the ACTIVE scene (`SceneManager.SetActiveScene`), then call `NetworkObject.CreateSceneId(scene, force:true, out _)` (internal static, via reflection) and re-save. The active-scene context is required — it NREs otherwise.
-- **Author scenes additively to protect the open (possibly dirty) scene.** `EditorSceneManager.NewScene(..., NewSceneMode.Additive)` + `SceneManager.MoveGameObjectToScene` + `SaveScene` + `CloseScene`, restoring the previous active scene. Never `OpenScene(..., Single)` on a dirty editor.
+Delegate wide investigation to the **`unity-scout`** subagent and test runs to **`unity-validator`**; main-thread context is for the design. → `ai-workflow` skill.

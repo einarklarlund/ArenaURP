@@ -16,12 +16,40 @@ Two disciplines bound the work:
 - **Push each test down the pyramid.** Logic in a Core processor → EditMode owns it; don't re-verify it through a live GameObject. PlayMode is for what EditMode can't reach: lifecycle, wiring, SyncVar replication, real physics, multi-frame timing. Reaching for PlayMode to test branchy decision logic means logic leaked out of Core — move it back.
 - **Assert observable behaviour, never internal structure**, so tests survive refactors. For broad coverage cheap, use **invariant/soak assertions**: run a bot match 20–30s and assert what must always hold (no error logs — the framework fails on them for free; health never negative; score only increases; the match actually ends).
 
-## Worth writing? Four gates
+## Worth writing? Five gates
 
 1. **Load-bearing?** Would a silent break cause a player-visible bug (divergence, an event that stops firing, a timer that never expires)?
 2. **Is PlayMode the cheapest level that catches it?** Down-rank to EditMode when possible; escalate only for the glue.
 3. **Stable enough to pin?** Pin contracts, not seams you're redesigning weekly.
 4. **Will it survive a refactor?** If it only works coupled to internals, narrow the assertion to one observable effect.
+5. **CAN IT FAIL?** Before trusting a green test, name the change that would turn it red.
+
+### Gate 5: the test that cannot fail
+
+A test asserting the **absence** of an effect — "the victim is not stunned", "it did not move", "no projectile spawned", "no error was logged" — passes just as happily when the feature **does not exist at all**: the component is missing from the prefab, the effect was never authored on the list, the wire was never connected. It reports green over a hole.
+
+This is not hypothetical. `HitstunKnockbackTests` once shipped `Hitstun_resistance_of_zero_makes_the_victim_immune` and `Knockback_resistance_of_zero_makes_the_victim_immovable` — both **passed against a Bullet prefab carrying neither dealer component nor either operation.** Two green tests, zero feature.
+
+So: **every absence-assertion needs a positive control** — a companion assertion, ideally in the same fixture and preferably in the *same test*, proving the mechanism fires when it isn't suppressed.
+
+```csharp
+// NOT ENOUGH — green when the feature is absent.
+SetHitstunResistance(target, 0f);
+ShootUntilHit(shooter, target);
+Assert.IsFalse(IsStunned(target));
+
+// Positive control first: prove the baseline mechanism actually works...
+ShootUntilHit(shooter, control);
+Assert.IsTrue(IsStunned(control), "control: an unresisted pawn IS stunned");
+// ...only then is the suppression meaningful.
+SetHitstunResistance(target, 0f);
+ShootUntilHit(shooter, target);
+Assert.IsFalse(IsStunned(target), "0x resistance absorbs the stun");
+```
+
+The same trap wears other clothes: `Assert.AreEqual(0, spawnCount)` when nothing could ever spawn; `LogAssert.NoUnexpectedReceived()` when the code path never ran; `Assert.IsFalse(died)` against a pawn that was never shot. **Assert the precondition that proves the code under test executed** (`Assert.Less(Health(target), StartHealth, "sanity: it really was hit")`) — an absence-assertion is only evidence if you first prove the trigger occurred.
+
+Corollary for authored data: a test exercising a prefab-authored effect list is also testing the **authoring**. Assert the component/operation is present, or make the mechanism fire visibly, or a later prefab edit silently deletes your coverage.
 
 When a test is unusually hard to write, that's signal: either the seam relies on undocumented ordering/statics (fix production) or the test over-reaches (narrow it). Don't suppress the signal with `LogAssert`/reflection layers.
 
