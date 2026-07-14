@@ -28,8 +28,8 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
     private readonly List<MovementModifier> _appliedMove = new();
     private readonly List<WeaponModifier> _appliedWeapon = new();
     // Owner-contributed projectile operations, aggregated from equipped passives' authored lists.
-    private readonly List<IEffect<ProjectileSurfaceCollision>> _ownerSurface = new();
-    private readonly List<IEffect<ProjectilePlayerCollision>> _ownerPlayer = new();
+    private readonly List<IEffect<ProjectileImpact>> _ownerSurface = new();
+    private readonly List<IEffect<ProjectileImpact>> _ownerPlayer = new();
     private readonly List<IEffect<ProjectileProjectileCollision>> _ownerProjectile = new();
 
     // Scratch buffer for child enumeration (avoid per-call allocation).

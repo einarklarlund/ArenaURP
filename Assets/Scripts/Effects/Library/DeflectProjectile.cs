@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// Redirect the source projectile along the OTHER projectile's heading, preserving this one's speed (ports the
 /// old ProjectileBulletImpact). Reads both projectiles' motion systems from the context —
-/// <see cref="IMotionContext.Motion"/> (the source) and <see cref="ProjectileProjectileCollision.OtherMotion"/>
+/// <see cref="ProjectileImpact.Motion"/> (the source) and <see cref="ProjectileProjectileCollision.OtherMotion"/>
 /// (the struck projectile) — computes the redirect with the pure <see cref="DeflectMath"/>, and begins a new
 /// synced segment from the hit point. Deliberately typed to the CONCRETE
 /// <see cref="ProjectileProjectileCollision"/> rather than a system capability: its correctness depends on the

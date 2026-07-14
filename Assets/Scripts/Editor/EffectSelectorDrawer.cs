@@ -12,9 +12,9 @@ using UnityEngine;
 /// The one idea that makes it work: for a field whose element type is <c>IEffect&lt;TAuthored&gt;</c>, an effect
 /// type <c>E</c> is offered when <c>E</c> implements some <c>IEffect&lt;TNeed&gt;</c> with
 /// <c>TNeed.IsAssignableFrom(TAuthored)</c>. That is a plain interface-implementation test — it does NOT rely on
-/// reflection honouring generic contravariance — so an <c>IEffect&lt;IAimContext&gt;</c> is correctly offered in
-/// an <c>IEffect&lt;ProjectilePlayerCollision&gt;</c> list because ProjectilePlayerCollision implements
-/// IAimContext. The runtime already accepts the stored instance there via the contravariant <c>in TContext</c>.
+/// reflection honouring generic contravariance — so an <c>IEffect&lt;AimContext&gt;</c> is correctly offered in
+/// an <c>IEffect&lt;ProjectileImpact&gt;</c> list because ProjectileImpact descends from
+/// AimContext. The runtime already accepts the stored instance there via the contravariant <c>in TContext</c>.
 /// </summary>
 [CustomPropertyDrawer(typeof(EffectSelectorAttribute))]
 public sealed class EffectSelectorDrawer : PropertyDrawer
@@ -77,7 +77,7 @@ public sealed class EffectSelectorDrawer : PropertyDrawer
         Type element = ElementType(fieldInfo?.FieldType);
         if (element != null && element.IsGenericType && element.GetGenericTypeDefinition() == typeof(IEffect<>))
             return element.GetGenericArguments()[0];
-        return typeof(IEffectContext);
+        return typeof(EffectContext);
     }
 
     static Type ElementType(Type fieldType)

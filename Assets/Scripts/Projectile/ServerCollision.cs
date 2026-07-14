@@ -11,10 +11,10 @@ using SC = Arena.ServerCollision;
 /// itself, classifies each hit with the pure <see cref="SC.ServerCollisionProcessor"/>, then resolves the hit:
 /// on an enemy hit it first runs the hit EXCHANGES from component presence (dealer on this projectile ∧ receiver
 /// on the victim — damage/knockback/hitstun, see <see cref="ResolveExchanges"/>; ADR 0002), then builds the
-/// matching concrete reaction context (<see cref="ProjectileSurfaceCollision"/> /
-/// <see cref="ProjectilePlayerCollision"/> / <see cref="ProjectileProjectileCollision"/>) and runs this prefab's
-/// authored reactions for that category, then the owner's runtime contributions (passive abilities / powerups,
-/// looked up server-side).
+/// matching reaction context (<see cref="ProjectileImpact"/> for surface and player hits,
+/// <see cref="ProjectileProjectileCollision"/> for projectile hits) and runs this prefab's authored reactions
+/// for that category, then the owner's runtime contributions (passive abilities / powerups, looked up
+/// server-side).
 ///
 /// It holds no ProjectileType: its collision radius, lifetime, and hit operations are AUTHORED ON THE PREFAB
 /// (prefab-per-kind), so they are runtime-tunable per instance and identical on every peer with nothing on the
@@ -49,10 +49,10 @@ public sealed class ServerCollision : NetworkBehaviour
     [Header("Hit reactions (operations run per hit category)")]
     [Tooltip("Operations run when this projectile hits a surface (wall/stage).")]
     [SerializeReference, EffectSelector]
-    public List<IEffect<ProjectileSurfaceCollision>> OnSurface = new();
+    public List<IEffect<ProjectileImpact>> OnSurface = new();
     [Tooltip("Operations run when this projectile hits a player.")]
     [SerializeReference, EffectSelector]
-    public List<IEffect<ProjectilePlayerCollision>> OnPlayer = new();
+    public List<IEffect<ProjectileImpact>> OnPlayer = new();
     [Tooltip("Operations run when this projectile hits another projectile.")]
     [SerializeReference, EffectSelector]
     public List<IEffect<ProjectileProjectileCollision>> OnProjectile = new();
@@ -154,7 +154,7 @@ public sealed class ServerCollision : NetworkBehaviour
             if (worldInfo.Category == SC.HitCategory.Enemy)
             {
                 ResolveExchanges(hitObject, in worldInfo, owner);
-                var ctx = new ProjectilePlayerCollision(gameObject, owner,
+                var ctx = new ProjectileImpact(gameObject, owner,
                     worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter,
                     _motion, _health);
                 RunEffects(OnPlayer, ctx);
@@ -162,7 +162,7 @@ public sealed class ServerCollision : NetworkBehaviour
             }
             else
             {
-                var ctx = new ProjectileSurfaceCollision(gameObject, owner,
+                var ctx = new ProjectileImpact(gameObject, owner,
                     worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter,
                     _motion, _health);
                 RunEffects(OnSurface, ctx);
@@ -323,7 +323,7 @@ public sealed class ServerCollision : NetworkBehaviour
     // never change a hit's outcome. Death gates only what comes AFTER the hit: the projectile channel, further
     // overlap hits, and despawn.
 
-    private void RunEffects<T>(IReadOnlyList<IEffect<T>> ops, T ctx) where T : IEffectContext
+    private void RunEffects<T>(IReadOnlyList<IEffect<T>> ops, T ctx) where T : EffectContext
     {
         if (ops == null)
             return;

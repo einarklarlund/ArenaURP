@@ -7,12 +7,12 @@ using UnityEngine;
 /// Spawn the networked prefab(s) configured on a referenced <see cref="SpawnableObjects"/> component, fanned
 /// across its spread around the context's direction and originating at the context's point. The ONE generic
 /// networked-spawn reaction, reused by a projectile hit (children at the impact point) and by an ability (a fan
-/// from the caster); it reads only an origin + direction, so it is typed to <see cref="IAimContext"/> — a
-/// single <see cref="Apply(IAimContext)"/> authorable on every collision context and on <see cref="AbilityAim"/>.
+/// from the caster); it reads only an origin + direction, so it is typed to <see cref="AimContext"/> — a
+/// single <see cref="Apply(AimContext)"/> authorable on every collision context and on <see cref="AimContext"/>.
 ///
 /// The prefab list, count, and spread are all data on a <see cref="SpawnableObjects"/> component (a plain
 /// data-holder, not a first-class system). By default it is resolved via GetComponent on the context's
-/// <see cref="IEffectContext.Source"/> (the projectile on a hit, the caster's pawn on an ability use). Set
+/// <see cref="EffectContext.Source"/> (the projectile on a hit, the caster's pawn on an ability use). Set
 /// <see cref="source"/> (the one allowed reference on an otherwise stateless effect) only when the effect is
 /// authored on the applier's own prefab AND the source carries several <see cref="SpawnableObjects"/>, which a
 /// bare GetComponent could not disambiguate.
@@ -23,7 +23,7 @@ using UnityEngine;
 /// owning connection), so it is stamped here from the context.
 /// </summary>
 [System.Serializable]
-public sealed class SpawnNetworkObjects : IEffect<IAimContext>
+public sealed class SpawnNetworkObjects : IEffect<AimContext>
 {
     [SerializeField, Tooltip("Optional explicit SpawnableObjects. Leave null to resolve via GetComponent on the context's Owner; set it only to disambiguate when the owner carries several.")]
     private SpawnableObjects source;
@@ -32,7 +32,7 @@ public sealed class SpawnNetworkObjects : IEffect<IAimContext>
 
     public SpawnNetworkObjects(SpawnableObjects source) => this.source = source;
 
-    public void Apply(IAimContext ctx)
+    public void Apply(AimContext ctx)
     {
         SpawnableObjects resolved = source;
         if (resolved == null && (ctx.Source == null || !ctx.Source.TryGetComponent(out resolved)))

@@ -19,7 +19,7 @@ using UnityEngine;
 /// FishNet's despawn-callback timing).
 ///
 /// This component owns the pawn-side concerns: input edges, the selection SyncVar, the server-side use path
-/// (cooldown gate, building the <see cref="AbilityAim"/> context, despawning exhausted instances), and the
+/// (cooldown gate, building the <see cref="AimContext"/> context, despawning exhausted instances), and the
 /// <see cref="InventoryChanged"/> HUD hook. Passive abilities live on the sibling <see cref="PawnPassiveAbilities"/>.
 /// </summary>
 public sealed class PawnActiveAbilities : NetworkBehaviour
@@ -142,13 +142,13 @@ public sealed class PawnActiveAbilities : NetworkBehaviour
         }
     }
 
-    private AbilityAim BuildContext()
+    private AimContext BuildContext()
     {
         Transform src = aimSource != null ? aimSource : transform;
         // Source = the caster's pawn; an aimed ability has only an origin + direction (no target/normal/systems),
-        // which the AbilityAim typing enforces on the operations authored here. The caster's player id, when
+        // which the AimContext typing enforces on the operations authored here. The caster's player id, when
         // an operation needs it, is read off Instigator.ObjectId.
-        return new AbilityAim(
+        return new AimContext(
             source: pawn != null ? pawn.gameObject : gameObject,
             instigator: pawn != null ? pawn.ControllingPlayer.Value : null,
             point: src.position,

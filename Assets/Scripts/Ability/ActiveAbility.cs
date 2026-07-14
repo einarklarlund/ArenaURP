@@ -26,7 +26,7 @@ public sealed class ActiveAbility : NetworkBehaviour
 
     [Header("Operations run when the ability is used (aimed from the caster)")]
     [SerializeReference, EffectSelector]
-    public List<IEffect<AbilityAim>> OnUse = new();
+    public List<IEffect<AimContext>> OnUse = new();
 
     /// <summary>Server-authoritative remaining uses; the HUD reads it on every peer.</summary>
     public readonly SyncVar<int> UsesRemaining = new();
@@ -71,7 +71,7 @@ public sealed class ActiveAbility : NetworkBehaviour
     /// the ability is exhausted (the caller despawns this instance).
     /// </summary>
     [Server]
-    public bool ServerUse(AbilityAim ctx)
+    public bool ServerUse(AimContext ctx)
     {
         if (OnUse != null)
             for (int i = 0; i < OnUse.Count; i++)

@@ -3,12 +3,12 @@ using UnityEngine;
 
 /// <summary>
 /// Reflect the source across the surface normal and continue on a new segment. Coupled to the MOTION
-/// system: it names <see cref="IMotionSurfaceContext"/> and takes the source's resolved
+/// system: it names <see cref="ProjectileImpact"/> and takes the source's resolved
 /// <see cref="NetworkedMotion"/> handle from the context (no <c>GetComponent</c>), reflects the hit's INCOMING
 /// direction with the pure <see cref="RicochetMath"/>, and begins a new authoritative segment (which syncs to
 /// every peer). Authorable on any collision (reflect off a wall, a player, or another projectile).
 ///
-/// It reflects <see cref="IAimContext.Direction"/> — the incoming heading captured ONCE at hit classification,
+/// It reflects <see cref="AimContext.Direction"/> — the incoming heading captured ONCE at hit classification,
 /// before any effect ran — NOT the projectile's live velocity. That is what makes a ricochet IDEMPOTENT for a
 /// single hit: if two Ricochets resolve on the same impact (e.g. one authored on the projectile's own
 /// <c>OnSurface</c> and another contributed by the owner's "bouncy" powerup), reflecting the live velocity twice
@@ -18,9 +18,9 @@ using UnityEngine;
 /// taken from the live velocity magnitude, which a reflection preserves, so a prior bounce this hit doesn't skew it.
 /// </summary>
 [System.Serializable]
-public sealed class Ricochet : IEffect<IMotionSurfaceContext>
+public sealed class Ricochet : IEffect<ProjectileImpact>
 {
-    public void Apply(IMotionSurfaceContext ctx)
+    public void Apply(ProjectileImpact ctx)
     {
         if (ctx.Motion == null)
             return;

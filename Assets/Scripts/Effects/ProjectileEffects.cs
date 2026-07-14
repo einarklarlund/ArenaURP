@@ -9,13 +9,13 @@ using System.Collections.Generic;
 /// </summary>
 public readonly struct ProjectileEffects
 {
-    public readonly IReadOnlyList<IEffect<ProjectileSurfaceCollision>> OnSurface;
-    public readonly IReadOnlyList<IEffect<ProjectilePlayerCollision>> OnPlayer;
+    public readonly IReadOnlyList<IEffect<ProjectileImpact>> OnSurface;
+    public readonly IReadOnlyList<IEffect<ProjectileImpact>> OnPlayer;
     public readonly IReadOnlyList<IEffect<ProjectileProjectileCollision>> OnProjectile;
 
     public ProjectileEffects(
-        IReadOnlyList<IEffect<ProjectileSurfaceCollision>> onSurface,
-        IReadOnlyList<IEffect<ProjectilePlayerCollision>> onPlayer,
+        IReadOnlyList<IEffect<ProjectileImpact>> onSurface,
+        IReadOnlyList<IEffect<ProjectileImpact>> onPlayer,
         IReadOnlyList<IEffect<ProjectileProjectileCollision>> onProjectile)
     {
         OnSurface = onSurface;
