@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Arena.Damage;
 using Arena.NetworkedMotion;
 using FishNet.Object;
 using UnityEngine;
@@ -153,20 +152,21 @@ public sealed class ServerCollision : NetworkBehaviour
             Vector3 sourceCenter = worldInfo.Point + worldInfo.Normal * EffectiveRadius;
             if (worldInfo.Category == SC.HitCategory.Enemy)
             {
-                ResolveExchanges(hitObject, in worldInfo, owner);
+                HitResolver.ResolveExchanges(_damage, _knockback, _hitstun,
+                    hitObject, worldInfo.Point, worldInfo.Direction, owner);
                 var ctx = new ProjectileImpact(gameObject, owner,
                     worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter,
                     _motion, _health);
-                RunEffects(OnPlayer, ctx);
-                RunEffects(ownerOps.OnPlayer, ctx);
+                HitResolver.RunEffects(OnPlayer, ctx);
+                HitResolver.RunEffects(ownerOps.OnPlayer, ctx);
             }
             else
             {
                 var ctx = new ProjectileImpact(gameObject, owner,
                     worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter,
                     _motion, _health);
-                RunEffects(OnSurface, ctx);
-                RunEffects(ownerOps.OnSurface, ctx);
+                HitResolver.RunEffects(OnSurface, ctx);
+                HitResolver.RunEffects(ownerOps.OnSurface, ctx);
             }
         }
 
@@ -202,8 +202,8 @@ public sealed class ServerCollision : NetworkBehaviour
             var ctx = new ProjectileProjectileCollision(gameObject, owner,
                 info.Point, info.Normal, info.Direction, info.Point,
                 _motion, _health, other);
-            RunEffects(OnProjectile, ctx);
-            RunEffects(ownerOps.OnProjectile, ctx);
+            HitResolver.RunEffects(OnProjectile, ctx);
+            HitResolver.RunEffects(ownerOps.OnProjectile, ctx);
 
             if (firstHandled < 0)
                 firstHandled = other.Id;
@@ -268,68 +268,13 @@ public sealed class ServerCollision : NetworkBehaviour
         return default;
     }
 
-    // ---- the hit exchanges (presence-dispatch; ADR 0002) ----
-    // An exchange fires iff this projectile carries the DEALER component and the struck entity carries the
-    // RECEIVER — no courier effect, no authored row: carrying KnockbackDealer but not Damage IS "shove without
-    // damaging". Each end folds only its own modifiers. Runs inside the same atomic classified hit as the
-    // reaction lists, BEFORE them; a projectile dying to its own LoseHealth reaction cannot retract an exchange.
-    // Deliberately NOT run in the projectile channel (see ProjectileProjectileCollision's doc).
-
-    private void ResolveExchanges(GameObject hitObject, in SC.HitInfo info, NetworkPlayer owner)
-    {
-        if (_damage != null)
-        {
-            var damageable = ResolveDamageable(hitObject);
-            if (damageable != null)
-                damageable.TakeDamage(new DamageInfo
-                {
-                    Amount = DamageProcessor.Resolve(_damage.Amount),
-                    Attacker = owner,
-                    HitPoint = info.Point,
-                    Direction = info.Direction,
-                    Type = DamageType.Bullet,
-                });
-        }
-
-        if (_knockback != null)
-        {
-            var receiver = ResolveKnockbackReceiver(hitObject);
-            if (receiver != null)
-                receiver.ApplyImpulse(_knockback.EffectiveImpulse(info.Direction));
-        }
-
-        if (_hitstun != null)
-        {
-            var receiver = ResolveHitstunReceiver(hitObject);
-            if (receiver != null)
-                receiver.ApplyHitstun(_hitstun.EffectiveSeconds);
-        }
-    }
-
-    // Resolve the struck entity's RECEIVING systems once, here at the site that knows what was hit. All three
-    // walk UP from the struck collider, which is why every receiver lives on the entity ROOT.
-    private static IDamageable ResolveDamageable(GameObject hit)
-        => hit != null ? hit.GetComponentInParent<IDamageable>() : null;
-
-    private static KnockbackReceiver ResolveKnockbackReceiver(GameObject hit)
-        => hit != null ? hit.GetComponentInParent<KnockbackReceiver>() : null;
-
-    private static HitstunReceiver ResolveHitstunReceiver(GameObject hit)
-        => hit != null ? hit.GetComponentInParent<HitstunReceiver>() : null;
-
-    // ---- operation running ----
-    // A classified hit resolves ATOMICALLY: the exchanges and every authored operation for that hit run (this
-    // prefab's list, then the owner's contributions) even if the projectile dies mid-hit, so authored order can
-    // never change a hit's outcome. Death gates only what comes AFTER the hit: the projectile channel, further
-    // overlap hits, and despawn.
-
-    private void RunEffects<T>(IReadOnlyList<IEffect<T>> ops, T ctx) where T : EffectContext
-    {
-        if (ops == null)
-            return;
-        for (int i = 0; i < ops.Count; i++)
-            ops[i]?.Apply(ctx);
-    }
+    // ---- hit resolution policy ----
+    // The exchanges (presence-dispatch: dealer ∧ receiver; ADR 0002) and the reaction lists are run through the
+    // shared HitResolver. A classified hit resolves ATOMICALLY: the exchanges and every authored operation run
+    // (this prefab's list, then the owner's contributions) even if the projectile dies mid-hit, so authored
+    // order can never change a hit's outcome. Death gates only what comes AFTER the hit: the projectile channel,
+    // further overlap hits, and despawn. Exchanges deliberately do NOT run in the projectile channel (see
+    // ProjectileProjectileCollision's doc).
 
     private bool IsDead() => _health != null && _health.IsDead;
 
