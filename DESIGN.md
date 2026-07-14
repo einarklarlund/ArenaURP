@@ -43,6 +43,11 @@ Two north stars govern everything, and **every skill, rule, ADR, and abstraction
 
 _Keep this short — a few lines per thread, newest first. Delete finished threads once their outcome lives in code + an ADR._
 
+- **Spike features → real content** (NEXT, one session each) — the ADR 0002 review spiked three upgrade-interactions as throwaway evidence; build them for real, in this order. Spike code in `.claude/worktrees/agent-*` is REFERENCE ONLY (pre-refactor APIs — the pattern strains it found are exactly what the refactor fixed); do not merge it.
+  1. **Proximity explosion** — first real consumer of `HitResolver` fan-out + the per-target `damageMultiplier` (falloff). No open-question dependencies. Watch: dedupe victims across the overlap, and decide the direct-hit double-dip (direct exchange + blast falloff on the same victim) explicitly.
+  2. **Passive-steal active ability** — capsule-cast victim, remove-then-grant across two rosters (ability↔ability interaction, the essence). Spike learnings: passives need an individual-removal path (`RemovePassive`); the steal moves the KIND, not the instance; resolve the stolen kind BEFORE despawning. Every networked change → PlayMode test.
+  3. **The damage-buff channel design session** (already in Open questions — run it HERE, before item 4): it owns spike 4 (scalable/resistible knockback = the dealing-end contributor), owner-adds-flat-damage, and the per-target multiplier's contributor story. Deliverable: ADR 0003.
+  4. **Movement-stealing projectile** (attacker speeds up, victim slows, timed) — deliberately LAST: it forces two deferred decisions whose triggers fire here (the timed-modifier lifetime — build the generic receiver once, not per-system twins — and the wire-payload class for dealer-configured, receiver-simulated effects → `fishnet-conventions`).
 - **IEffect refactor** — command core kept; capability lattice, courier effects, and sink-buff commands removed; presence-dispatch + `HitResolver` added ([ADR 0002](Docs/design/0002-ieffect-appropriateness-verdict.md), measured outcome in its Outcome note). Shipped 2026-07-13; workflow-auditor drift sweep applied. Delete on next pruning pass.
 - **Hit exchanges** — damage, knockback, hitstun unified as dealer/receiver/courier ([ADR 0001](Docs/design/0001-hit-exchange-pattern.md)). Shipped. Knockback + hitstun now per-weapon tunable.
 
