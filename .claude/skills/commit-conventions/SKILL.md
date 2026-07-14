@@ -26,7 +26,7 @@ and in memories/skills.
 - ✅ "Spawned objects can be granted extra durability (survive more ricochets/bounces)."
 - ✅ "New content abilities Big Bullets and Bouncy Ball, plus their pickups."
 - ✅ "Rename the on-spawn buffs to name the system, not the object: BuffProjectileSpeed/Scale → BuffSpeed/Scale."
-- ❌ "Added `IMovementModifierContext`/`IWeaponModifierContext` sink capabilities and a `PawnStatBuff` context that appends to `_appliedMove`/`_appliedWeapon`…" (implementation detail — belongs in code)
+- ❌ "Added a `HitResolver.ResolveExchanges` presence check over the `_damage`/`_knockback`/`_hitstun` handles and slimmed the `ProjectileImpact` constructor…" (implementation detail — belongs in code)
 
 Rule of thumb: if a bullet only makes sense to someone who has the diff open, it's too low-level — lift it to
 the behaviour it produces.
