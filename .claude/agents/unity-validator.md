@@ -54,3 +54,7 @@ SUSPECT: <your one-line hypothesis for the cause, if you have one>
 ```
 
 On a clean run, return the two count lines and nothing else. Do not paste passing test names. If a run times out or the editor is unreachable, say so plainly rather than inferring a pass.
+
+**Never end your turn while a run is in flight.** A launched suite with no parsed verdict is an unfinished job — keep polling (blocking `until`-loop with a generous timeout) until the results XML you watched for appears, then report. "PlayMode is running, waiting for the XML" is not a report; it forces the caller to resume you. (Scar: 2026-07-13, a gate run stopped mid-poll and stalled the ADR 0002 migration until nudged.)
+
+**3. EditMode also writes the same TestResults.xml.** When running both suites, the EditMode run re-creates the XML the PlayMode poll is watching for — delete it again between the suites, and verify the file you finally parse by namespace (`Arena.PlayTests`) and timestamps, not by mere existence.
