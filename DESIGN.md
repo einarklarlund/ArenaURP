@@ -15,7 +15,7 @@ The **why** layer. This is where design rationale, alternatives considered, and 
 
 **What makes this game unique and interesting to PLAY** — not the marketing pitch. Every system, feature, and abstraction answers to this. Kept deliberately tiny: if you can't recite it, it isn't doing its job.
 
-> An arena FPS deathmatch where players compete to **build the best character** (rogue-like / deckbuilder) — **rather than** control maps and resources.
+> An arena deathmatch FPS where players **build their characters** a la rogue-like or deck builder.
 >
 > The depth comes from a **handful of systems interacting**; upgrades target those systems and, above all, the **interactions between them**.
 
