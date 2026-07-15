@@ -7,10 +7,10 @@ namespace Arena.Tests.Damage
     public class DamageProcessorTests
     {
         [Test]
-        public void Resolve_Base_NeverNegative()
+        public void Resolve_IdentityMultiplier_NeverNegative()
         {
-            Assert.AreEqual(7, DamageProcessor.Resolve(7));
-            Assert.AreEqual(0, DamageProcessor.Resolve(-3));
+            Assert.AreEqual(7, DamageProcessor.Resolve(7, 1f));
+            Assert.AreEqual(0, DamageProcessor.Resolve(-3, 1f));
         }
 
         [Test]

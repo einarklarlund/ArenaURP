@@ -19,6 +19,7 @@ using UnityEngine;
 /// The sibling <see cref="global::Health"/> is the sole <see cref="IDamageable"/>; hit operations resolve it
 /// directly. <see cref="TakeDamage"/> here is a convenience forwarder for the HurtBox wiring and the rigs.
 /// </summary>
+[RequireComponent(typeof(Health))]
 public class Pawn : NetworkBehaviour
 {
     [Header("Synced State")]
@@ -44,7 +45,10 @@ public class Pawn : NetworkBehaviour
         _health = GetComponent<Health>();
         if (_health == null)
         {
+            // [RequireComponent] should keep the sibling attached; if it is stripped anyway, fail loudly ONCE and
+            // disable rather than silently forwarding a null facade into per-frame NREs across every reader.
             Debug.LogError($"{nameof(Pawn)} requires a sibling Health component.", this);
+            enabled = false;
             return;
         }
         _health.OnDamageTaken += HandleDamageTaken;

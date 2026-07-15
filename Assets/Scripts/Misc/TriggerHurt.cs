@@ -9,6 +9,11 @@ public class TriggerHurt : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        // Hazard damage is server-authoritative; clients react via replication. Without this guard every peer's
+        // local physics would call the all-peer predictive Health.TakeDamage — spurious client hit VFX, and on a
+        // host the death/respawn chain runs twice.
+        if (!IsServerStarted) return;
+
         if (other.TryGetComponent<IDamageable>(out var damageable))
         {
             DamageInfo info = new()

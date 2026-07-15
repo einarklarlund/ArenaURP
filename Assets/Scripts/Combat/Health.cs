@@ -113,8 +113,10 @@ public class Health : NetworkBehaviour, IDamageable
         // Predictive: every peer reacts before the SyncVar is updated (knockback/VFX/colour flash).
         OnDamageTaken?.Invoke(info);
 
-        // Client-side predictive death (subject to rollback; UI consumers must tolerate it).
-        if (IsClientInitialized && CurrentHealth.Value - info.Amount <= 0)
+        // Client-side predictive death (subject to rollback; UI consumers must tolerate it). NOT on the host —
+        // there IsClientInitialized && IsServerInitialized are both true, and the authoritative server branch
+        // below already raises OnDeath, so a bare IsClientInitialized check would double-fire it.
+        if (IsClientInitialized && !IsServerInitialized && CurrentHealth.Value - info.Amount <= 0)
             OnDeath?.Invoke(info);
 
         if (!IsServerInitialized)

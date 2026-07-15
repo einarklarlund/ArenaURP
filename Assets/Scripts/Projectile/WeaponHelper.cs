@@ -29,15 +29,4 @@ public static class WeaponHelper
 
         return firePoint.rotation * spreadRotation * Vector3.forward;
     }
-
-    /// <summary>
-    /// Original overload for backward compatibility.
-    /// </summary>
-    public static Vector3 CalculateSpread(
-        WeaponData weaponData, Transform firePoint, int index, int total)
-    {
-        return CalculateSpread(
-            weaponData.SpreadType, weaponData.ProjectilesPerShot,
-            weaponData.SpreadAngle, firePoint, index, total);
-    }
 }

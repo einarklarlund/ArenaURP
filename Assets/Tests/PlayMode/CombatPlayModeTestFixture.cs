@@ -59,6 +59,9 @@ namespace Arena.PlayTests
         protected void SetFiring(GameObject pawn, bool fire) => Invoke("SetFiring", pawn, fire);
         protected void Stop(GameObject pawn) => Invoke("Stop", pawn);
         protected void SetWeapon(GameObject pawn, string weaponDataPath) => Invoke("SetWeapon", pawn, weaponDataPath);
+        protected void OverrideWeaponSpread(GameObject pawn, int pellets, float spreadAngle, bool even = true) => Invoke("OverrideWeaponSpread", pawn, pellets, spreadAngle, even);
+        protected void AddSpreadModifier(GameObject pawn, float spreadMultiplier) => Invoke("AddSpreadModifier", pawn, spreadMultiplier);
+        protected float[] ProjectileYaws(GameObject shooter) => (float[])Invoke("ProjectileYaws", shooter);
         protected void SetKnockbackResistance(GameObject pawn, float multiplier) => Invoke("SetKnockbackResistance", pawn, multiplier);
         protected void SetHitstunResistance(GameObject pawn, float multiplier) => Invoke("SetHitstunResistance", pawn, multiplier);
 

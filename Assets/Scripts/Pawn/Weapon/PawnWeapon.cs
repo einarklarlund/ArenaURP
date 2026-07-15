@@ -73,13 +73,16 @@ public class PawnWeapon : NetworkBehaviour
         }
     }
 
-    private void ExecuteShot(WeaponData currentWeapon, float spreadAngle)
+    private void ExecuteShot(WeaponData currentWeapon, float effectiveSpread)
     {
         int count = currentWeapon.ProjectilesPerShot;
 
         for (int i = 0; i < count; i++)
         {
-            var fireDir = WeaponHelper.CalculateSpread(currentWeapon, firePoint, 0, currentWeapon.ProjectilesPerShot);
+            // effectiveSpread is post-modifier (overheat widens, accuracy buffs tighten); i is this pellet's
+            // slot in the fan. The 4-arg overload read the raw SpreadAngle at index 0 — every pellet identical.
+            var fireDir = WeaponHelper.CalculateSpread(
+                currentWeapon.SpreadType, count, effectiveSpread, firePoint, i, count);
             Vector3 spawnPos = firePoint.TransformPoint(currentWeapon.SpawnPositionOffset);
 
             if (currentWeapon.Projectile == null)

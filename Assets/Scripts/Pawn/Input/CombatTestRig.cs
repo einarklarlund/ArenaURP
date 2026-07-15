@@ -146,13 +146,51 @@ public static class CombatTestRig
         input.Fire = false;
     }
 
+    static readonly FieldInfo WeaponDataField =
+        typeof(PawnWeapon).GetField("weaponData", BindingFlags.NonPublic | BindingFlags.Instance);
+
     /// <summary>Swap the equipped weapon (private serialized field on PawnWeapon).</summary>
     public static void SetWeapon(GameObject pawnGo, string weaponDataPath)
     {
         var wd = AssetDatabase.LoadAssetAtPath<WeaponData>(weaponDataPath);
         if (wd == null) throw new System.Exception($"CombatTestRig: missing WeaponData {weaponDataPath}");
-        typeof(PawnWeapon).GetField("weaponData", BindingFlags.NonPublic | BindingFlags.Instance)
-            .SetValue(Weapon(pawnGo), wd);
+        WeaponDataField.SetValue(Weapon(pawnGo), wd);
+    }
+
+    /// <summary>Reconfigure the equipped weapon for a multi-pellet fan by swapping in a runtime CLONE of its
+    /// WeaponData — so the spread geometry can be exercised without authoring an asset, and the shared SO is never
+    /// dirtied. Keeps the original projectile / fire mode; overrides only pellet count, spread angle and type.</summary>
+    public static void OverrideWeaponSpread(GameObject pawnGo, int pellets, float spreadAngle, bool even = true)
+    {
+        var weapon = Weapon(pawnGo);
+        var src = (WeaponData)WeaponDataField.GetValue(weapon);
+        var clone = Object.Instantiate(src);
+        clone.ProjectilesPerShot = pellets;
+        clone.SpreadAngle = spreadAngle;
+        clone.SpreadType = even ? SpreadType.Even : SpreadType.Random;
+        WeaponDataField.SetValue(weapon, clone);
+    }
+
+    /// <summary>Contribute a spread modifier to the weapon's fold (effective spread = authored × multiplier).
+    /// 1 = unchanged, &gt;1 widens (overheat), &lt;1 tightens (accuracy buff).</summary>
+    public static void AddSpreadModifier(GameObject pawnGo, float spreadMultiplier)
+        => Weapon(pawnGo).Modifiers.Add(new WeaponModifier { FireRateMultiplier = 1f, SpreadMultiplier = spreadMultiplier });
+
+    /// <summary>Signed yaw (degrees, around world up) of every live projectile relative to the shooter's aim
+    /// forward. The Even fan has no Random, so these are deterministic: distinct+symmetric yaws prove each pellet
+    /// gets its own slot index (not a shared 0), and the outer magnitude proves the effective (post-modifier)
+    /// spread reached the geometry rather than the raw authored angle.</summary>
+    public static float[] ProjectileYaws(GameObject shooterGo)
+    {
+        Vector3 aim = shooterGo.transform.forward;
+        var yaws = new List<float>();
+        foreach (var kvp in InstanceFinder.ServerManager.Objects.Spawned)
+        {
+            var nob = kvp.Value;
+            if (nob == null || nob.GetComponentInChildren<NetworkedMotion>(true) == null) continue;
+            yaws.Add(Vector3.SignedAngle(aim, nob.transform.forward, Vector3.up));
+        }
+        return yaws.ToArray();
     }
 
     /// <summary>Contribute a standing knockback-resistance modifier to this pawn's receiver (the receiving end of

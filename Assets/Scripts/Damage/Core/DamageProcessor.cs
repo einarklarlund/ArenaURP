@@ -11,9 +11,6 @@ namespace Arena.Damage
     /// </summary>
     public static class DamageProcessor
     {
-        /// <summary>Final damage = base, never negative.</summary>
-        public static int Resolve(int baseAmount) => Mathf.Max(0, baseAmount);
-
         /// <summary>Final damage = round(base × multiplier), never negative.</summary>
         public static int Resolve(int baseAmount, float multiplier) =>
             Mathf.Max(0, Mathf.RoundToInt(baseAmount * multiplier));
