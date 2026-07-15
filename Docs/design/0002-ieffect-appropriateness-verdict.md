@@ -1,6 +1,6 @@
 # ADR 0002 — IEffect verdict: keep the command core, delete the lattice, the couriers, and the data-only buffs
 
-- **Status:** Accepted (2026-07-13; review run the same day per the `ai-workflow` "Questioning an existing design" method). **Superseded by [0003](0003-hit-reactions-as-handler-components.md)** *in part* — the "keep the command core" clause and the on-spawn-buffs-stay-commands claim; the deletions, the exchanges, both-end folds, and the fan-out site stand.
+- **Status:** Accepted (2026-07-13; review run the same day per the "Questioning an existing design" evidence method — then in `ai-workflow`, since 2026-07-15 in `engineering-canon`). **Superseded by [0003](0003-hit-reactions-as-handler-components.md)** *in part* — the "keep the command core" clause and the on-spawn-buffs-stay-commands claim; the deletions, the exchanges, both-end folds, and the fan-out site stand.
 - **Date:** 2026-07-13
 - **Supersedes:** ADR 0001 *in part* — its courier layer only. The dealer/receiver components, both-end modifier folds, and receiver-owned cross-peer application all stand. (Add the one-line note to 0001 on acceptance.)
 

@@ -57,7 +57,7 @@ if printf '%s' "$lc" | grep -Eq '\b(commit|stage|push|pr\b|pull request)\b'; the
 fi
 if printf '%s' "$lc" | grep -Eq '\b(assess|evaluate|is (this|that|it|the) .*(good|right|worth|working)|should (we|i) keep|skeptical|does (this|it) (work|deliver|accomplish)|critique|reconsider|worth it|too complex|over-?engineer)\b'; then
   # Dispatch to the canonical method; do NOT restate it here (one copy, in the skill).
-  add "This reads as ASSESS. Load the \`ai-workflow\` skill and follow its 'Questioning an existing design' method — do not improvise one. The imperative it is easiest to skip: do NOT just agree; delegate the critique to @agent-design-critic, which does not share my sunk cost."
+  add "This reads as ASSESS. Load the \`engineering-canon\` skill and follow its evidence method ('Questioning an existing design') — do not improvise one. The imperative it is easiest to skip: do NOT just agree; delegate the critique to @agent-design-critic, which does not share my sunk cost."
 fi
 
 # Frontier-scan cadence: every Nth substantive prompt, prompt a re-evaluation. This operationalizes

@@ -23,7 +23,7 @@ The **why** layer. This is where design rationale, alternatives considered, and 
 
 Keep one distinction conscious: systems upgrades **modify** (movement, health, weapons, projectiles) vs. systems that **drive/deliver** interactions (pickups deliver upgrades; **kills** is an interaction *source* — an on-kill event feeding a projectile/weapon/health bonus or a dropped pickup). Kills earns its place as *interaction*, which is the essence — not because it drives progression specifically. Weapons (firing cadence/spread/burst) and projectiles (ballistics + hit reactions) stay separate only because upgrades target them separately.
 
-**Scope guard (the agent holds the user to this — see the anti-sycophancy mandate in the `ai-workflow` skill):**
+**Scope guard (the agent holds the user to this — see the anti-sycophancy mandate, canonical in the `ai-workflow-coaching` memory):**
 - The essence stays ~2 sentences. A proposed addition must **replace**, not append — argue what it displaces.
 - The essence's power is its **exclusions** ("rather than control maps and resources"). A pure inclusion justifies anything. When you extend the essence, state what it now rules **out**.
 - **This decides where code complexity is warranted.** System *interactions* and *upgrades* are the essence, so composition/effect machinery earns its keep **there**. A bespoke one-off that doesn't compose into an upgrade, or generality no upgrade will ever use, is the suspect case — no matter how clean the code. (This is the sharpened test the `IEffect` review applied — resolved in ADR 0002/0003: not "23 types for 4 shapes," but "does each piece serve upgrade-driven system interaction?")

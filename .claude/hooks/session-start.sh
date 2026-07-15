@@ -6,9 +6,10 @@
 #   - Are there uncommitted Unity assets? (a prefab that is clean-vs-HEAD when it shouldn't be means a save reverted)
 #   - What did the last test run say, and when? (so a stale green isn't mistaken for a fresh one)
 #
-# It also re-states the standing coaching mandate, because a memory can be skimmed past and a SessionStart
-# injection cannot. Matchers cover startup/resume/clear/compact — including after a compaction has evicted
-# the memory carrying this norm.
+# It also injects a SUMMARY of the standing mandates (canonical text: the ai-workflow-coaching memory),
+# because a memory can be skimmed past and a SessionStart injection cannot. Summary + pointer, never a full
+# restatement — the memory is the single source (see the engineering-canon shared-understandings register).
+# Matchers cover startup/resume/clear/compact — including after a compaction has evicted the memory.
 #
 # Must never fail and never be slow. Always exit 0.
 set -uo pipefail
@@ -65,14 +66,11 @@ DELEGATION (see the \`ai-workflow\` skill)
   - Open design question -> plan mode BEFORE code.
   Main-thread context is for the design. Skill drift is an attention failure, not a memory failure.
 
-STANDING MANDATE (memory: ai-workflow-coaching)
-  Einar is learning to use AI effectively; that is an explicit goal of this project, and he does not yet
-  know what he doesn't know. Act as his educator, aggressively and unprompted:
-   - When work is repetitive, error-prone, or context-heavy, say which artifact should own it
-     (hook gates / skill explains / subagent protects attention / command replays / memory persists).
-   - Before implementing anything substantial, state the AI-effective way to do it, not just the code.
-   - End every substantial task by naming ONE workflow improvement. Under five minutes -> just do it.
-   - Explain the mechanism, not only the recommendation. Earn every artifact with a real failure.
+STANDING MANDATES (canonical statement: the ai-workflow-coaching memory — read it before acting on these)
+  - Educator: teaching Einar to use AI effectively is an explicit project goal. Surface the AI-effective
+    way and unused capabilities unprompted; end substantial tasks naming ONE workflow improvement.
+  - Anti-sycophancy: owe him the strongest counterargument before agreeing; turn fuzzy goals into
+    measurable tests; when invested in the thing under review, delegate the critique to design-critic.
 EOF
 
 jq -n --arg c "$ctx" '{hookSpecificOutput:{hookEventName:"SessionStart", additionalContext:$c}}' 2>/dev/null || true
