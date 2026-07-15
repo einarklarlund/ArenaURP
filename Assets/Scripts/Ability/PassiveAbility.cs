@@ -55,7 +55,11 @@ public sealed class PassiveAbility : NetworkBehaviour
     public override void OnStopNetwork()
     {
         base.OnStopNetwork();
-        NotifyInventory();
+        // Removal-first (the RemoveAt-before-Despawn discipline): destruction is deferred to end of frame and
+        // FishNet flips IsSpawned only AFTER the stop callbacks, so while this notify re-derives, our corpse is
+        // still an enumerable, spawned-looking child — pass ourselves as the leaver so the re-derive skips us.
+        if (_inventory != null)
+            _inventory.NotifyInventoryChanged(leaving: this);
         _inventory = null;
     }
 

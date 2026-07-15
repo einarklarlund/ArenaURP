@@ -199,6 +199,25 @@ public static class CombatTestRig
         => typeof(PawnActiveAbilities).GetMethod("ServerCycleSelected", BindingFlags.NonPublic | BindingFlags.Instance)
             .Invoke(ActiveAbilities(pawnGo), new object[] { dir });
 
+    /// <summary>
+    /// Attach a <see cref="PassiveStealOnHit"/> handler to the FIRST passive instance under this pawn — the
+    /// spike's stand-in for authoring the component on a passive instance prefab (same serialized surface;
+    /// runtime attachment only because the headless run has no editor to author a prefab with). With
+    /// <paramref name="enabled"/> false the authored channel mask is set to None, so dispatch must filter the
+    /// handler out on every channel.
+    /// </summary>
+    public static void AttachStealHandler(GameObject pawnGo, bool enabled = true)
+    {
+        var passives = new List<PassiveAbility>();
+        PassiveAbilities(pawnGo).GetPassives(passives);
+        if (passives.Count == 0)
+            throw new System.Exception("CombatTestRig: pawn has no passive instance to host the steal handler");
+        var handler = passives[0].gameObject.AddComponent<PassiveStealOnHit>();
+        if (!enabled)
+            typeof(PassiveStealOnHit).GetField("enabledChannels", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(handler, HitChannels.None);
+    }
+
     static T LoadAbility<T>(string path) where T : AbilityType
     {
         var a = AssetDatabase.LoadAssetAtPath<AbilityType>(path) as T;
@@ -228,6 +247,18 @@ public static class CombatTestRig
 
     public static int MovementModifierCount(GameObject pawnGo) => Movement(pawnGo).Modifiers.Count;
     public static int WeaponModifierCount(GameObject pawnGo) => Weapon(pawnGo).Modifiers.Count;
+
+    /// <summary>Count entries in the pawn's live weapon modifier list with this exact FireRateMultiplier
+    /// (±0.001) — identifies a SPECIFIC contribution (e.g. a passive's authored buff) in a fold that other
+    /// systems (PawnTemperature contributes its own row once temperature moves) also write to. Raw counts
+    /// are not a valid proxy for one contributor's presence.</summary>
+    public static int CountWeaponModifiersWithFireRate(GameObject pawnGo, float fireRateMultiplier)
+    {
+        int n = 0;
+        foreach (var m in Weapon(pawnGo).Modifiers)
+            if (Mathf.Abs(m.FireRateMultiplier - fireRateMultiplier) < 0.001f) n++;
+        return n;
+    }
     public static int PendingImpulseCount(GameObject pawnGo) => Movement(pawnGo).PendingImpulses.Count;
 
     /// <summary>Currently-applied albedo on the pawn's first mesh renderer (what PawnColor wrote via

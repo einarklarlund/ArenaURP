@@ -152,8 +152,10 @@ public sealed class ServerCollision : NetworkBehaviour
             Vector3 sourceCenter = worldInfo.Point + worldInfo.Normal * EffectiveRadius;
             if (worldInfo.Category == SC.HitCategory.Enemy)
             {
-                HitResolver.ResolveExchanges(_damage, _knockback, _hitstun,
-                    hitObject, worldInfo.Point, worldInfo.Direction, owner);
+                var hitCtx = new HitContext(HitChannels.Player, gameObject, owner, hitObject,
+                    worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter,
+                    _motion, _health);
+                HitResolver.ResolvePlayerHit(_damage, _knockback, _hitstun, in hitCtx);
                 var ctx = new ProjectileImpact(gameObject, owner,
                     worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter,
                     _motion, _health);
@@ -162,6 +164,10 @@ public sealed class ServerCollision : NetworkBehaviour
             }
             else
             {
+                var hitCtx = new HitContext(HitChannels.Surface, gameObject, owner, hitObject,
+                    worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter,
+                    _motion, _health);
+                HitResolver.ResolveSurfaceHit(in hitCtx);
                 var ctx = new ProjectileImpact(gameObject, owner,
                     worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter,
                     _motion, _health);
@@ -199,6 +205,10 @@ public sealed class ServerCollision : NetworkBehaviour
 
             // In the projectile channel the classified Point IS this mover's own centre (selfPos), so the
             // source-centre resume anchor coincides with it — no surface standoff to apply.
+            var hitCtx = new HitContext(HitChannels.Projectile, gameObject, owner, other.gameObject,
+                info.Point, info.Normal, info.Direction, info.Point,
+                _motion, _health, other);
+            HitResolver.ResolveProjectileHit(in hitCtx);
             var ctx = new ProjectileProjectileCollision(gameObject, owner,
                 info.Point, info.Normal, info.Direction, info.Point,
                 _motion, _health, other);
@@ -269,12 +279,15 @@ public sealed class ServerCollision : NetworkBehaviour
     }
 
     // ---- hit resolution policy ----
-    // The exchanges (presence-dispatch: dealer ∧ receiver; ADR 0002) and the reaction lists are run through the
-    // shared HitResolver. A classified hit resolves ATOMICALLY: the exchanges and every authored operation run
-    // (this prefab's list, then the owner's contributions) even if the projectile dies mid-hit, so authored
+    // The exchanges (presence-dispatch: dealer ∧ receiver; ADR 0002) and the reactions are run through the
+    // shared HitResolver — reactions currently through BOTH mechanisms while the component-handler migration
+    // (DESIGN.md thread) is in flight: the per-channel entry points dispatch IHitHandler components, then the
+    // legacy IEffect lists run. A classified hit resolves ATOMICALLY: the exchanges and every reaction run
+    // (this prefab's, then the owner's contributions) even if the projectile dies mid-hit, so authored
     // order can never change a hit's outcome. Death gates only what comes AFTER the hit: the projectile channel,
     // further overlap hits, and despawn. Exchanges deliberately do NOT run in the projectile channel (see
-    // ProjectileProjectileCollision's doc).
+    // ProjectileProjectileCollision's doc). Migration note: WantsProjectileChannel still gates only on the
+    // IEffect lists — a projectile-channel HANDLER won't wake the channel until that gate learns about handlers.
 
     private bool IsDead() => _health != null && _health.IsDead;
 

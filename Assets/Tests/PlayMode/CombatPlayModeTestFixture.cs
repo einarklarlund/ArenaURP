@@ -63,6 +63,7 @@ namespace Arena.PlayTests
         protected void SetHitstunResistance(GameObject pawn, float multiplier) => Invoke("SetHitstunResistance", pawn, multiplier);
 
         protected void GivePassive(GameObject pawn, string abilityPath) => Invoke("GivePassive", pawn, abilityPath);
+        protected void AttachStealHandler(GameObject pawn, bool enabled = true) => Invoke("AttachStealHandler", pawn, enabled);
         protected void GiveActive(GameObject pawn, string abilityPath) => Invoke("GiveActive", pawn, abilityPath);
         protected void UseSelectedAbility(GameObject pawn) => Invoke("UseSelectedAbility", pawn);
         protected void CycleAbility(GameObject pawn, int dir) => Invoke("CycleAbility", pawn, dir);
@@ -76,6 +77,7 @@ namespace Arena.PlayTests
         protected float Speed(GameObject pawn) => (float)Invoke("Speed", pawn);
         protected int MovementModifierCount(GameObject pawn) => (int)Invoke("MovementModifierCount", pawn);
         protected int WeaponModifierCount(GameObject pawn) => (int)Invoke("WeaponModifierCount", pawn);
+        protected int CountWeaponModifiersWithFireRate(GameObject pawn, float fireRateMultiplier) => (int)Invoke("CountWeaponModifiersWithFireRate", pawn, fireRateMultiplier);
         protected Color BodyColor(GameObject pawn) => (Color)Invoke("BodyColor", pawn);
 
         protected int ActivesCount(GameObject pawn) => (int)Invoke("ActivesCount", pawn);

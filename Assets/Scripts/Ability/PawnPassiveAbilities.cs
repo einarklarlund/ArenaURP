@@ -49,11 +49,16 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
 
     // ---- inventory enumeration (children of this pawn's NetworkObject) ----
 
-    /// <summary>Fill <paramref name="results"/> with the passive-ability instances under this pawn.</summary>
+    /// <summary>Fill <paramref name="results"/> with the LIVE passive-ability instances under this pawn.
+    /// An individually-removed instance is destroyed at END of frame, so its corpse stays enumerable as a
+    /// child for the rest of the frame — filter on FishNet's own spawn state so it contributes no modifiers,
+    /// spawn buffs, hit handlers, or count. (IsSpawned is true throughout OnStart callbacks — InitializeEarly
+    /// runs first — so a starting instance is never filtered.)</summary>
     public void GetPassives(List<PassiveAbility> results)
     {
         results.Clear();
         GetComponentsInChildren(includeInactive: true, results);
+        results.RemoveAll(static p => !p.IsSpawned);
     }
 
     public int PassivesCount { get { GetPassives(_passivesBuf); return _passivesBuf.Count; } }
@@ -72,23 +77,62 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
             if (p.OnSpawn != null) results.AddRange(p.OnSpawn);
     }
 
-    // ---- server: acquisition (called by pickups) ----
+    /// <summary>
+    /// Append the <see cref="IHitHandler"/> components authored on this pawn's passive instance prefabs — the
+    /// owner-contribution harvest of handler dispatch (component-handler shape, DESIGN.md migration thread).
+    /// Read SERVER-SIDE by <see cref="HitResolver"/> at hit time, after the projectile's own handlers; presence
+    /// on the instance IS the contribution, so there is no serialized list and nothing to re-derive.
+    /// </summary>
+    public void CollectHitHandlers(List<IHitHandler> results)
+    {
+        GetPassives(_passivesBuf);
+        foreach (var p in _passivesBuf)
+        {
+            p.GetComponents(_handlerBuf); // GetComponents(List) clears the buffer itself
+            for (int i = 0; i < _handlerBuf.Count; i++)
+                results.Add(_handlerBuf[i]);
+        }
+    }
+
+    private readonly List<IHitHandler> _handlerBuf = new();
+
+    // ---- server: acquisition / removal ----
 
     [Server]
     public void AddPassive(PassiveAbilityType ability) => AbilityGrant.Spawn(this, ability);
-    // Membership is derived from the replicated children directly (passives have no individual-removal
-    // path, so child enumeration alone is a sufficient source of truth — unlike actives, which keep a
-    // SyncList roster for ordering + removal hooks).
+    // Membership is derived from the replicated children directly: child enumeration alone is a sufficient
+    // source of truth — unlike actives, which keep a SyncList roster for ordering. Removal is therefore just
+    // despawning the child instance (below); its OnStopNetwork re-derives every fold.
+
+    /// <summary>
+    /// Server: remove ONE granted passive by despawning its instance. Returns false when the instance is not a
+    /// live child of this pawn (already stolen/despawned — a hit resolving twice must not double-remove).
+    /// Callers that move the KIND elsewhere (a steal) must resolve <see cref="PassiveAbility.Type"/> BEFORE
+    /// calling this: the TypeObjectRoot back-ref dies with the instance.
+    /// </summary>
+    [Server]
+    public bool RemovePassive(PassiveAbility instance)
+    {
+        if (instance == null || !instance.IsSpawned)
+            return false;
+        if (instance.GetComponentInParent<PawnPassiveAbilities>() != this)
+            return false;
+        instance.Despawn(); // OnStopNetwork → NotifyInventoryChanged re-derives modifiers + owner contributions
+        return true;
+    }
 
     // ---- change propagation: passive instances call this when they start/stop ----
 
     /// <summary>
     /// Re-derive everything that depends on the current child instances (modifiers, owner projectile
-    /// operations) and raise <see cref="InventoryChanged"/>.
+    /// operations) and raise <see cref="InventoryChanged"/>. <paramref name="leaving"/> is the instance whose
+    /// network-stop triggered this notify, excluded from the re-derive: FishNet flips IsSpawned only AFTER the
+    /// stop callbacks, so inside that window the spawn-state filter alone would still see the corpse
+    /// (removal-first — the RemoveAt-before-Despawn discipline, keeping derived state off dying objects).
     /// </summary>
-    public void NotifyInventoryChanged()
+    public void NotifyInventoryChanged(PassiveAbility leaving = null)
     {
-        ReapplyPassiveModifiers();
+        ReapplyPassiveModifiers(leaving);
         InventoryChanged?.Invoke();
     }
 
@@ -99,7 +143,7 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
     /// only the peer that actually simulates movement/weapon consumes the modifiers, and only the server
     /// reads the operations.
     /// </summary>
-    private void ReapplyPassiveModifiers()
+    private void ReapplyPassiveModifiers(PassiveAbility leaving = null)
     {
         ClearAppliedModifiers(); // removes previous contributions from the live lists and clears the tracking lists
         _ownerSurface.Clear();
@@ -109,6 +153,8 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
         GetPassives(_passivesBuf);
         foreach (var p in _passivesBuf)
         {
+            if (p == leaving)
+                continue;
             if (!p.MovementBuff.Equals(MovementModifier.Identity)) _appliedMove.Add(p.MovementBuff);
             if (!p.WeaponBuff.Equals(WeaponModifier.Identity)) _appliedWeapon.Add(p.WeaponBuff);
             // Aggregate the passive's authored projectile operations so the owner's projectiles can find them.
@@ -118,10 +164,17 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
         }
 
         // Push the contributed modifiers onto the pawn's live modifier lists (ClearAppliedModifiers removes them).
+        // A null ref here is valid ONLY for pawns without that system (minimal test pawns) — dropping an actual
+        // contribution on a full pawn is a wiring bug (it hid TestCombatant's unwired refs), so it at least
+        // warns; the steal test's fold assertion is the hard regression guard.
         if (movement != null)
             foreach (var m in _appliedMove) movement.Modifiers.Add(m);
+        else if (_appliedMove.Count > 0)
+            Debug.LogWarning($"{name}: dropping {_appliedMove.Count} movement-buff contribution(s) — no movement ref wired", this);
         if (weapon != null)
             foreach (var w in _appliedWeapon) weapon.Modifiers.Add(w);
+        else if (_appliedWeapon.Count > 0)
+            Debug.LogWarning($"{name}: dropping {_appliedWeapon.Count} weapon-buff contribution(s) — no weapon ref wired", this);
     }
 
     /// <summary>
