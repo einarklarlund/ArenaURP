@@ -1,6 +1,6 @@
 ---
 name: game-programming-patterns
-description: Curated guidance from Robert Nystrom's "Game Programming Patterns", biased for a SOLO Unity developer who prefers code over the editor, favors maintainable/extensible code over raw performance, and writes edit-mode and play-mode tests. Use this when structuring or refactoring Unity gameplay systems; organizing entity, AI, input, state, or event code; choosing a design pattern (or talking the user out of one); or making gameplay logic testable in edit mode — even if no pattern is named. Consult BEFORE reaching for Singletons, "manager" classes, deep inheritance, or premature optimization.
+description: Curated guidance from Nystrom's "Game Programming Patterns", biased for a solo Unity dev who favors maintainable, testable code over raw performance. Use when structuring or refactoring gameplay systems; organizing entity, AI, input, state, or event code; or choosing a design pattern (or talking the user out of one) — even if no pattern is named. Consult BEFORE reaching for Singletons, "manager" classes, deep inheritance, or premature optimization.
 ---
 
 # Game Programming Patterns (curated)

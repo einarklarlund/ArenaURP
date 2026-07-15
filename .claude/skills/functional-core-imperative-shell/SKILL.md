@@ -1,6 +1,6 @@
 ---
 name: functional-core-imperative-shell
-description: Where gameplay logic GOES — in a pure functional core (Arena.*.Core processors), NOT in the thin MonoBehaviour shell (Pawn<X>) that only does I/O. Use this BEFORE adding or modifying ANY gameplay behaviour in a MonoBehaviour/NetworkBehaviour — decide where the logic lives first and default to the Core processor. Also use when a core must read the world (raycasts, overlaps, lookups) or cause side effects (damage, spawn, VFX) — pass query results IN as data and return decisions/effects OUT as data, never inject an IWorld seam whose only second implementation is a test double; when you catch yourself adding an interface "so it's testable"; and for shell hygiene: required serialized references get a Debug.LogError(…, this) null-guard that bails, never a silent no-op or a downstream NRE.
+description: Where gameplay logic GOES — in a pure functional core (Arena.*.Core processors), NOT in the thin MonoBehaviour shell that only does I/O. Use BEFORE adding or modifying ANY gameplay behaviour in a MonoBehaviour/NetworkBehaviour, when a core must read the world or cause side effects, when you catch yourself adding an interface "so it's testable", and for shell hygiene on required serialized references.
 ---
 
 # Functional core, imperative shell

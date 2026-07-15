@@ -1,6 +1,6 @@
 ---
 name: arena-systems-map
-description: The story of this codebase — how players/pawns, projectiles, matches, and passive/active abilities work, expressed as the handful of design decisions that shape every system, with pointers to the skill that governs each. Use this when orienting in the project, planning or scoping a NEW feature or system, deciding which existing mechanism/skill applies to a change, or explaining how one of the main game functions works. Consult it FIRST when a task spans more than one system or you're unsure where new logic, config, or communication belongs; the linked skills then give the detailed rules.
+description: The story of this codebase — players/pawns, projectiles, matches, and abilities as the handful of design decisions that shape every system, each pointing at its governing skill. Consult FIRST when a task spans more than one system or you're unsure where new logic, config, or communication belongs; also for orienting, scoping a NEW feature, or explaining how a main game function works.
 ---
 
 # Arena systems map

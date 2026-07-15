@@ -1,6 +1,6 @@
 ---
 name: cross-component-communication
-description: How one gameplay system passes data to another WITHOUT coupling to its behaviour — and the standing goal of doing it with as FEW distinct mechanisms as possible. Two families exist: contribution collections the producer folds per tick (modifier lists, pending impulses, hit-exchange modifier lists) and notifications (instance events, SyncVar.OnChange, the static UI buses), plus ONE wiring spot for managers (MatchMediator). Use this whenever system A must read from or affect system B (debuffs, knockback, temperature, damage reactions, score/match flow, HUD), before adding a serialized reference to call another component's methods, before wiring two managers, and ESPECIALLY before inventing a new pub/sub channel — default to reusing an existing mechanism and look for chances to collapse two into one.
+description: How one gameplay system passes data to another WITHOUT coupling to its behaviour — with as FEW distinct mechanisms as possible (contribution collections, notifications, one manager wiring spot). Use whenever system A must read from or affect system B (buffs, knockback, temperature, score/match flow, HUD), before adding a serialized reference to call another component's methods, before wiring two managers, and ESPECIALLY before inventing a new pub/sub channel.
 ---
 
 # Cross-component communication

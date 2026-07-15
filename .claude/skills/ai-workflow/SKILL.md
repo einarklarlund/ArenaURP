@@ -1,6 +1,6 @@
 ---
 name: ai-workflow
-description: Picking the right workflow artifact — hook, skill, subagent, command, or memory — plus the delegation rule and how the workflow layer evolves. Use when adding or editing anything under .claude/, when a process feels repetitive or error-prone, when a guideline was violated, or when starting a task big enough to need delegation or plan mode.
+description: Picking the right workflow artifact — hook, skill, subagent, or memory — plus the delegation rule and how the workflow layer evolves. Use when adding or editing anything under .claude/, when a process feels repetitive or error-prone, when a guideline was violated, or when starting a task big enough to need delegation or plan mode.
 ---
 
 # The AI development workflow for this project
@@ -9,19 +9,20 @@ Treating "how we use Claude" as part of the codebase — versioned, reviewed, im
 
 The standing mandates (educator, anti-sycophancy) are *always-on norms*, so by this skill's own table they live as a memory — [[ai-workflow-coaching]], summarized into every session by the `session-start` hook — not here.
 
-## The five artifacts — pick by what kind of thing you're encoding
+## The four artifacts — pick by what kind of thing you're encoding
 
 The single most common mistake is writing a *rule* where a *gate* was needed. A rule you must remember is not a rule; it is a hope.
 
 | You want to… | Use | Why | Lives in |
 |---|---|---|---|
-| Make a wrong action **impossible** | **Hook** | The harness runs it. Compliance is 100% and constant. A skill in context cannot interrupt a tool call. | `.claude/settings.json` + `.claude/hooks/*.sh` |
-| Explain **judgment** (when, why, trade-offs) | **Skill** | Loads on demand by trigger; holds prose a regex can't. | `.claude/skills/<name>/SKILL.md` |
-| Keep a **noisy search or run** out of the main context | **Subagent** | Its context is separate; only its conclusion returns. | `.claude/agents/<name>.md` |
-| Replay a **multi-step procedure** you keep re-deriving | **Command** | User-invoked, argument-taking, one shot. | `.claude/commands/<name>.md` |
-| Persist a **fact or norm** across sessions | **Memory** | Indexed in `MEMORY.md`, loaded every session. | the auto-memory dir |
+| Make a wrong action **impossible** | **Hook** | The harness runs it. Compliance is 100% and constant. A skill in context cannot interrupt a tool call. | script in `.claude/hooks/`, **registered** in the `hooks` block of the committed `.claude/settings.json` — an unregistered script never fires |
+| Explain **judgment** (when, why, trade-offs) — or replay a **procedure** you keep re-deriving | **Skill** | Loads on demand by trigger; holds prose a regex can't. A user-invoked one-shot procedure is also a skill (`/name`) — slash commands are merged into skills; add `disable-model-invocation: true` if only the user should trigger it. | `.claude/skills/<name>/SKILL.md` |
+| Keep a **noisy search or run** out of the main context | **Subagent** | Its context is separate; only its conclusion returns. Can preload a skill's full text via `skills:` frontmatter — single-source doctrine instead of duplicating it in the agent prompt. | `.claude/agents/<name>.md` |
+| Persist a **fact or norm** across sessions | **Memory** | Indexed in `MEMORY.md` (the index loads every session; bodies load on demand). | the auto-memory dir |
 
-**Litmus:** if the failure is mechanically detectable (a tool × a file extension, a code shape) → hook. If it needs judgment → skill. If it costs *attention* → subagent. If it costs *typing* → command.
+**Litmus:** if the failure is mechanically detectable (a tool × a file extension, a code shape) → hook. If it needs judgment → skill. If it costs *attention* → subagent. If it costs *typing* → a manual-only skill.
+
+(Watching, not adopted: **path-scoped rules** — `.claude/rules/*.md` with a `paths:` glob, always-on only for matching files. See the practices register before reaching for one.)
 
 ## The delegation rule (the highest-leverage habit here)
 
@@ -37,7 +38,9 @@ A subagent returns a conclusion. If it returns file dumps, its prompt is wrong �
 
 ## The inventory IS the directory
 
-This skill keeps no inventory of hooks, agents, skills, or memories — a copy drifts, and every change would have to be recorded twice; the auditor would then be *detecting* rot this structure simply prevents. The single sources: hooks in `.claude/hooks/` + `.claude/settings.json` (each hook's header comment states what it gates); subagents self-describe in the session's agent list; skills self-index via their frontmatter descriptions (loaded into every session; `CLAUDE.md` points at the load-bearing ones); `MEMORY.md` indexes memories; design rationale in `DESIGN.md` + `Docs/design/*.md` ADRs; the practices ledger in [practices-register.md](practices-register.md). `@agent-workflow-auditor` audits the whole layer for drift and sprawl.
+This skill keeps no inventory of hooks, agents, skills, or memories — a copy drifts, and every change would have to be recorded twice; the auditor would then be *detecting* rot this structure simply prevents. The single sources: hooks are the `hooks` block of the committed `.claude/settings.json` — that block IS the registry; the scripts in `.claude/hooks/` are its payload (each header comment states what it gates), and a script without a registration entry is dead code. Subagents self-describe in the session's agent list; skills self-index via their frontmatter descriptions (loaded into every session — keep each description a TRIGGER, not a summary; the content belongs in the body, which loads on use); `MEMORY.md` indexes memories; design rationale in `DESIGN.md` + `Docs/design/*.md` ADRs; the practices ledger in [practices-register.md](practices-register.md). `@agent-workflow-auditor` audits the whole layer for drift and sprawl — including that every hook script is registered and every registration points at a live script.
+
+Scar (2026-07-15): all five hooks silently died for ~2 days because their registration lived only in the unversioned `settings.local.json` and a settings rewrite dropped it — the scripts sat in `.claude/hooks/` looking alive while nothing fired, and nothing detected it until a docs audit. Registration is part of the artifact; it goes in the **committed** settings file, always.
 
 Cross-cutting gotcha with no other home (2026-07-15): a subagent added or a `.claude/settings.json` change made mid-session is **not** picked up until the next session.
 

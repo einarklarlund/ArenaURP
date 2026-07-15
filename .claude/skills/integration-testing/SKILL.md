@@ -1,6 +1,6 @@
 ---
 name: integration-testing
-description: How to write Unity integration tests that verify components interacting — and which interactions are worth a test at all. Biased for a SOLO dev automating his own QA on the Processor + thin-MonoBehaviour pattern. Use this whenever adding tests above the unit layer, choosing EditMode vs PlayMode, testing cross-system wiring (modifier lists, MatchMediator, static pub/sub, SyncVars), scaffolding or debugging a PlayMode fixture (the FishNet pitfalls live here), or deciding whether a test earns its keep. Consult BEFORE writing a PlayMode test — much "integration" is cheaper in EditMode — and remember the floor: every networked change gets a PlayMode test.
+description: How to write Unity integration tests that verify components interacting — and which interactions deserve a test at all. Use when adding tests above the unit layer, choosing EditMode vs PlayMode, testing cross-system wiring, scaffolding or debugging a PlayMode fixture (the FishNet pitfalls live here), or deciding whether a test earns its keep. Consult BEFORE writing a PlayMode test; the floor: every networked change gets one.
 ---
 
 # Integration testing

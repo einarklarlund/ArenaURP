@@ -1,6 +1,6 @@
 ---
 name: commit-conventions
-description: How to summarize working changes and write a commit for this repo — the house style for commit messages and what to leave OUT of a feature commit. The rule that matters: describe changes at the level of FEATURES and BEHAVIOUR (what the player/system can now do, what was renamed, what content was added), NOT how they were implemented (no class names, no method signatures, no line-by-line rationale — that lives in the code's own doc comments). Keep the subject one concise line; keep the body a short bulleted "what changed" list. Also covers scoping a commit to the actual feature: exclude unrelated Claude/editor tooling noise (`.claude/settings.json`, `.claude/scheduled_tasks.lock`, stray FishNet/Unity reimport `.meta` files) and NEVER add a `Co-Authored-By: Claude` trailer. Use this BEFORE running `git commit` when asked to commit the current changes, or when asked to describe a diff for a commit message. Pairs with the [[no-claude-coauthor-on-commits]] memory.
+description: House style for commits in this repo — describe FEATURES and BEHAVIOUR, never implementation; scope unrelated tooling noise out of the commit; NEVER add a Co-Authored-By Claude trailer. Use BEFORE running `git commit`, or when asked to summarize/describe a diff for a commit message. Pairs with the [[no-claude-coauthor-on-commits]] memory.
 ---
 
 # Commit conventions (curated for this repo)

@@ -1,6 +1,6 @@
 ---
 name: type-object-pattern
-description: How a KIND of thing (projectile type, ability type) is structured here — an IDENTITY-ONLY ScriptableObject (name/icon/InstancePrefab, nothing else) plus an independent prefab copy per kind whose generic components carry ALL gameplay config; instances self-initialize on every peer, which is what makes client-predicted spawn correct with nothing on the wire. Use this BEFORE creating or extending a type SO, adding a new kind (new projectile/ability), deciding where a kind's config or a new per-kind value lives, spawning anything a player can own, granting/removing abilities, or touching pooled-instance state/ResetState. Covers the three data classes (per-kind config → prefab; per-spawn anchor → payload; server-only → gated), the inline spawn sequence + SpawnOwnerId stamping, prefab COPIES not variants (FishNet PrefabId collision), ability roster ordering (Spawn-before-Add / RemoveAt-before-Despawn), and the pooling baseline-vs-per-spawn rule.
+description: How a KIND of thing (projectile type, ability type) is structured here — an IDENTITY-ONLY ScriptableObject plus an independent prefab copy carrying ALL gameplay config; instances self-initialize on every peer. Use BEFORE creating or extending a type SO, adding a new kind (projectile/ability), deciding where a kind's config or a new per-kind value lives, spawning anything a player can own, granting/removing abilities, or touching pooled-instance state/ResetState.
 ---
 
 # Type objects: identity-only SO + prefab-per-kind

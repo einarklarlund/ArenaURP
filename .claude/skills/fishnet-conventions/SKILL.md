@@ -1,6 +1,6 @@
 ---
 name: fishnet-conventions
-description: FishNet networking conventions for this server-authoritative Unity arena shooter — when to send data over the wire and (more importantly) when NOT to. Covers the payload-avoidance rule (derive/look up on the server from an id; the owner-lookup pattern), server-authoritative cast-based collision (never trigger callbacks), syncing an asset as a database index (WeaponDatabase — the ability/projectile types deliberately DON'T need one), SyncVar/RPC authority discipline, and the non-negotiable floor that every networked change gets a PlayMode test. Use this BEFORE adding a SyncVar/SyncList/RPC, extending a spawn payload, syncing an asset reference, writing collision/pickup/contact detection, or any server-authoritative gameplay mutation.
+description: FishNet conventions for this server-authoritative arena shooter — when to send data over the wire and (more importantly) when NOT to, and which peer simulates what. Use BEFORE adding a SyncVar/SyncList/RPC, extending a spawn payload, syncing an asset reference, writing collision/pickup/contact detection, or any server-authoritative gameplay mutation. The floor: every networked change gets a PlayMode test.
 ---
 
 # FishNet conventions

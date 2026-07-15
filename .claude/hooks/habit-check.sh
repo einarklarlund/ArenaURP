@@ -13,8 +13,9 @@ set -uo pipefail
 cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null || exit 0
 
 payload="$(cat)"
-# Field name has drifted across versions; read every plausible one.
-p="$(printf '%s' "$payload" | jq -r '.user_input // .prompt // .user_prompt // .message // ""' 2>/dev/null)"
+# The documented input field is `prompt` (code.claude.com/docs hooks reference); older builds used
+# other names — kept as fallbacks only.
+p="$(printf '%s' "$payload" | jq -r '.prompt // .user_input // .user_prompt // .message // ""' 2>/dev/null)"
 [[ -n "$p" ]] || exit 0
 
 lc="$(printf '%s' "$p" | tr '[:upper:]' '[:lower:]')"

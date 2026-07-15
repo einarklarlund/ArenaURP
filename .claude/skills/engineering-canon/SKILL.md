@@ -1,6 +1,6 @@
 ---
 name: engineering-canon
-description: The six seminal works this project treats as its design conscience — Parnas's "On the Criteria to Be Used in Decomposing Systems into Modules", Brooks's The Mythical Man-Month, Lehman's laws of software evolution, Conway's law, Dijkstra's "The Humble Programmer", and Constantine's Structured Design (coupling/cohesion) — distilled into interview LENSES for plans. Use BEFORE finalizing any plan (new feature, refactor, or change to the AI-workflow layer), when entering or about to exit plan mode, when a design discussion is converging on fuzzy agreement ("looks good", "makes sense"), when auditing the AI workflow itself, when questioning an EXISTING design ("is X over-engineered / still right?"), and whenever a durable design agreement is reached and should be recorded. The interview protocol, the evidence method for disputed designs, and the shared-understandings register live here.
+description: The six seminal works this project treats as its design conscience (Parnas, Brooks, Lehman, Conway, Dijkstra, Constantine), distilled into interview LENSES for plans. Use BEFORE finalizing any plan or exiting plan mode, when a design discussion converges on fuzzy agreement, when questioning an EXISTING design ("is X over-engineered / still right?"), when auditing the AI workflow itself, and whenever a durable design agreement should be recorded. The interview protocol, the evidence method, and the shared-understandings register live here.
 ---
 
 # The engineering canon — six lenses that interrogate every plan

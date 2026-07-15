@@ -1,6 +1,6 @@
 ---
 name: unity-mcp-vs-shell
-description: When to reach for the Unity MCP (unity_* tools) versus plain shell/file tools (grep, find, sed, Read, Edit, Write) for the same operation in this project. They overlap for reading/searching but diverge sharply for anything that crosses a GUID/serialization boundary. Use this when you are about to do a Unity-shaped operation that crosses that boundary — resolve what references an asset/script, inspect a scene's or prefab's structure or a component's serialized values, list typed Unity assets (prefabs/SOs/scenes/materials), or create/modify/wire any prefab/scene/asset/SerializeReference. Consult this BEFORE grepping/finding/cat-ing a .prefab/.unity/.asset/.meta, and BEFORE hand-editing that YAML — text search on Unity YAML misleads (it sees raw GUIDs it can't name and misses refs in YAML you didn't think to search). Plain .cs body reads/edits and symbol greps do NOT need it — those stay shell.
+description: When to use the Unity MCP (unity_* tools) versus shell/file tools — they overlap for reading but diverge sharply at any GUID/serialization boundary. Consult BEFORE grepping/cat-ing/hand-editing a .prefab/.unity/.asset/.meta, and for any operation that resolves asset references, inspects prefab/scene structure or serialized values, lists typed assets, or writes serialized state. Plain .cs reads/edits and symbol greps stay shell.
 ---
 
 # Unity MCP vs. shell: picking the right tool for the operation
