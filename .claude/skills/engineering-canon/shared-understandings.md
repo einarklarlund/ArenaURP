@@ -8,7 +8,7 @@ Format: `- YYYY-MM-DD · <lens> — <the position, one line>`
 
 ## Charter — seeded 2026-07-15 from standing doctrine
 
-_These map already-agreed project values onto the canon. The mappings were made by Claude when the skill was created; confirm or amend at the first interview._
+_These map already-agreed project values onto the canon. Seeded by Claude at skill creation; the 2026-07-15 first interview confirmed the Constantine line and left the rest standing — unchallenged, and like everything here, open to revision._
 
 - 2026-07-15 · Dijkstra + Brooks — the Elegance north star IS this project's form of intellectual manageability + conceptual integrity; canon arguments route through it rather than adding a parallel value (`DESIGN.md`).
 - 2026-07-15 · Parnas — the rule of two is the honesty condition on information hiding: a decision must be *seen* to vary before a seam hides it ([[no-speculative-interfaces]]).
@@ -20,4 +20,8 @@ _These map already-agreed project values onto the canon. The mappings were made 
 
 ## Settled in interviews
 
-_(none yet — the first interview is the codification itself; open questions listed in the 2026-07-15 session summary)_
+- 2026-07-15 · meta — settled ≠ frozen: every entry here is open to revision, and *how* we apply the canon is itself expected to keep evolving (Lehman's law I applied to this register); supersede lines rather than treating them as precedent-locked.
+- 2026-07-15 · Brooks — the second-system question ("is this embellishing what ADR 0002/0003 proved, rather than what the game needs?") is a STANDING question for the current roadmap phase (the post-refactor feature builds); ask it on every feature plan in this phase.
+- 2026-07-15 · Lehman — the pay-down rule is strict, not advisory: every feature plan names its offset (a mechanism collapsed, a type deleted, rules merged) or names the debt knowingly with a repayment trigger.
+- 2026-07-15 · scope — the interview runs at plan-finalization only; small architectural changes (a new SyncVar, a new channel) are NOT individually gated — wallpaper risk outweighs the coverage; the per-area skills and hooks remain their guard.
+- 2026-07-15 · Constantine — confirmed: control coupling (mode flags, callee-selecting parameters) triggers redesign, not accommodation.
