@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6230920335191685443}
   - component: {fileID: 2016303110846938007}
   - component: {fileID: 722833527224575200}
+  - component: {fileID: 8339114732989022195}
   m_Layer: 0
   m_Name: Bouncy Ball
   m_TagString: Untagged
@@ -129,17 +130,20 @@ MonoBehaviour:
   WeaponBuff:
     FireRateMultiplier: 1
     SpreadMultiplier: 1
-  ProjectileOnSurface:
-  - rid: 4328605929791815755
-  ProjectileOnPlayer: []
-  ProjectileOnProjectile: []
   SpawnBuff:
     SpeedMultiplier: 1
     ScaleMultiplier: 1
     MaxHealthMultiplier: 2
-  references:
-    version: 2
-    RefIds:
-    - rid: 4328605929791815755
-      type: {class: Ricochet, ns: , asm: Assembly-CSharp}
-      data: 
+--- !u!114 &8339114732989022195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3245921624369475933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1143c5d52aab4dfba33871d4ae0a495, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RicochetHandler
+  enabledChannels: 1

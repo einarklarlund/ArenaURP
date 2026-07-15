@@ -52,19 +52,20 @@ public static class ProjectileDamageTestRig
         => bullet.GetComponent<NetworkedMotion>().State.OriginPos.z;
 
     /// <summary>
-    /// Author <paramref name="count"/> Ricochet operations on a live bullet's OnSurface, clearing any authored
-    /// kill reaction so the bullet survives to bounce. TWO Ricochets stands in for the powerup-stacking case a
-    /// bouncy shot actually hits — one authored on the projectile's own OnSurface, another contributed by the
-    /// owner's "bouncy" passive — which must still bounce, not cancel (reflecting the same incoming direction is
-    /// idempotent; reflecting the live velocity twice composes to the identity and drives straight through).
-    /// Mutates only this spawned instance's [SerializeReference] list, never the asset.
+    /// Author exactly <paramref name="count"/> surface-enabled RicochetHandler components on a live bullet, and bump
+    /// its durability high so the per-hit durability spend (ADR 0003) doesn't kill it before it can bounce. TWO
+    /// Ricochets stands in for the powerup-stacking case a bouncy shot actually hits — one on the projectile's own
+    /// prefab, another contributed by the owner's "bouncy" passive — which must still bounce, not cancel (reflecting
+    /// the same incoming direction is idempotent; reflecting the live velocity twice composes to the identity and
+    /// drives straight through). Mutates only this spawned instance's components, never the asset.
     /// </summary>
     public static void AuthorRicochetOnSurface(UnityEngine.GameObject bullet, int count)
     {
-        var collision = bullet.GetComponent<ServerCollision>();
-        collision.OnSurface.Clear();
+        foreach (var existing in bullet.GetComponents<RicochetHandler>())
+            UnityEngine.Object.DestroyImmediate(existing);
         for (int i = 0; i < count; i++)
-            collision.OnSurface.Add(Commands.Ricochet());
+            bullet.AddComponent<RicochetHandler>(); // default EnabledChannels = Surface
+        bullet.GetComponent<Health>().ServerInitMax(100); // survive the per-hit durability spend so it can keep bouncing
     }
 
     /// <summary>Set the per-spawn speed buff directly on a live projectile (used to construct the two-peer self-heal gap).</summary>
@@ -88,18 +89,14 @@ public static class ProjectileDamageTestRig
         => AssetDatabase.LoadAssetAtPath<ProjectileType>(assetPath).InstancePrefab.GetComponent<ServerCollision>().Radius;
 
     /// <summary>
-    /// Rewrite a live bullet's OnPlayer reactions to [LoseHealth] and make it 1-HP, so the bullet DIES inside the
-    /// hit that damages the pawn. This pins the atomic-hit rule under presence-dispatch (ADR 0002): the damage
-    /// EXCHANGE (fired from the Damage component, not an authored row) and every authored reaction resolve as one
-    /// hit even though the projectile dies mid-hit — dying cannot retract the exchange. Mutates only this spawned
-    /// instance's [SerializeReference] list, never the asset.
+    /// Make a live bullet 1-HP so the per-hit durability spend (the dissolved LoseHealth, ADR 0003) kills it INSIDE
+    /// the hit that damages the pawn. This pins the atomic-hit rule: the damage EXCHANGE (fired from the Damage
+    /// component, not an authored row) and the durability spend resolve as one hit even though the projectile dies
+    /// mid-hit — dying cannot retract the exchange. Mutates only this spawned instance's Health, never the asset.
     /// </summary>
     public static void AuthorLethalFirstOnPlayer(UnityEngine.GameObject bullet)
     {
-        var collision = bullet.GetComponent<ServerCollision>();
-        collision.OnPlayer.Clear();
-        collision.OnPlayer.Add(Commands.LoseHealth());
-        bullet.GetComponent<Health>().ServerInitMax(1);   // one LoseHealth is lethal, whatever the authored durability
+        bullet.GetComponent<Health>().ServerInitMax(1);   // the per-hit durability spend is lethal at 1 HP
     }
 
     /// <summary>

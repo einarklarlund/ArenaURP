@@ -1,14 +1,13 @@
-using System.Collections.Generic;
 using FishNet.Object;
 using UnityEngine;
 
 /// <summary>
 /// The stateful half of an always-on ability, living on the ability's INSTANCE prefab — a logical
 /// NetworkObject spawned by <see cref="PawnPassiveAbilities"/> and parented under the owning pawn. The stat
-/// buffs and the extra projectile operations are serialized prefab data (runtime-tunable per instance); while
-/// this instance exists under a pawn, <see cref="PawnPassiveAbilities"/> folds the authored
-/// <see cref="MovementBuff"/>/<see cref="WeaponBuff"/> modifiers into the pawn's movement/weapon modifier
-/// lists and aggregates the projectile lists for the owner-contribution path.
+/// buffs and on-spawn buff are serialized prefab data (runtime-tunable per instance); while this instance exists
+/// under a pawn, <see cref="PawnPassiveAbilities"/> folds the authored <see cref="MovementBuff"/>/<see cref="WeaponBuff"/>
+/// modifiers into the pawn's movement/weapon modifier lists. Contributed hit reactions are IHitHandler components
+/// on this prefab, harvested at the hit site.
 ///
 /// Identity (display name / icon) resolves through the sibling <see cref="TypeObjectRoot"/>'s baked
 /// <see cref="AbilityType"/>.
@@ -22,18 +21,9 @@ public sealed class PassiveAbility : NetworkBehaviour
     [Tooltip("Standing weapon multipliers folded by the pawn's weapon processor while equipped. Identity (all 1) = no effect.")]
     public WeaponModifier WeaponBuff = WeaponModifier.Identity;
 
-    [Header("Projectile contributions (extra operations on the owner's projectiles)")]
-    [Tooltip("Added to the owner's projectiles' surface-hit operations.")]
-    [SerializeReference, EffectSelector]
-    public List<IEffect<ProjectileImpact>> ProjectileOnSurface = new();
-
-    [Tooltip("Added to the owner's projectiles' player-hit reactions (e.g. an on-hit instantiation or ricochet).")]
-    [SerializeReference, EffectSelector]
-    public List<IEffect<ProjectileImpact>> ProjectileOnPlayer = new();
-
-    [Tooltip("Added to the owner's projectiles' projectile-hit operations.")]
-    [SerializeReference, EffectSelector]
-    public List<IEffect<ProjectileProjectileCollision>> ProjectileOnProjectile = new();
+    // Contributed hit reactions (ricochet, on-hit instantiate, steal-on-hit, …) are IHitHandler components authored
+    // directly on this instance prefab beside PassiveAbility (ADR 0003) — harvested at the hit site by HitResolver,
+    // no serialized list here. See RicochetHandler / InstantiateOnHitHandler / PassiveStealOnHit.
 
     [Header("On-spawn buffs (applied on every peer to each object this pawn spawns, at spawn)")]
     [Tooltip("Transform the owner's spawned objects at spawn (e.g. faster/bigger/tougher bullets). Identity (all 1) " +

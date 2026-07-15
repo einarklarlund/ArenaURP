@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 1071525311326648224}
   - component: {fileID: 5152216180420023814}
   - component: {fileID: 2428825551120485008}
+  - component: {fileID: 3527476704585589994}
   m_Layer: 0
   m_Name: TestBonusDamagePassive
   m_TagString: Untagged
@@ -129,18 +130,10 @@ MonoBehaviour:
   WeaponBuff:
     FireRateMultiplier: 1
     SpreadMultiplier: 1
-  ProjectileOnSurface: []
-  ProjectileOnPlayer:
-  - rid: 4328606070839443527
-  ProjectileOnProjectile: []
-  OnSpawn: []
-  references:
-    version: 2
-    RefIds:
-    - rid: 4328606070839443527
-      type: {class: InstantiateGameObjects, ns: , asm: Assembly-CSharp}
-      data:
-        source: {fileID: 2428825551120485008}
+  SpawnBuff:
+    SpeedMultiplier: 1
+    ScaleMultiplier: 1
+    MaxHealthMultiplier: 1
 --- !u!114 &2428825551120485008
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -155,3 +148,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InstantiableObjects
   prefabs:
   - {fileID: 5741314287687474868, guid: 8e66615d2a9b141149ebb4915e38b3e2, type: 3}
+--- !u!114 &3527476704585589994
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2597226792802202708}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f7f6700d270847779736c7504e18393, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InstantiateOnHitHandler
+  source: {fileID: 0}
+  enabledChannels: 2

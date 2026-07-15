@@ -9,11 +9,11 @@ using UnityEngine;
 /// the same modifiers locally.
 ///
 /// This component folds each equipped passive's multipliers into the pawn's <see cref="PawnMovement"/> /
-/// <see cref="PawnWeapon"/> modifier lists (Remove-old / Add-new, the PawnTemperature discipline) and
-/// aggregates the passives' authored projectile operations for the owner-contribution path
-/// (<see cref="GetProjectileEffects"/> — read server-side by ServerCollision, never payloaded).
-/// Instances call <see cref="NotifyInventoryChanged"/> from their network start/stop. Active abilities live
-/// on the sibling <see cref="PawnActiveAbilities"/>.
+/// <see cref="PawnWeapon"/> modifier lists (Remove-old / Add-new, the PawnTemperature discipline). The passives'
+/// contributed hit reactions are <see cref="IHitHandler"/> components on the instance prefabs, harvested at the hit
+/// site (<see cref="CollectHitHandlers"/>); only their effective channel mask (<see cref="OwnerHitChannelMask"/>) is
+/// cached here, for ServerCollision's projectile-channel gate. Instances call <see cref="NotifyInventoryChanged"/>
+/// from their network start/stop. Active abilities live on the sibling <see cref="PawnActiveAbilities"/>.
 /// </summary>
 public sealed class PawnPassiveAbilities : NetworkBehaviour
 {
@@ -27,10 +27,10 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
     // ---- local (per-peer) state ----
     private readonly List<MovementModifier> _appliedMove = new();
     private readonly List<WeaponModifier> _appliedWeapon = new();
-    // Owner-contributed projectile operations, aggregated from equipped passives' authored lists.
-    private readonly List<IEffect<ProjectileImpact>> _ownerSurface = new();
-    private readonly List<IEffect<ProjectileImpact>> _ownerPlayer = new();
-    private readonly List<IEffect<ProjectileProjectileCollision>> _ownerProjectile = new();
+    // The effective hit-channel mask of the handlers this pawn's passives contribute (OR of each handler's
+    // Supported ∩ Enabled), recomputed on roster change. ServerCollision reads it O(1) per flight-tick to decide
+    // whether an owner passive wants the projectile-vs-projectile channel woken (the effective-channel-mask gate).
+    private HitChannels _ownerHitChannelMask;
 
     // Scratch buffer for child enumeration (avoid per-call allocation).
     private readonly List<PassiveAbility> _passivesBuf = new();
@@ -152,9 +152,7 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
     private void ReapplyPassiveModifiers(PassiveAbility leaving = null)
     {
         ClearAppliedModifiers(); // removes previous contributions from the live lists and clears the tracking lists
-        _ownerSurface.Clear();
-        _ownerPlayer.Clear();
-        _ownerProjectile.Clear();
+        _ownerHitChannelMask = HitChannels.None;
 
         GetPassives(_passivesBuf);
         foreach (var p in _passivesBuf)
@@ -163,10 +161,11 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
                 continue;
             if (!p.MovementBuff.Equals(MovementModifier.Identity)) _appliedMove.Add(p.MovementBuff);
             if (!p.WeaponBuff.Equals(WeaponModifier.Identity)) _appliedWeapon.Add(p.WeaponBuff);
-            // Aggregate the passive's authored projectile operations so the owner's projectiles can find them.
-            if (p.ProjectileOnSurface != null) _ownerSurface.AddRange(p.ProjectileOnSurface);
-            if (p.ProjectileOnPlayer != null) _ownerPlayer.AddRange(p.ProjectileOnPlayer);
-            if (p.ProjectileOnProjectile != null) _ownerProjectile.AddRange(p.ProjectileOnProjectile);
+            // Fold this passive's contributed hit handlers' effective channel mask (what they CAN serve ∩ are
+            // authored to) so the projectile-channel gate can decide on roster change alone, never per hit.
+            p.GetComponents(_handlerBuf); // GetComponents(List) clears the buffer itself
+            for (int i = 0; i < _handlerBuf.Count; i++)
+                _ownerHitChannelMask |= _handlerBuf[i].SupportedChannels & _handlerBuf[i].EnabledChannels;
         }
 
         // Push the contributed modifiers onto the pawn's live modifier lists (ClearAppliedModifiers removes them).
@@ -184,11 +183,12 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
     }
 
     /// <summary>
-    /// The owner's aggregated projectile operations as a per-category bundle. Read SERVER-SIDE during
-    /// collision resolution — looked up from the live owner, never serialized onto the projectile.
-    /// ServerCollision decides which category applies to a given hit.
+    /// The effective hit-channel mask of the handlers this pawn's passives contribute (OR of each handler's
+    /// Supported ∩ Enabled), refreshed on every roster change. Read SERVER-SIDE by ServerCollision's
+    /// projectile-channel gate; the handlers themselves are harvested at hit time (<see cref="CollectHitHandlers"/>),
+    /// never serialized onto the projectile.
     /// </summary>
-    public ProjectileEffects GetProjectileEffects() => new(_ownerSurface, _ownerPlayer, _ownerProjectile);
+    public HitChannels OwnerHitChannelMask => _ownerHitChannelMask;
 
     private void ClearAppliedModifiers()
     {

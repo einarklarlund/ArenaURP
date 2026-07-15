@@ -9,35 +9,58 @@ using UnityEngine;
 /// pawn — resolves through the SAME pipeline instead of hand-rolling a private copy (both review spikes had to;
 /// see the ADR's evidence). Server-only by construction: every caller is server-side hit resolution.
 ///
-/// Reactions run through TWO mechanisms while the component-handler migration (DESIGN.md thread) is in flight:
-/// the legacy authored <see cref="IEffect{T}"/> lists (<see cref="RunEffects{T}"/>), and presence-discovered
-/// <see cref="IHitHandler"/> components dispatched by the per-channel entry points
-/// (<see cref="ResolveSurfaceHit"/> / <see cref="ResolvePlayerHit"/> / <see cref="ResolveProjectileHit"/> —
-/// the channel is the CALL SITE, not a context subtype). The resolver enumerates MECHANISMS, never content:
+/// Reactions are presence-discovered <see cref="IHitHandler"/> components (ADR 0003), dispatched by the
+/// per-channel entry points (<see cref="ResolveSurfaceHit"/> / <see cref="ResolvePlayerHit"/> /
+/// <see cref="ResolveProjectileHit"/> — the channel is the CALL SITE, not a context subtype), plus the source's
+/// per-hit durability spend (<see cref="SpendSelfDurability"/>). The resolver enumerates MECHANISMS, never content:
 /// adding a reaction is a new handler component, never an edit here.
 /// </summary>
 public static class HitResolver
 {
     // ---- per-channel entry points (exchanges where the channel has them, then handler dispatch) ----
 
-    /// <summary>Resolve a surface (wall/stage) hit: no exchanges — surfaces carry no receivers — then the
-    /// channel-filtered handlers.</summary>
-    public static void ResolveSurfaceHit(in HitContext context) => RunHandlers(in context);
+    /// <summary>Resolve a surface (wall/stage) hit: no exchanges — surfaces carry no receivers — then the source's
+    /// per-hit durability spend and the channel-filtered handlers.</summary>
+    public static void ResolveSurfaceHit(in HitContext context)
+    {
+        SpendSelfDurability(in context);
+        RunHandlers(in context);
+    }
 
     /// <summary>Resolve a player hit: the damage/knockback/hitstun exchanges first
-    /// (<see cref="ResolveExchanges"/>), then the channel-filtered handlers — the same atomic hit.</summary>
+    /// (<see cref="ResolveExchanges"/>), then the source's durability spend and the channel-filtered handlers —
+    /// the same atomic hit.</summary>
     public static void ResolvePlayerHit(
         Damage damage, KnockbackDealer knockback, HitstunDealer hitstun,
         in HitContext context, float damageMultiplier = 1f)
     {
         ResolveExchanges(damage, knockback, hitstun,
             context.Victim, context.Point, context.Direction, context.Instigator, damageMultiplier);
+        SpendSelfDurability(in context);
         RunHandlers(in context);
     }
 
-    /// <summary>Resolve a projectile-vs-projectile hit: handlers only — exchanges deliberately do not run in
-    /// this channel (no content wants bullet-destroys-bullet; see ADR 0002).</summary>
-    public static void ResolveProjectileHit(in HitContext context) => RunHandlers(in context);
+    /// <summary>Resolve a projectile-vs-projectile hit: durability spend then handlers — exchanges deliberately do
+    /// not run in this channel (no content wants bullet-destroys-bullet; see ADR 0002).</summary>
+    public static void ResolveProjectileHit(in HitContext context)
+    {
+        SpendSelfDurability(in context);
+        RunHandlers(in context);
+    }
+
+    /// <summary>
+    /// The dissolved LoseHealth (ADR 0003): a projectile carrying a live <see cref="Health"/> spends ONE point of
+    /// durability per hit — presence of the Health component IS the durability switch, uniform across every channel
+    /// (a normal bullet dies on contact; a bullet buffed to MaxHealth &gt; 1 survives that many bounces). A
+    /// projectile with no Health is immortal by construction. Death at zero gates only what comes AFTER the hit:
+    /// ServerCollision despawns once the atomic hit finishes, so a mid-hit death never retracts an exchange or a
+    /// reaction.
+    /// </summary>
+    private static void SpendSelfDurability(in HitContext context)
+    {
+        if (context.SelfHealth != null)
+            context.SelfHealth.ServerLose(1);
+    }
 
     // ---- handler dispatch ----
 
@@ -117,17 +140,6 @@ public static class HitResolver
             if (receiver != null)
                 receiver.ApplyHitstun(hitstun.EffectiveSeconds);
         }
-    }
-
-    /// <summary>Run every operation in <paramref name="ops"/> against <paramref name="ctx"/>. Null list and null
-    /// entries are skipped — an unauthored list is a valid empty authoring, and a nulled managed reference must
-    /// not abort its siblings (atomic-hit rule).</summary>
-    public static void RunEffects<T>(IReadOnlyList<IEffect<T>> ops, T ctx) where T : EffectContext
-    {
-        if (ops == null)
-            return;
-        for (int i = 0; i < ops.Count; i++)
-            ops[i]?.Apply(ctx);
     }
 
     // Receiver resolution: one walk UP from the struck collider to the entity root.
