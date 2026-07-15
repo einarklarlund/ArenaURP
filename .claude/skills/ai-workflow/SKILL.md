@@ -78,7 +78,7 @@ Before implementing anything substantial, say **how it should be done with AI to
 
 Note: a subagent added mid-session is **not** picked up until the next session (the directory watcher only watches directories that existed at startup). Same caveat as `.claude/settings.json`.
 
-**Skills** — `arena-systems-map` is the entry point when a task spans systems. Then the governing skill per area: `presence-dispatch`, `type-object-pattern`, `cross-component-communication`, `functional-core-imperative-shell`, `fishnet-conventions`, `integration-testing`, `unity-mcp-vs-shell`, `game-programming-patterns`, `commit-conventions`.
+**Skills** — `arena-systems-map` is the entry point when a task spans systems. Then the governing skill per area: `presence-dispatch`, `type-object-pattern`, `cross-component-communication`, `functional-core-imperative-shell`, `fishnet-conventions`, `integration-testing`, `unity-mcp-vs-shell`, `game-programming-patterns`, `commit-conventions`. `engineering-canon` is the plan-interview skill (six seminal lenses + the shared-understandings register) — it fires on *plans*, before they're finalized, where the per-area skills fire on *code*.
 
 **Memories** — `MEMORY.md` indexes them. Verify a memory's claims against current code before acting: they are point-in-time, and this codebase renames things.
 
@@ -86,7 +86,7 @@ Note: a subagent added mid-session is **not** picked up until the next session (
 
 - **`/context`** — see what's eating the window before blaming the model.
 - **`/rewind`** — file checkpoints. Reach for it when an edit (or a Unity asset save) goes wrong, instead of hand-reconstructing.
-- **Plan mode first** for design work. A design settled in prose is far cheaper than one settled in fifteen files of code.
+- **Plan mode first** for design work. A design settled in prose is far cheaper than one settled in fifteen files of code. Before finalizing any plan, run the `engineering-canon` interview (six lenses; check its shared-understandings register before re-asking anything).
 - **`--worktree` / `isolation: worktree`** for anything risky or parallel. The editor stays on the main checkout; validate the worktree with batchmode (see the `unity-worktree-headless-validation` memory).
 - **`/loop`, `/schedule`, `/batch`, Workflows** — situational, and all of them multiply cost. Reach for them when the work is genuinely wide (a sweeping migration, a multi-source audit), not because a task is merely long.
 - **`@agent-unity-scout`** mentions guarantee the agent is used rather than merely offered.

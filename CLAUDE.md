@@ -4,7 +4,7 @@ Guidance for Claude Code in this repository.
 
 **This file is an INDEX, not a manual.** It holds only what is non-obvious and always relevant. The detail lives in `.claude/skills/`, which load on demand — keep it that way. Start with the `arena-systems-map` skill whenever a task spans more than one system, and `ai-workflow` whenever the *process* feels repetitive or error-prone.
 
-**Before design work or a new feature, read `DESIGN.md`** (roadmap + open questions + ADR index) — several decisions are deliberately deferred there and must not be improvised.
+**Before design work or a new feature, read `DESIGN.md`** (roadmap + open questions + ADR index) — several decisions are deliberately deferred there and must not be improvised. Before any plan is *finalized*, interview it through the `engineering-canon` skill's six lenses (Parnas/Brooks/Lehman/Conway/Dijkstra/Constantine) — agreement is reached, not assumed, and settled positions live in its shared-understandings register.
 
 ## Project
 

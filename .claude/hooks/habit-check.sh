@@ -38,7 +38,7 @@ fi
 
 # Intent classification — most work-heavy match leads. A prompt can trip several; keep to ~2.
 if printf '%s' "$lc" | grep -Eq '\b(design|architect|approach|options|trade-?offs?|should (we|i)|how should|figure out|decide|redesign)\b'; then
-  add "This reads as DESIGN. Prefer plan mode (/plan or Shift+Tab) BEFORE any code — settle it in prose. If a real decision gets made, it wants an ADR in Docs/design/ (see DESIGN.md)."
+  add "This reads as DESIGN. Prefer plan mode (/plan or Shift+Tab) BEFORE any code — settle it in prose. Before the plan is FINAL, run the engineering-canon interview (six lenses; check its shared-understandings register before re-asking). If a real decision gets made, it wants an ADR in Docs/design/ (see DESIGN.md)."
 fi
 if printf '%s' "$lc" | grep -Eq '\b(implement|add|build|create|write|wire|codify|refactor|rewrite|change|introduce|hook up|make (it|a|the))\b'; then
   add "This reads as BUILD. Say the AI-effective plan first (what delegates to unity-scout, what wants plan mode). Name the test that will PROVE it before writing it. Gameplay logic -> Core processor, not the MonoBehaviour."
