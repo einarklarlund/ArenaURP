@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Authoring data for an <see cref="InstantiateGameObjects"/> effect: the non-networked prefab(s) to
-/// instantiate locally (e.g. impact VFX). Lives on the same GameObject as the effect's applier so the effect
-/// can reference THIS specific list — one applier may carry several <see cref="InstantiableObjects"/>, which a
-/// bare GetComponent could not disambiguate. Keeping the config on this component keeps the effect stateless
-/// and lets the list be tuned per-instance.
+/// Authoring data for an <see cref="InstantiateOnHitHandler"/>: the non-networked prefab(s) to instantiate
+/// locally at a hit point (e.g. impact VFX, a hit marker). Lives on the same GameObject as the handler that reads
+/// it — one object may carry several <see cref="InstantiableObjects"/>, which a bare GetComponent could not
+/// disambiguate. Keeping the config on this component keeps the handler config-light and lets the list be tuned
+/// per-instance.
 /// </summary>
 public sealed class InstantiableObjects : MonoBehaviour
 {

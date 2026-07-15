@@ -19,7 +19,7 @@ using UnityEngine;
 /// FishNet's despawn-callback timing).
 ///
 /// This component owns the pawn-side concerns: input edges, the selection SyncVar, the server-side use path
-/// (cooldown gate, building the <see cref="AimContext"/> context, despawning exhausted instances), and the
+/// (cooldown gate, resolving the caster's aim origin/direction, despawning exhausted instances), and the
 /// <see cref="InventoryChanged"/> HUD hook. Passive abilities live on the sibling <see cref="PawnPassiveAbilities"/>.
 /// </summary>
 public sealed class PawnActiveAbilities : NetworkBehaviour
@@ -131,7 +131,9 @@ public sealed class PawnActiveAbilities : NetworkBehaviour
         ActiveAbility active = Actives[i];
         if (active == null) return;
 
-        bool exhausted = active.ServerUse(BuildContext());
+        Transform src = aimSource != null ? aimSource : transform;
+        NetworkPlayer instigator = pawn != null ? pawn.ControllingPlayer.Value : null;
+        bool exhausted = active.ServerUse(src.position, src.forward, instigator);
         _cooldownEndTime = Time.time + Mathf.Max(0f, active.Cooldown);
 
         if (exhausted)
@@ -140,19 +142,6 @@ public sealed class PawnActiveAbilities : NetworkBehaviour
             active.Despawn();
             SelectedIndex.Value = AbilityInventoryLogic.ClampSelection(SelectedIndex.Value, Actives.Count);
         }
-    }
-
-    private AimContext BuildContext()
-    {
-        Transform src = aimSource != null ? aimSource : transform;
-        // Source = the caster's pawn; an aimed ability has only an origin + direction (no target/normal/systems),
-        // which the AimContext typing enforces on the operations authored here. The caster's player id, when
-        // an operation needs it, is read off Instigator.ObjectId.
-        return new AimContext(
-            source: pawn != null ? pawn.gameObject : gameObject,
-            instigator: pawn != null ? pawn.ControllingPlayer.Value : null,
-            point: src.position,
-            direction: src.forward);
     }
 
     /// <summary>Raise <see cref="InventoryChanged"/>. Also called by instances when their uses change.</summary>

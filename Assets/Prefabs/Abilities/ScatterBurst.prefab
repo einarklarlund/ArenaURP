@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 9143763200298327261}
   - component: {fileID: 7529493318226509567}
   - component: {fileID: 8953925675283031127}
+  - component: {fileID: 257275611997866690}
   m_Layer: 0
   m_Name: ScatterBurst
   m_TagString: Untagged
@@ -138,12 +139,16 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 0}
   DefaultUses: 3
   Cooldown: 0.5
-  OnUse:
-  - rid: 6758500664911593571
-  references:
-    version: 2
-    RefIds:
-    - rid: 6758500664911593571
-      type: {class: SpawnNetworkObjects, ns: , asm: Assembly-CSharp}
-      data:
-        source: {fileID: 7529493318226509567}
+--- !u!114 &257275611997866690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2292814257148368356}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a48d8402814054855a552b09a38915d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpawnNetworkObjects
+  source: {fileID: 0}
