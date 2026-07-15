@@ -64,17 +64,23 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
     public int PassivesCount { get { GetPassives(_passivesBuf); return _passivesBuf.Count; } }
 
     /// <summary>
-    /// Fill <paramref name="results"/> with the on-spawn buffs contributed by this pawn's current passives, for
-    /// the on-spawn buff path (<c>SpawnBuffReceiver</c>). This is a FRESH PER-PEER read off the replicated child
-    /// passives — it runs identically on observers, and is deliberately NOT routed through the server-only owner
-    /// aggregation (<see cref="_ownerSurface"/> et al.), which only the server ever reads.
+    /// The combined on-spawn buff this pawn's current passives contribute — each passive's authored
+    /// <see cref="PassiveAbility.SpawnBuff"/> MULTIPLIED together (identity = 1 contributes nothing), for the
+    /// on-spawn buff path (<c>SpawnBuffReceiver</c>). A FRESH PER-PEER read off the replicated child passives —
+    /// it runs identically on observers, and is deliberately NOT routed through the server-only owner
+    /// contributions, which only the server ever reads.
     /// </summary>
-    public void GetSpawnBuffs(List<IEffect<OnSpawnContext>> results)
+    public SpawnModifier FoldSpawnBuffs()
     {
-        results.Clear();
+        var folded = SpawnModifier.Identity;
         GetPassives(_passivesBuf);                 // child enumeration, replicated on every peer
         foreach (var p in _passivesBuf)
-            if (p.OnSpawn != null) results.AddRange(p.OnSpawn);
+        {
+            folded.SpeedMultiplier *= p.SpawnBuff.SpeedMultiplier;
+            folded.ScaleMultiplier *= p.SpawnBuff.ScaleMultiplier;
+            folded.MaxHealthMultiplier *= p.SpawnBuff.MaxHealthMultiplier;
+        }
+        return folded;
     }
 
     /// <summary>

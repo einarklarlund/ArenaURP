@@ -120,20 +120,26 @@ MonoBehaviour:
   _componentIndexCache: 0
   _addedNetworkObject: {fileID: 6230920335191685443}
   _networkObjectCache: {fileID: 6230920335191685443}
-  StatBuffs: []
+  MovementBuff:
+    WalkSpeedMultiplier: 1
+    WalkAccelerationMultiplier: 1
+    JumpForceMultiplier: 1
+    GravityMultiplier: 1
+    PreImpulseVelocityMultiplier: 1
+  WeaponBuff:
+    FireRateMultiplier: 1
+    SpreadMultiplier: 1
   ProjectileOnSurface:
   - rid: 4328605929791815755
   ProjectileOnPlayer: []
   ProjectileOnProjectile: []
-  OnSpawn:
-  - rid: 4328605929791815756
+  SpawnBuff:
+    SpeedMultiplier: 1
+    ScaleMultiplier: 1
+    MaxHealthMultiplier: 2
   references:
     version: 2
     RefIds:
     - rid: 4328605929791815755
       type: {class: Ricochet, ns: , asm: Assembly-CSharp}
       data: 
-    - rid: 4328605929791815756
-      type: {class: BuffMaxHealth, ns: , asm: Assembly-CSharp}
-      data:
-        multiplier: 2

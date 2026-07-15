@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using FishNet.Object;
 using UnityEngine;
 
@@ -21,8 +20,6 @@ using UnityEngine;
 public sealed class SpawnBuffReceiver : NetworkBehaviour
 {
     private NetPlayerOwnership _ownership;
-    // Scratch buffer for the per-peer passive read (avoid per-spawn allocation).
-    private readonly List<IEffect<OnSpawnContext>> _buf = new();
 
     private void Awake() => _ownership = GetComponent<NetPlayerOwnership>();
 
@@ -44,20 +41,24 @@ public sealed class SpawnBuffReceiver : NetworkBehaviour
         if (!pawn.TryGetComponent<PawnPassiveAbilities>(out var passives))
             return;
 
-        passives.GetSpawnBuffs(_buf);                       // fresh per-peer read of the owner's passives
-        if (_buf.Count == 0)
-            return;
+        // Fold the owner's passives' authored SpawnBuffs (product; identity is a no-op) and poke each spawned-object
+        // system through its dedicated per-spawn multiplier seam — never a raw scale/health write. A buff channel is
+        // applied only when it differs from identity, so a spawnable carrying only some of the siblings is buffed on
+        // whichever it has and the others are left at their reset identity.
+        SpawnModifier buff = passives.FoldSpawnBuffs();
 
-        var ctx = new OnSpawnContext(gameObject, firer);
-        for (int i = 0; i < _buf.Count; i++)
-            _buf[i]?.Apply(ctx);                            // effects poke generic sibling components
-    }
+        if (buff.SpeedMultiplier != 1f && TryGetComponent<NetworkedMotion>(out var motion))
+            motion.SetSpeedMultiplier(buff.SpeedMultiplier);
 
-    public override void ResetState(bool asServer)
-    {
-        base.ResetState(asServer);
-        // Holds no per-spawn state beyond the scratch list, but clear it anyway so the invariant "every component
-        // in the buff path resets its per-spawn layer" stays true if this ever grows state.
-        _buf.Clear();
+        if (buff.ScaleMultiplier != 1f)
+        {
+            if (TryGetComponent<SpawnScale>(out var scale))          // visual (per-peer cosmetic)
+                scale.SetScaleMultiplier(buff.ScaleMultiplier);
+            if (TryGetComponent<ServerCollision>(out var collision)) // collision radius (server-only)
+                collision.SetRadiusMultiplier(buff.ScaleMultiplier);
+        }
+
+        if (buff.MaxHealthMultiplier != 1f && TryGetComponent<Health>(out var health))
+            health.SetMaxHealthMultiplier(buff.MaxHealthMultiplier);
     }
 }
