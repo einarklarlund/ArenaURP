@@ -329,6 +329,26 @@ public static class CombatTestRig
         return n;
     }
 
+    /// <summary>Count active PawnDamageVfx hit (or death) bursts currently alive in the scene. PawnDamageVfx spawns
+    /// pooled clones named "{prefab}(Clone)", each with a ParticleSystem on its root; this counts the active ones by
+    /// name so a test can assert one burst per hit (the asServer gate must not double-spawn on a host) without
+    /// referencing the VFX prefab directly. Enumerates ParticleSystem (always present — Play() is unconditional)
+    /// rather than the optional PooledLifetime.</summary>
+    public static int CountActiveVfxClones(GameObject pawnGo, bool death)
+    {
+        var vfx = pawnGo.GetComponentInChildren<PawnDamageVfx>(true);
+        if (vfx == null) return 0;
+        var field = typeof(PawnDamageVfx).GetField(death ? "onDeathPrefab" : "onHitPrefab",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        var prefab = (GameObject)field.GetValue(vfx);
+        if (prefab == null) return 0;
+        string cloneName = prefab.name + "(Clone)";
+        int n = 0;
+        foreach (var ps in Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None))
+            if (ps.gameObject.activeInHierarchy && ps.gameObject.name == cloneName) n++;
+        return n;
+    }
+
     // ---- event capture (damage / death are events; latch them so a test can poll) ----------
 
     sealed class Capture

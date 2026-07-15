@@ -98,6 +98,8 @@ namespace Arena.PlayTests
         protected int DamageEventCount(GameObject pawn) => (int)Invoke("DamageEventCount", pawn);
         protected int DeathEventCount(GameObject pawn) => (int)Invoke("DeathEventCount", pawn);
         protected int LastDamageAmount(GameObject pawn) => (int)Invoke("LastDamageAmount", pawn);
+        protected int ActiveHitVfx(GameObject pawn) => (int)Invoke("CountActiveVfxClones", pawn, false);
+        protected int ActiveDeathVfx(GameObject pawn) => (int)Invoke("CountActiveVfxClones", pawn, true);
         protected bool IsPawnOwner(GameObject pawn) => (bool)Invoke("IsPawnOwner", pawn);
         protected bool IsStunned(GameObject pawn) => (bool)Invoke("IsStunned", pawn);
         protected int StripHitstunDealersFromLiveProjectiles() => (int)Invoke("StripHitstunDealersFromLiveProjectiles");

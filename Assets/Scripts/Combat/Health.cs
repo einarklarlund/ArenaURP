@@ -12,11 +12,14 @@ using HealthCoreState = Arena.Health.HealthState;
 /// <see cref="IDamageable"/>: hit operations and HurtBoxes deal damage here, and everything that cares about a
 /// health value reads/subscribes to it (a pawn's <c>Pawn</c> forwards to it so its own consumers don't change).
 ///
-/// Two notification surfaces, by audience:
-///  - C# events <see cref="OnDamageTaken"/> / <see cref="OnDeath"/> fire on EVERY peer, BEFORE the SyncVar
-///    settles, so gameplay reactions (knockback, VFX, the pawn death chain) can react predictively — the
-///    behaviour the pawn health path used to own. <see cref="OnDamageTaken"/> is the predictive hook; on a client
-///    <see cref="OnDeath"/> is raised speculatively when the hit is predicted-lethal (subject to rollback).
+/// Two notification surfaces:
+///  - C# events <see cref="OnDamageTaken"/> / <see cref="OnDeath"/> fire IN-PROCESS wherever <see cref="TakeDamage"/>
+///    is invoked — for the standard projectile-hit path (ServerCollision → HitResolver) that is the server. They
+///    carry the full <see cref="DamageInfo"/> (attacker, amount, hit point) for server-side reactions and kill
+///    attribution (PawnManager reads <see cref="OnDeath"/>). CROSS-PEER cosmetic reactions do NOT use these — a hit
+///    resolves server-only, so the events never reach a remote client; those reactions ride the
+///    <see cref="CurrentHealth"/> SyncVar OnChange, which replication delivers to every peer (see
+///    <c>PawnColor</c>, <c>PawnDamageVfx</c>; ADR 0004).
 ///  - Serialized <see cref="onServerDamage"/> / <see cref="onServerDeath"/> UnityEvents fire SERVER-ONLY, for
 ///    inspector-wired destructibles.
 ///
@@ -34,12 +37,13 @@ public class Health : NetworkBehaviour, IDamageable
     public readonly SyncVar<int> CurrentHealth = new(1, new SyncTypeSettings(WritePermission.ServerOnly));
     public readonly SyncVar<int> MaxHealth = new(1, new SyncTypeSettings(WritePermission.ServerOnly));
 
-    /// <summary>Fires on EVERY peer the instant damage is applied here, BEFORE the SyncVar settles — the
-    /// predictive hook knockback / VFX rely on.</summary>
+    /// <summary>Fires in-process when damage is applied here — i.e. wherever <see cref="TakeDamage"/> is invoked
+    /// (the server, for the standard hit path). Carries the full <see cref="DamageInfo"/>. Cross-peer cosmetics use
+    /// <see cref="CurrentHealth"/>.OnChange instead.</summary>
     public event Action<DamageInfo> OnDamageTaken;
 
-    /// <summary>Fires when this dies. Server: on the authoritative HP&lt;=0 transition. Client: speculatively when a
-    /// hit is predicted-lethal (subject to rollback — a UI consumer must tolerate that).</summary>
+    /// <summary>Fires on the authoritative HP&lt;=0 transition (server), carrying the <see cref="DamageInfo"/> —
+    /// incl. the attacker, for kill attribution (PawnManager).</summary>
     public event Action<DamageInfo> OnDeath;
 
     [SerializeField] private DamageInfoEvent onServerDamage = new();
@@ -100,24 +104,18 @@ public class Health : NetworkBehaviour, IDamageable
     }
 
     /// <summary>
-    /// Apply damage. Fires the predictive all-peer <see cref="OnDamageTaken"/> before the SyncVar settles, raises
-    /// a speculative <see cref="OnDeath"/> on a client that predicts the hit is lethal, then — on the server —
-    /// applies the loss and, on death, raises the authoritative <see cref="OnDeath"/> / <see cref="onServerDeath"/>
-    /// and optionally despawns. Mirrors the structure the bespoke pawn health path used to have, so the same
-    /// reactions fire in the same order.
+    /// Apply damage. Raises the in-process <see cref="OnDamageTaken"/> (server-side for the standard hit path),
+    /// then — on the server — applies the loss and, on death, raises the authoritative <see cref="OnDeath"/> /
+    /// <see cref="onServerDeath"/> and optionally despawns. Cross-peer cosmetic reactions ride
+    /// <see cref="CurrentHealth"/>.OnChange, not these events, so they reach every peer.
     /// </summary>
     public void TakeDamage(DamageInfo info)
     {
         if (CurrentHealth.Value <= 0) return;
 
-        // Predictive: every peer reacts before the SyncVar is updated (knockback/VFX/colour flash).
+        // In-process notification for server-side reactions and kill attribution — NOT the cross-peer cosmetic
+        // path (that rides the CurrentHealth SyncVar OnChange; see the class doc / ADR 0004).
         OnDamageTaken?.Invoke(info);
-
-        // Client-side predictive death (subject to rollback; UI consumers must tolerate it). NOT on the host —
-        // there IsClientInitialized && IsServerInitialized are both true, and the authoritative server branch
-        // below already raises OnDeath, so a bare IsClientInitialized check would double-fire it.
-        if (IsClientInitialized && !IsServerInitialized && CurrentHealth.Value - info.Amount <= 0)
-            OnDeath?.Invoke(info);
 
         if (!IsServerInitialized)
             return;

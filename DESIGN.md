@@ -70,6 +70,7 @@ _One line each; the file holds context + decision + alternatives + consequences.
 | [0001](Docs/design/0001-hit-exchange-pattern.md) | Hit exchanges = dealer component + receiver component (courier layer superseded by 0002) | Accepted | 2026-07-10 |
 | [0002](Docs/design/0002-ieffect-appropriateness-verdict.md) | IEffect verdict: keep command core; delete lattice/couriers/sink-buffs; add fan-out site | Superseded in part by 0003 | 2026-07-13 |
 | [0003](Docs/design/0003-hit-reactions-as-handler-components.md) | Hit reactions = presence-discovered IHitHandler components; channel = call site; command core retires | Accepted | 2026-07-14 |
+| [0004](Docs/design/0004-cross-peer-damage-cosmetics-ride-replication.md) | Cross-peer damage cosmetics ride the CurrentHealth SyncVar OnChange (PawnColor pattern), not an ObserversRpc; C# damage events narrow to server-side | Accepted | 2026-07-15 |
 
 ## Writing an ADR
 
