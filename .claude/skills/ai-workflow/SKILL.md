@@ -78,4 +78,4 @@ Both feed the **practices register** ([practices-register.md](practices-register
 - **When a guideline is violated:** repairing the guardrail is part of the fix, never follow-up ([[proactive-skill-maintenance]]).
 - **When a guardrail repeatedly blocks doctrine-compliant work:** the doctrine is wrong, not the hook — treat enforcement collisions as design *evidence* and feed them into a design review; don't work around them, don't soften the hook. Scar: the one-concretion nudge killed the `effect-commands` "leanest capability" route in two independent spikes (2026-07-13); that collision, not argument, decided ADR 0002.
 - **After any rename or architectural change:** `@agent-workflow-auditor` before trusting the docs.
-- **Task finished AND output approved:** merge per [[merge-to-main-on-approval]]; never push ([[never-push-to-origin]]).
+- **Task finished AND output approved:** merge per [[merge-to-main-on-approval]] — fast-forward local main, then tear down the worktree if one was used — never push ([[never-push-to-origin]]).
