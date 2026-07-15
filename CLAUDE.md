@@ -51,10 +51,10 @@ Systems never call each other. They contribute to collections the producer folds
 
 - **Server-authoritative.** Any gameplay mutation runs inside a `[Server]` method or is triggered from one. → `fishnet-conventions` skill (payload avoidance, SyncVar/RPC discipline, cast-based collision, and **which peer simulates**).
 - **A hit exchange is dealer component + receiver component, fired from component presence** at the hit site (`HitResolver`) — no courier effect, no authored row; each end folds its own modifiers; never mutate an authored baseline (ADR 0002). → `effect-commands` skill.
-- **Swappable behaviour is an `IEffect<TContext>` command** authored on a prefab, typed to the shallowest SITE in the concrete context class tree — capability interfaces only at a second non-tree concretion (rule of two, ADR 0002). Varies-in-data (stat buffs) is authored struct data, not a command. → `effect-commands` skill.
+- **Swappable behaviour is a COMPONENT discovered by presence** — a hit reaction is an `IHitHandler` component filtered by channel (the call site), an ability's spawn is a `SpawnNetworkObjects` component; the site finds them with `GetComponents`, no authored operation list. Varies-in-data (stat buffs, on-spawn buffs) is authored struct data. Engine-native composition, not owned dispatch machinery (ADR 0003). → `effect-commands` skill.
 - **A KIND of thing is an identity-only SO + an independent prefab copy** carrying all config; instances self-configure on every peer. Spawning anything a player can own means stamping `NetPlayerOwnership.SpawnOwnerId` *before* `ServerManager.Spawn`. Abilities are instance prefabs with load-bearing roster ordering (**Spawn before Add, RemoveAt before Despawn**). → `type-object-pattern` skill.
 - `Pawn` and `NetworkPlayer` serve **both humans and bots** (`NetworkPlayer.IsBot`). Never assume a client connection on a player.
-- **No interface with one concretion.** If a capability interface ever earns its keep (rule of two — a second, genuinely non-tree site), it belongs on the effect *context*, never on the component it resolves.
+- **No interface with one concretion.** A capability interface earns its keep only at a second, genuinely non-tree concretion (rule of two) — and when it does, it lives ON the component that carries the behaviour, discovered by presence (the `IHitHandler` shape).
 
 ## Working with Unity from Claude
 

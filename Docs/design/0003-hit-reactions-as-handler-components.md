@@ -40,3 +40,11 @@ This spike (branch `worktree-ieffect-component-handler-spike`): passive-steal-ON
 - **Deferred, unchanged:** `HitContext` must not grow damage-buff-channel fields — the damage-buff session owns outgoing-modifier plumbing; the timed-modifier lifetime; the wire-payload class.
 
 **North-star rationale:** Essence — reactions stay per-prefab composed content, which is the upgrade axis. Elegance — the engine's own composition unit (components + `GetComponents`) replaces owned machinery; one dispatch mechanism, fewer types, and the channel taxonomy lives in exactly one place (the call sites).
+
+## Realized (2026-07-14, shipped)
+
+Migration complete and green (285 EditMode / 47 PlayMode, BotMatchSoak excluded). Outcome vs. prediction:
+
+- **Machinery 11 → 4** (`IHitHandler` / `HitChannels` / `HitContext` / `HitResolver`) — deleting `IEffect<T>`, the five context classes, the `[EffectSelector]` attribute + drawer, the `Commands` factory, and `ProjectileEffects`. The predicted net drop, realized.
+- **Correction — the MackySoft pin STAYS.** It was never the effect system's dependency (effects used the project's OWN `[EffectSelector]` drawer); `NetworkedMotion`'s motion-strategy field still uses MackySoft's `[SubclassSelector]`. The §4 / Consequences instruction to delete the pin was wrong and was not followed.
+- **`DeflectProjectileHandler` ships but authored on zero content** — no prefab wants projectile-vs-projectile, and the Bullet's `projectileMask` is 0. The `WantsProjectileChannel` effective-mask gate is implemented and provably behaviour-neutral for all shipping content (`_ownProjectileMask` = None for the Bullet), but the projectile channel has no live PlayMode coverage; a deflection test needs new infra (a projectile prefab on the bullet-to-bullet layer). Deferred and noted, not built inside the migration.

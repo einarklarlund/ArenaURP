@@ -29,7 +29,7 @@ This project keeps a live Unity Editor on the MCP bridge (`mcp__unity__*`; load 
 ## Architecture you can assume (so you don't rediscover it)
 
 - **Processor + thin-MonoBehaviour**: gameplay logic lives in pure `Arena.*.Core` assemblies (`<X>Config/State/Input/Processor`); `Pawn<X>` NetworkBehaviours are Unity glue only.
-- **Effects** are `[SerializeReference]` command objects on prefabs, typed to a SITE in the concrete context class tree (`OnSpawnContext`, `AimContext`, `ProjectileImpact`, `ProjectileProjectileCollision` — no capability interfaces; ADR 0002), run by `ServerCollision` via `HitResolver.RunEffects`. Config lives on components, resolved by the site that builds the context.
+- **Hit reactions** are `IHitHandler` components discovered by presence; channel = call site (`HitResolver.ResolveSurfaceHit`/`ResolvePlayerHit`/`ResolveProjectileHit`), filtered by a serialized channel mask. The projectile's own components run first, then the owner's passive-contributed ones (`PawnPassiveAbilities.CollectHitHandlers`); no serialized reaction list. On-spawn buffs are a `SpawnModifier` struct; ability spawns are a `SpawnNetworkObjects` component (ADR 0003).
 - **Hit exchanges** are dealer component + receiver component, fired from component presence by `HitResolver` (no courier effect); each end folds its own modifier list.
 - Per-kind config is authored on **prefab copies**, not variants; type SOs are identity-only.
 - Read `.claude/skills/arena-systems-map/SKILL.md` first if the question spans systems.
