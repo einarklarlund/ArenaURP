@@ -78,7 +78,7 @@ Before implementing anything substantial, say **how it should be done with AI to
 
 Note: a subagent added mid-session is **not** picked up until the next session (the directory watcher only watches directories that existed at startup). Same caveat as `.claude/settings.json`.
 
-**Skills** — `arena-systems-map` is the entry point when a task spans systems. Then the governing skill per area: `effect-commands`, `type-object-pattern`, `cross-component-communication`, `functional-core-imperative-shell`, `fishnet-conventions`, `integration-testing`, `unity-mcp-vs-shell`, `game-programming-patterns`, `commit-conventions`.
+**Skills** — `arena-systems-map` is the entry point when a task spans systems. Then the governing skill per area: `presence-dispatch`, `type-object-pattern`, `cross-component-communication`, `functional-core-imperative-shell`, `fishnet-conventions`, `integration-testing`, `unity-mcp-vs-shell`, `game-programming-patterns`, `commit-conventions`.
 
 **Memories** — `MEMORY.md` indexes them. Verify a memory's claims against current code before acting: they are point-in-time, and this codebase renames things.
 
@@ -99,6 +99,7 @@ These are all one value — **Elegance** (`DESIGN.md`): the fewest parts that co
 - Writing a skill to fix something a hook could gate.
 - Exploring in the main thread because spawning an agent "feels like overhead." The overhead is the point: it buys back attention.
 - Letting a skill go stale. A skill naming a class that was renamed is worse than no skill — it is confidently wrong.
+- Writing a skill as a **rule-pile** — a mechanism dump, or a checklist that restates the prose above it. A skill is *judgment*: lead with the ONE idea and its *why* (how it serves the north stars), then only the non-obvious specifics; if a reader who has the principle wouldn't need a line, cut it. The skill is under the same Elegance discipline as the code it governs. Scar: the first `effect-commands`→`presence-dispatch` rewrite reproduced the deleted command system's shape as a rules index — the user rejected it (2026-07-14).
 
 ## Two kinds of improvement — do BOTH, not just the first
 

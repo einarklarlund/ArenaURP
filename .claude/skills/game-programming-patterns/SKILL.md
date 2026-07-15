@@ -13,7 +13,7 @@ Standing biases: solo dev (optimize for readable-in-six-months), code over edito
 
 ## Tier 1 — reach for these freely
 
-- **Command** — an action as a first-class value (rebindable input, undo, queues, AI issuing player actions). Plain `ICommand`; the input MonoBehaviour only produces commands. This project's authored-behaviour realization is [[effect-commands]] — consult it for any family of swappable behaviour variants.
+- **Command** — an action as a first-class value (rebindable input, undo, queues, AI issuing player actions). Plain `ICommand`; the input MonoBehaviour only produces commands. This project's authored-behaviour realization is [[presence-dispatch]] — consult it for any family of swappable behaviour variants.
 - **State (FSM)** — anything with modes (AI, control modes, game flow). A plain C# machine the MonoBehaviour ticks; the moment an object grows mutually-exclusive bool flags, make the states explicit. Never put *logic* in the Animator — drive it from the code FSM.
 - **Component** — Unity's native structure; keep each component small and delegate its brain to a plain class. Cross-component data flow rules live in [[cross-component-communication]].
 - **Observer** — announce "something happened" without knowing listeners. Plain C# `event`; subscribe in `OnEnable`, ALWAYS unsubscribe in teardown. Defer-in-time needs an Event Queue, not an Observer.
@@ -27,7 +27,7 @@ Standing biases: solo dev (optimize for readable-in-six-months), code over edito
 - **Subclass Sandbox** — a *closed* family built from a fixed toolkit of protected primitives. If the set is open-ended, prefer Type Object / composition.
 - **Prototype/Spawning** — prefab + `Instantiate` *is* it; keep the what/when/where decision logic in a plain class.
 - **Dirty Flag** — cache + `isDirty` for an expensive derived value recomputed more often than its inputs change; test the invalidation paths.
-- **Flyweight** — Unity already shares meshes/materials/SOs; the discipline that matters here is "no per-instance state on shared objects" ([[effect-commands]], [[type-object-pattern]]).
+- **Flyweight** — Unity already shares meshes/materials/SOs; the discipline that matters here is "no per-instance state on shared objects" ([[presence-dispatch]], [[type-object-pattern]]).
 
 ## Skip list — don't implement these here
 

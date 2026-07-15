@@ -11,7 +11,7 @@ description: Where gameplay logic GOES — in a pure functional core (Arena.*.Co
 - The core returns what it wants done **out as data** — a new state, a classification, an effect list. It performs nothing.
 - The call arrow is shell → core only. That's what makes the core EditMode-testable with plain structs and deterministic for networking.
 
-House shape: `static Process(state, in config, in input, dt) → newState` in an `Arena.<X>.Core` asmdef; the `Pawn<X>` shell builds the input from `PawnInput.Data`, calls it, applies the result. Reference implementation for the hard case: the projectile — `ServerCollision` (shell) casts and overlaps; the pure `ServerCollisionProcessor` classifies (`TryClassifyWorldHit` → owner-safe enemy/surface/projectile); the shell then runs the Unity-coupled [[effect-commands]] the classification routes to. The core decides *what kind of hit happened*; the shell decides *what to do about it*.
+House shape: `static Process(state, in config, in input, dt) → newState` in an `Arena.<X>.Core` asmdef; the `Pawn<X>` shell builds the input from `PawnInput.Data`, calls it, applies the result. Reference implementation for the hard case: the projectile — `ServerCollision` (shell) casts and overlaps; the pure `ServerCollisionProcessor` classifies (`TryClassifyWorldHit` → owner-safe enemy/surface/projectile); the shell then runs the Unity-coupled [[presence-dispatch]] the classification routes to. The core decides *what kind of hit happened*; the shell decides *what to do about it*.
 
 ## The anti-pattern: an interface whose only second implementation is a test double
 

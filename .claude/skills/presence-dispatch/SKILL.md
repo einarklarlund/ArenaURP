@@ -1,5 +1,5 @@
 ---
-name: effect-commands
+name: presence-dispatch
 description: How swappable combat behaviour is composed — behaviour that varies is a COMPONENT you attach, discovered by presence (GetComponents), so we own no dispatch machinery; behaviour that varies only in data is an authored struct. Covers hit reactions (IHitHandler components filtered by channel), the dealer+receiver hit exchanges (damage/knockback/hitstun fire from component presence, no courier), on-spawn buffs (a SpawnModifier struct), ability use-time spawns (SpawnNetworkObjects component), the dissolved-LoseHealth durability spend, HitResolver as the one hit pipeline, the rule of two (no speculative IUseHandler/HitDurability), the pooling two-layer rule, and the OPEN damage-buff design question. Use BEFORE adding or editing any hit reaction, buff, or ability behaviour, adding a handler component or a hit channel, adding a dealer/receiver exchange, deciding where a behaviour's config lives, or inventing a new family of interchangeable behaviour variants. Pairs with [[type-object-pattern]] (prefabs host these components) and [[functional-core-imperative-shell]] (where the math goes).
 ---
 
@@ -14,6 +14,8 @@ description: How swappable combat behaviour is composed — behaviour that varie
 - Varies in **data** → an authored struct, no behaviour-bearing type (`MovementModifier` / `WeaponModifier` / `SpawnModifier`, default `Identity`).
 - **Deal-X-on-hit** → a dealer component meets a receiver component (below).
 - A one-off with no siblings → just a method.
+
+> **OPEN — why buffs-as-data, not presence-dispatch?** This runs TWO mechanisms: presence-discovered components for *behaviour*, authored structs for *data*. The data path buys terseness (one `SpawnModifier` authors any mix of speed/scale/health), but it is a second dispatch shape, and Elegance asks for the fewest. Could a buff instead be a component the fold discovers by presence, unifying on one mechanism? Revisit this before adding a THIRD data-buff surface (the damage-buff channel is the likely trigger) — decide whether the data/behaviour split earns its second mechanism or should collapse into presence dispatch.
 
 ## Hit reactions: `IHitHandler`, channel = call site
 
