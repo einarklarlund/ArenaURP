@@ -34,7 +34,7 @@ add() { nudges+=("$1"); }
 if printf '%s' "$lc" | grep -Eq '\b(design|implement|add|build|create|feature|system|ability|abilities|upgrade|pickup|projectile|effect|mechanic|enemy|weapon|mode|redesign|should we)\b'; then
   # Inline only the STABLE claim; POINT to the volatile system list (it lives in DESIGN.md and changes —
   # enumerating it here drifted within two turns, which is why this rule exists).
-  add "ESSENCE: the game is character-BUILDING via a handful of INTERACTING systems, NOT map/resource control. Test against it: does this deepen an upgrade-driven interaction, or is it a one-off that composes into nothing? Does it add a system beyond the current list (see DESIGN.md — read it, do not assume)? If either, challenge it before building, and guard the essence's size."
+  add "ESSENCE: the game is character-BUILDING via a handful of INTERACTING systems. Test against it: does this deepen an upgrade-driven interaction, or is it a one-off that composes into nothing? Does it add a system beyond the current list (see DESIGN.md — read it, do not assume)? If either, challenge it before building, and guard the essence's size."
 fi
 
 # Intent classification — most work-heavy match leads. A prompt can trip several; keep to ~2.
