@@ -17,6 +17,13 @@ The edges below are settled by **which source files / seams each item touches** 
 
 Edge count is **not** a modularity metric: a deep chain over stable interfaces has zero coupling; a "fully parallel" plan where everyone edits one god-object is a coupling disaster. Below, each edge is tagged by kind.
 
+## Ratified 2026-07-15 (this session)
+
+- **Map/resource control is NOT excluded.** The essence dropped that exclusion (commit `d50d5a4e`; scope guard pared to the interaction test in `6cda6855`/`49642ec0`). The consolidation's cuts of P6/P7 rested on removed doctrine and are **reversed**. Stale copies synced (`habit-check.sh`, `design-critic.md`, `game-essence` memory).
+- **Acquisition** (resolves DESIGN.md's "ability acquisition source" open question): primary objective = fight over **smash-ball pickups** granting **permanent** passives + actives; secondary = **limited-use** active pickups. Two-tier direct-grant, no XP track. → ADR. Caveat: "fight over pickups on the map" carries mild positional pressure — mitigate with a draft/choice framing, not a spawn scramble.
+- **Per-observer rendering: ADOPT as a system** (resolves the open question) — consumers P3, P7.
+- **Terrain-persistent zones: ADOPT** (resolves the open question) — consumers P6, P7; both build as designed, persistent volumes included.
+
 ## The two tracks
 
 ```mermaid
@@ -75,6 +82,65 @@ Design-laden work; **not** fanned out (per the ratified understanding: subagents
 - **Q2** persistence (per-life vs per-game) — interview + ADR + playtest; interacts with respawn.
 - **Hitstun feel** — playtest gate; blocks *shipping* P5, adjacent to P1.
 - **P4** (extra air-jumps) — **re-pitch around an enemy-facing interaction or cut**; do **not** schedule the additive-`MovementModifier` fold.
+
+## Track C — ability & perception expansion (added 2026-07-15)
+
+Re-adds the five consolidation cuts (**A2** reflect, **A3** pepper, **P3** invisibility, **P6** goop, **P7** smoke) under the ratified decisions. The batch **activates most of DESIGN.md's deferred open questions at once**, and each now meets rule-of-two — so the elegant order is Parnas's "uses" hierarchy: **design + build the shared enabling channels first, then the features ride them.**
+
+```mermaid
+graph TD
+  subgraph EN["Enabling systems — ADR/design session each (rule-of-two met)"]
+    N1["N1 timed-modifier lifetime"]
+    N2["N2 wire-payload"]
+    N3["N3 victim hit-received"]
+    N4["N4 per-observer render"]
+    N5["N5 terrain zone"]
+    N6["N6 debuff / vision-denial"]
+  end
+  A2["A2 reflect"] --> N3
+  A3["A3 pepper (blind half)"] --> N1
+  A3 --> N2
+  A3 --> N6
+  P3["P3 invisibility"] --> N3
+  P3 --> N1
+  P3 --> N4
+  P6["P6 goop"] --> N5
+  P6 --> N1
+  P6 --> N2
+  P7["P7 smoke"] --> N4
+  P7 --> N5
+  P7 --> N3
+  P7 --> N6
+```
+
+### Enabling systems (low level — each an ADR/design session; rule-of-two met by the batch)
+
+| # | System | Consumers | Note |
+|---|---|---|---|
+| **N1** | Timed-modifier lifetime (generic receiver) | A3-blind, P3-invis, P6-slow (+ spike 4) | DESIGN.md: build **once, generic** — not per-system twins |
+| **N2** | Wire-payload class (dealer-authored effect on client-simulated victim) | A3-blind, P6-slow | DESIGN.md Q5; `fishnet-conventions` Rule 1 is unsatisfiable for this class |
+| **N3** | Victim-side hit-received dispatch (react-when-I'm-hit handler) | A2, P3, P7 | `HitResolver` already walks to the victim root — an **extension**, not new plumbing |
+| **N4** | Per-observer rendering (server-authoritative visibility) | P3, P7 | Adopted; each client sees a different world |
+| **N5** | Terrain-persistent zone (ticking world-space volume) | P6, P7 | Adopted |
+| **N6** | Debuff / vision-denial | A3-blind (first real debuff), P7 | resolves DESIGN.md's "Debuffs" open question |
+
+**THE central elegance question for these sessions — do NOT pre-decide; canon-interview each:**
+- **Do N1 + N2 + N6 collapse into ONE channel** — *"a dealer-authored, timed, wire-replicated modifier applied to a victim"* (blind, slow, future debuffs are instances)? Very likely **yes** — the Parnas hide-one-decision + Elegance collapse-mechanisms move. Standing up three separate mechanisms here would be the anti-pattern. This likely turns "5 new systems" into ~3.
+- **Is "perception" one system or several?** Blind (dim the victim's OWN screen) ≠ invisibility (hide you from OTHERS = N4) ≠ smoke (block others' view through a volume = N4+N5). Decide whether N4 subsumes all vision-denial or only self-visibility.
+
+### Features (upper level — ride the N-systems)
+
+| Feature | = cut | Scope | After |
+|---|---|---|---|
+| **A2 reflect** | A2 | **reflect-only** — drop "block ALL damage" (it *negates* an interaction, anti-essence). Reflect = N3 + inline projectile-redirection (N=1, no system) | N3 |
+| **A3 pepper** | A3 | splits: **knock-up + AoE → authored config on Session 1's proximity explosion (nearly free)**; **blind → N1 + N2 + N6 + a client screen effect** | Session 1 (knock-up); N1/N2/N6 (blind) |
+| **P3 invisibility** | P3 | N3 (trigger on hit) + N1 (timed self-buff) + N4 (per-observer render) | N3, N1, N4 |
+| **P6 goop** | P6 | N5 (zone) + N1 (timed slow) + N2 (wire) — the slow itself is spike 4's interaction, now delivered in a zone | N5, N1, N2 |
+| **P7 smoke** (heaviest) | P7 | N4 + N5 + N3 + N6 | all four |
+
+### System-budget flag (the one essence-guard point that survives)
+
+Map-control is no longer the objection — but the essence still says *"adding a new system is a major decision… something should probably be cut to make room."* This batch adopts **up to ~5 new systems (N1–N6, minus collapses)** — the largest scope increase on the roadmap. Two mitigations already in the plan: (1) collapse N1/N2/N6 into one channel (above) → ~3 systems; (2) under the *current* guard these are genuine interaction depth — upgrades that change how your **enemy** plays (the essence's top axis), not gadgets. **Recommendation: proceed, hold the collapse questions as gates, and revisit "cut to make room" only if N4/N5 each spawn sub-systems.**
 
 ## Does a deep DAG mean the features are too coupled? (the question that prompted this)
 
