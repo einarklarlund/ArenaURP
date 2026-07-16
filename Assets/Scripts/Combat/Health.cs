@@ -37,6 +37,12 @@ public class Health : NetworkBehaviour, IDamageable
     public readonly SyncVar<int> CurrentHealth = new(1, new SyncTypeSettings(WritePermission.ServerOnly));
     public readonly SyncVar<int> MaxHealth = new(1, new SyncTypeSettings(WritePermission.ServerOnly));
 
+    /// <summary>Current HP as a 0..1 fraction of the (buffed) max — the derived surface consumers read
+    /// instead of re-deriving <c>CurrentHealth / MaxHealth</c>. Zero max reports 0 (never divides by zero).
+    /// Reads the SyncVars, so it is valid on every peer.</summary>
+    public float HealthFraction =>
+        new HealthCoreState { Hp = CurrentHealth.Value, MaxHp = MaxHealth.Value }.Fraction;
+
     /// <summary>Fires in-process when damage is applied here — i.e. wherever <see cref="TakeDamage"/> is invoked
     /// (the server, for the standard hit path). Carries the full <see cref="DamageInfo"/>. Cross-peer cosmetics use
     /// <see cref="CurrentHealth"/>.OnChange instead.</summary>

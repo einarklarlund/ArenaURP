@@ -26,6 +26,6 @@ public class DamageIndicator : MonoBehaviour
     {
         if(asServer) return;
 
-        healthIndicator.color = Color.Lerp(lowHealthColor, highHealthColor, pawn.MaxHealth.Value);
+        healthIndicator.color = Color.Lerp(lowHealthColor, highHealthColor, pawn.HealthFraction);
     }
 }

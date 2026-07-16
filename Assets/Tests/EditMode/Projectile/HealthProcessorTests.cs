@@ -28,5 +28,19 @@ namespace Arena.Tests.Health
             Assert.IsTrue(new HealthState { Hp = 0, MaxHp = 5 }.IsDead);
             Assert.IsFalse(HealthState.Full(1).IsDead);
         }
+
+        [Test]
+        public void Fraction_IsHpOverMax()
+        {
+            Assert.AreEqual(1f, HealthState.Full(20).Fraction, 1e-6f);
+            Assert.AreEqual(0.5f, new HealthState { Hp = 5, MaxHp = 10 }.Fraction, 1e-6f);
+            Assert.AreEqual(0f, new HealthState { Hp = 0, MaxHp = 10 }.Fraction, 1e-6f);
+        }
+
+        [Test]
+        public void Fraction_ZeroMax_IsZero_NotDivideByZero()
+        {
+            Assert.AreEqual(0f, new HealthState { Hp = 5, MaxHp = 0 }.Fraction);
+        }
     }
 }

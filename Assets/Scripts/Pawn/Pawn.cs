@@ -34,6 +34,11 @@ public class Pawn : NetworkBehaviour
     /// <summary>The pawn's max HP — forwarded from the sibling <see cref="global::Health"/> component.</summary>
     public SyncVar<int> MaxHealth => _health.MaxHealth;
 
+    /// <summary>The pawn's current HP as a 0..1 fraction of max — forwarded from the sibling
+    /// <see cref="global::Health"/> component (zero max reports 0). Consumers read this instead of
+    /// dividing <see cref="Health"/> by <see cref="MaxHealth"/> themselves.</summary>
+    public float HealthFraction => _health.HealthFraction;
+
     /// <summary>Re-raised from the sibling health's predictive all-peer damage event.</summary>
     public event Action<DamageInfo> OnDamageTaken;
 

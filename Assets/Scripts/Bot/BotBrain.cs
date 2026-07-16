@@ -61,7 +61,7 @@ public sealed class BotBrain : NetworkBehaviour
         return new BotWorldSnapshot
         {
             SelfPosition = transform.position,
-            HealthFraction = (float)pawn.Health.Value / pawn.MaxHealth.Value,
+            HealthFraction = pawn.HealthFraction,
             HasVisibleTarget = enemyVision.HasVisibleTarget,
             TargetPosition = enemyVision.HasVisibleTarget && enemyVision.VisibleTarget != null
                 ? enemyVision.VisibleTarget.transform.position
