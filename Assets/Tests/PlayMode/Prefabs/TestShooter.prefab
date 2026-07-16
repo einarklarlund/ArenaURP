@@ -146,9 +146,20 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 0}
   pawn: {fileID: 6102058889812717513}
   firePoint: {fileID: 6894548383097755379}
-  weaponData: {fileID: 11400000, guid: f803806807cea44688ba2252c9e2f7d9, type: 2}
+  config:
+    FireMode: 1
+    FireRate: 0.1
+    AmmoPerFire: 1
+    ShotsPerFire: 1
+    FireDuration: 0
+    ProjectilesPerShot: 1
+    SpreadAngle: 0
+    SpreadType: 0
+  projectile: {fileID: 11400000, guid: 39387121012ec49e8b787ad217870377, type: 2}
+  spawnPositionOffset: {x: 0, y: 0, z: 0}
   input: {fileID: 2891595811883332153}
   pawnCollider: {fileID: 0}
+  hitstun: {fileID: 0}
 --- !u!114 &8001326026167082820
 MonoBehaviour:
   m_ObjectHideFlags: 0
