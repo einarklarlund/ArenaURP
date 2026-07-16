@@ -1,4 +1,9 @@
-> Status: PLANNED — design settled 2026-07-16, not yet implemented. This file is the editable source of truth for the slice; a future session executes it.
+> Status: PLANNED — design settled 2026-07-16, not yet implemented. This file is the editable source of truth for the slice; a future session executes it. **Delete it on ship** — its durable half is ADR 0005 + the skill updates.
+>
+> **Sequencing lives in [master-execution-dag.md](master-execution-dag.md), where this slice is node H1** (folded in 2026-07-16). Three things it decided that this plan should not re-decide:
+> - **H1 is the trunk.** Session 1 (explosion), Session 3 (damage-buff channel), P5, P6 and A3-blind all sequence behind it; only P1 is free of it. Track A's W1–W5 all shipped, so `W2 → P5` is discharged and P5's blocker is now this slice (it retypes `PawnWeapon.hitstun`).
+> - **ADR 0005 is confirmed as this slice's number.** It was contested — the DAG had reserved 0005 for the damage-buff channel — and resolved here. Standing rule now: ADR numbers are claimed at write time, never reserved.
+> - **The extraction trigger's cases are already on the roadmap, and firing it is a RESHAPE, not a method move.** "Explosion over N victims" *is* Session 1, the very next feature; "a cast" *is* OQ2's open question. Against the verified `HitContext` shape, a blast leaves ~5 of `HitMessage`'s 11 fields null/meaningless (`Motion`, `SelfHealth`, `OtherMotion`, `SourceCenterPoint`, `Normal`), needs a per-target falloff field that no longer exists (see below), and dispatches **one message per victim** (`Direction` is per-victim radial). See the DAG's falsifiable check 5.
 
 # Migrate the hit slice to merged controllers + typed messages over ExecuteEvents
 
@@ -65,7 +70,11 @@ Einar decided to restructure cross-component gameplay communication around per-d
 
 **Deleted** (+.meta): `HitResolver.cs`, `HitContext.cs`, `IHitHandler.cs`, `KnockbackDealer.cs`, `HitstunDealer.cs`, `KnockbackReceiver.cs`, `HitstunReceiver.cs`.
 
+**Deleted capability, recorded deliberately** (added 2026-07-16 during DAG consolidation): `HitResolver.ResolveExchanges`'s **per-target `damageMultiplier` slot** (`HitResolver.cs:35,114` — documented there as "the per-TARGET fold slot (e.g. blast falloff)", default `1f`, **no callers pass it**) dies with the class. `Damage.OnHit` hard-codes `DamageProcessor.Resolve(_amount, 1f)` instead, and `HitMessage` carries no multiplier field. This is correct — an unused speculative parameter is exactly what the rule of two says to delete, and keeping it would pre-decide the damage-buff channel's shape in a class we're deleting. **But it is a real transfer of scope:** DESIGN.md's damage-buff open question currently cites that slot as *existing evidence* for the per-target requirement. The channel session must now **re-establish** the seam (a field on `HitMessage` vs. the dealer computing per-target at layer 2), not fill a waiting slot. Fix DESIGN.md's citation in Phase 4's docs commit; the DAG already carries the scope note.
+
 **Untouched**: every `Arena.*.Core`, `HitChannels` values, `IDamageable`, SpawnBuffReceiver multiplier seams.
+
+**Dangling doc-comment references — found 2026-07-16, not in the inventory above.** Deleting `HitResolver` strands prose that names it in **two files the plan lists as untouched**: `Health.cs:17` ("the standard projectile-hit path (`ServerCollision → HitResolver`)") and `PassiveAbility.cs:25` ("harvested at the hit site by HitResolver"). Both are plain prose, so neither breaks the build — which is exactly why they will survive the migration and rot. (The two `<see cref="HitResolver"/>` crefs, `PawnPassiveAbilities.cs:89` and `PassiveStealOnHit.cs:12`, are self-defending: they'd raise CS1574 and both files are already being modified.) **Fold the two prose fixes into Phase 2's cutover commit** — and note that "`Health.cs` NOT modified" then becomes "not modified except its comment," which is the honest claim.
 
 ## Step sequence (compile-green each step; suite-green at checkpoints)
 
