@@ -21,8 +21,8 @@ Edge count is **not** a modularity metric: a deep chain over stable interfaces h
 
 - **Map/resource control is NOT excluded.** The essence dropped that exclusion (commit `d50d5a4e`; scope guard pared to the interaction test in `6cda6855`/`49642ec0`). The consolidation's cuts of P6/P7 rested on removed doctrine and are **reversed**. Stale copies synced (`habit-check.sh`, `design-critic.md`, `game-essence` memory).
 - **Acquisition** (resolves DESIGN.md's "ability acquisition source" open question): primary objective = fight over **smash-ball pickups** granting **permanent** passives + actives; secondary = **limited-use** active pickups. Two-tier direct-grant, no XP track. → ADR. Caveat: "fight over pickups on the map" carries mild positional pressure — mitigate with a draft/choice framing, not a spawn scramble.
-- **Per-observer rendering: ADOPT as a system** (resolves the open question) — consumers P3, P7.
-- **Terrain-persistent zones: ADOPT** (resolves the open question) — consumers P6, P7; both build as designed, persistent volumes included.
+- **Per-observer rendering: adopted as the sanctioned approach** (resolves the open question) — greenlights the architecture **design session** (per-client visibility under server authority). Its two consumers (P3, P7) are non-composing, so the *design* leads; the implementation waits until a feature earns it.
+- **Terrain-persistent zones: kept** (P6, P7 stay) — but DESIGN.md's open question wants the terrain-persistence *value* confirmed empirically before the volume is built; **P6's early playtest is that test** (terrain-persistent vs. emitter-attached). The slow itself rides the debuff channel regardless.
 
 ## The two tracks
 
@@ -85,62 +85,52 @@ Design-laden work; **not** fanned out (per the ratified understanding: subagents
 
 ## Track C — ability & perception expansion (added 2026-07-15)
 
-Re-adds the five consolidation cuts (**A2** reflect, **A3** pepper, **P3** invisibility, **P6** goop, **P7** smoke) under the ratified decisions. The batch **activates most of DESIGN.md's deferred open questions at once**, and each now meets rule-of-two — so the elegant order is Parnas's "uses" hierarchy: **design + build the shared enabling channels first, then the features ride them.**
+Re-adds the five consolidation cuts (**A2** reflect, **A3** pepper, **P3** invisibility, **P6** goop, **P7** smoke) under the ratified decisions.
+
+**Correction (design-critic, verified against code 2026-07-15):** the batch does NOT earn six new systems, and "build the channels first" contradicts our own doctrine (Track B's *"don't unify prematurely"*; shape the abstraction by the hard case). The *"timed dealer-authored victim debuff"* channel that blind and slow both want **already ships as `HitstunReceiver`/`HitstunDealer`** — a `SyncVar<uint>` expiry-tick window, dealer-authored duration, a resistance-modifier fold, each peer evaluating `IsStunned` against its own tick (`HitstunReceiver.cs`). So N1+N2+N6 are **one generalization of a shipped component**, built **feature-first**: goop-slow is the *second* instance of the hitstun pattern, blind the *third*; extract the shared receiver when the third confirms it — not a speculative channel up front.
 
 ```mermaid
 graph TD
-  subgraph EN["Enabling systems — ADR/design session each (rule-of-two met)"]
-    N1["N1 timed-modifier lifetime"]
-    N2["N2 wire-payload"]
-    N3["N3 victim hit-received"]
-    N4["N4 per-observer render"]
-    N5["N5 terrain zone"]
-    N6["N6 debuff / vision-denial"]
+  HS["HitstunReceiver/Dealer<br/>(SHIPPED timed victim-debuff channel)"]
+  HS -. "generalize (feature-first)" .-> CH["timed dealer-authored<br/>victim-debuff receiver"]
+  P6["P6 goop-slow"] --> CH
+  A3b["A3 blind"] --> CH
+  A3k["A3 knock-up + AoE"] --> S1["Session 1 explosion<br/>(free config)"]
+  P6 -. "zone persistence" .-> Z["spike-4 empirical test:<br/>terrain vs emitter-aura"]
+  subgraph GATED["Gated — earns no system alone"]
+    A2["A2 reflect (writes no fold)"] -. defer .-> N3["victim hit-received:<br/>wait for a composing payload"]
+    P3["P3 invisibility (self-loop)"] -. "design only" .-> N4["per-observer render:<br/>architecture session"]
+    P7["P7 smoke (composes w/ nothing)"] -. "design only" .-> N4
+    P7 -. gate .-> Z
   end
-  A2["A2 reflect"] --> N3
-  A3["A3 pepper (blind half)"] --> N1
-  A3 --> N2
-  A3 --> N6
-  P3["P3 invisibility"] --> N3
-  P3 --> N1
-  P3 --> N4
-  P6["P6 goop"] --> N5
-  P6 --> N1
-  P6 --> N2
-  P7["P7 smoke"] --> N4
-  P7 --> N5
-  P7 --> N3
-  P7 --> N6
 ```
 
-### Enabling systems (low level — each an ADR/design session; rule-of-two met by the batch)
+### Honest rule-of-two accounting (design-critic, verified)
 
-| # | System | Consumers | Note |
-|---|---|---|---|
-| **N1** | Timed-modifier lifetime (generic receiver) | A3-blind, P3-invis, P6-slow (+ spike 4) | DESIGN.md: build **once, generic** — not per-system twins |
-| **N2** | Wire-payload class (dealer-authored effect on client-simulated victim) | A3-blind, P6-slow | DESIGN.md Q5; `fishnet-conventions` Rule 1 is unsatisfiable for this class |
-| **N3** | Victim-side hit-received dispatch (react-when-I'm-hit handler) | A2, P3, P7 | `HitResolver` already walks to the victim root — an **extension**, not new plumbing |
-| **N4** | Per-observer rendering (server-authoritative visibility) | P3, P7 | Adopted; each client sees a different world |
-| **N5** | Terrain-persistent zone (ticking world-space volume) | P6, P7 | Adopted |
-| **N6** | Debuff / vision-denial | A3-blind (first real debuff), P7 | resolves DESIGN.md's "Debuffs" open question |
+The first draft counted six enabling systems by **double-counting single features** (A3-blind appeared under N1, N2 *and* N6) and by leaning on **P7 as the sole second consumer** of N4, N5 and N6. **Cut P7 and those three drop to N=1** — the batch was at *"one-plus-P7,"* not rule-of-two. Corrected:
 
-**THE central elegance question for these sessions — do NOT pre-decide; canon-interview each:**
-- **Do N1 + N2 + N6 collapse into ONE channel** — *"a dealer-authored, timed, wire-replicated modifier applied to a victim"* (blind, slow, future debuffs are instances)? Very likely **yes** — the Parnas hide-one-decision + Elegance collapse-mechanisms move. Standing up three separate mechanisms here would be the anti-pattern. This likely turns "5 new systems" into ~3.
-- **Is "perception" one system or several?** Blind (dim the victim's OWN screen) ≠ invisibility (hide you from OTHERS = N4) ≠ smoke (block others' view through a volume = N4+N5). Decide whether N4 subsumes all vision-denial or only self-visibility.
+| Candidate channel | Real *independent, composing* consumers | Verdict |
+|---|---|---|
+| **Timed victim-debuff** (generalize shipped `HitstunReceiver`) | P6-slow, A3-blind (+ shipped hitstun, + spike-4 slow) | **Earned** — build feature-first; extract the shared receiver on the 2nd–3rd instance |
+| **Victim-side hit-received** | A2, P3, P7 — all *non-composing* (write no upgrade fold); the consolidation already ruled invisibility/smoke the *wrong* first payload, wanting a composing one (heal-on-hit, thorns) | **Defer** until a composing payload arrives |
+| **Per-observer rendering** | P3, P7 — both non-composing | **Design session only** — a genuine architecture question (per-client visibility under server authority); decide it, don't *build* it until a feature earns it |
+| **Terrain-persistent zone** | P6 (+ P7 only *if* smoke is a zone, not an emitter-attached aura) | **Gate on spike-4** — DESIGN.md's open question demands the empirical terrain-vs-attached test *before* building the volume; likely N=1 |
 
-### Features (upper level — ride the N-systems)
+Precision on the essence test: invisibility/smoke/reflect **pass the scope guard** (they change how the enemy plays, interacting with weapons/perception) but sit at its **shallow end** — they write no upgrade fold, so they don't deepen the *upgrade×upgrade* composition that P1's combo or P2's splash do. That's why they don't earn *new systems* cheaply, even though they're legal.
 
-| Feature | = cut | Scope | After |
-|---|---|---|---|
-| **A2 reflect** | A2 | **reflect-only** — drop "block ALL damage" (it *negates* an interaction, anti-essence). Reflect = N3 + inline projectile-redirection (N=1, no system) | N3 |
-| **A3 pepper** | A3 | splits: **knock-up + AoE → authored config on Session 1's proximity explosion (nearly free)**; **blind → N1 + N2 + N6 + a client screen effect** | Session 1 (knock-up); N1/N2/N6 (blind) |
-| **P3 invisibility** | P3 | N3 (trigger on hit) + N1 (timed self-buff) + N4 (per-observer render) | N3, N1, N4 |
-| **P6 goop** | P6 | N5 (zone) + N1 (timed slow) + N2 (wire) — the slow itself is spike 4's interaction, now delivered in a zone | N5, N1, N2 |
-| **P7 smoke** (heaviest) | P7 | N4 + N5 + N3 + N6 | all four |
+### Features — honest gates
 
-### System-budget flag (the one essence-guard point that survives)
+| Feature | Ships when |
+|---|---|
+| **A3 knock-up + AoE** | **now** — authored config on Session 1's proximity explosion |
+| **P6 goop-slow + A3 blind** | on the timed victim-debuff channel (generalize `HitstunReceiver`, feature-first). Blind = a **local** screen effect on the blinded victim, not per-observer. P6's **zone persistence** is gated on the spike-4 empirical test |
+| **P3 invisibility** | after the per-observer-render **design session**; invis-after-hit is a closed self-loop — re-pitch so it composes, or accept it as a shallow-but-legal gadget |
+| **P7 smoke** | after per-observer-render session **+** spike-4 zone test; heaviest, composes with nothing, and was the batch's rule-of-two prop |
+| **A2 reflect** | reflect-only; defer until a *composing* victim-reaction earns victim-side hit-received — or build it as a one-off projectile-collision check with **no** dispatch adoption |
 
-Map-control is no longer the objection — but the essence still says *"adding a new system is a major decision… something should probably be cut to make room."* This batch adopts **up to ~5 new systems (N1–N6, minus collapses)** — the largest scope increase on the roadmap. Two mitigations already in the plan: (1) collapse N1/N2/N6 into one channel (above) → ~3 systems; (2) under the *current* guard these are genuine interaction depth — upgrades that change how your **enemy** plays (the essence's top axis), not gadgets. **Recommendation: proceed, hold the collapse questions as gates, and revisit "cut to make room" only if N4/N5 each spawn sub-systems.**
+### System budget — corrected
+
+Post-correction the genuinely-new mechanism is **~1** (generalize a shipped component), plus **up to 2 gated** (per-observer rendering, terrain zone) that don't build until their design session / spike-4 clears — down from *"six systems."* The critic's forced-cut is **A2 and P7**; the ask was to keep P7. **The one open decision:** keep all five *honestly gated* (respects the ask; nothing builds until its gate clears) vs. **trim** to the clean core (P6 + A3, which earn the channel by themselves) vs. cut A2/P7 per the critic. *Recommendation: keep-gated — the gates ARE the honest cost, and no speculative system gets built either way.*
 
 ## Does a deep DAG mean the features are too coupled? (the question that prompted this)
 
