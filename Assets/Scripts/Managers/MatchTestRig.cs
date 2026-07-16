@@ -299,8 +299,26 @@ public static class MatchTestRig
         Deathmatch().ServerRecordKill(player, player);
     }
 
-    public static void SetUsername(NetworkPlayer player, string name) => player.ServerSetUsername(name);
+    /// <summary>Set a player's username server-side. NetworkPlayer.ServerSetUsername is a
+    /// [ServerRpc] — it needs an active OWNING CLIENT to send it, so in this server-spawned host
+    /// fixture it silently no-ops ("client is not active") and Username stays null. Writing the
+    /// SyncVar directly is the server-authoritative equivalent, and mirrors how the passing
+    /// countdown test seeds Flow().CountdownTime.Value.</summary>
+    public static void SetUsername(NetworkPlayer player, string name) => player.Username.Value = name;
     public static string Username(NetworkPlayer player) => player.Username.Value;
+
+    /// <summary>The username of the leader the MANAGER currently stores, observed the way the UI
+    /// would see it — via the manager's own re-broadcast — so a test can assert the stored value
+    /// without reopening the private SyncVar. Call before subscribing a view: it fires the bus.</summary>
+    public static string StoredLeadUsername()
+    {
+        string captured = null;
+        System.Action<NetworkPlayer> capture = p => captured = (p != null ? p.Username.Value : null);
+        NetworkUIEvents.OnLeadPlayerChanged += capture;
+        Deathmatch().PublishLeadToBus();
+        NetworkUIEvents.OnLeadPlayerChanged -= capture;
+        return captured;
+    }
 
     public static void FireCountdownEvent(int seconds) => NetworkUIEvents.OnCountdownChanged?.Invoke(seconds);
     public static void FireLeadPlayerEvent(NetworkPlayer player) => NetworkUIEvents.OnLeadPlayerChanged?.Invoke(player);

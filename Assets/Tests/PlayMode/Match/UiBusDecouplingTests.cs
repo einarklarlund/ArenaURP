@@ -8,15 +8,21 @@ using UnityEngine.TestTools;
 namespace Arena.PlayTests
 {
     /// <summary>
-    /// W3 regression: the countdown / postgame views consume the NetworkUIEvents bus, they do
-    /// NOT reach through MatchFlowManager.Instance.CountdownTime or
-    /// DeathmatchManager.Instance.leadPlayer. Each test sets the manager's SyncVar to one value
-    /// (the "internal storage"), enables a fresh PostgameCountdownView, and shows that:
-    ///   - enabling the view does NOT copy the singleton value into the text (the old reach-in), and
-    ///   - firing a bus event with a DIFFERENT value is what actually drives the text.
-    /// If a view is ever wired back to a manager singleton, the "singleton value must not leak in"
-    /// assertions fail. Runs on the single-host fixture against the manager-only test scene; all
-    /// Assembly-CSharp access is via MatchTestRig by reflection.
+    /// W3 regression: the countdown / postgame views consume the NetworkUIEvents bus; they do NOT
+    /// reach through MatchFlowManager.Instance.CountdownTime or DeathmatchManager.leadPlayer.
+    ///
+    /// Each test drives the same three-beat proof, so it cannot pass vacuously:
+    ///   1. PRECONDITION - the manager really stores value A (asserted, not assumed). Without this
+    ///      a broken harness would leave storage empty and the whole contrast would be fake.
+    ///   2. PROOF        - with storage holding A, a bus event carrying B makes the view render B.
+    ///      Rendering B while storage says A is the decoupling: a singleton reader would show A.
+    ///   3. CONTROL      - a bus event carrying A makes the view render A. This is what stops the
+    ///      "view must not show A when enabled" assert from being vacuously true: it proves the
+    ///      view is wired and CAN render A, so A's absence at enable is a real fact about the
+    ///      enable path rather than an inability to ever display it.
+    ///
+    /// Runs on the single-host fixture against the manager-only test scene; all Assembly-CSharp
+    /// access is via MatchTestRig by reflection.
     /// </summary>
     public sealed class UiBusDecouplingTests : NetworkedPlayModeTestFixture
     {
@@ -31,8 +37,11 @@ namespace Arena.PlayTests
             yield return new WaitForSeconds(0.2f); // let OnStartServer wire the managers
             Assert.IsTrue((bool)Rig("ManagersPresent"), "TestMatchMediator scene should load the managers");
 
-            // Storage says 7. This publishes to nobody yet (the view does not exist).
+            // 1. PRECONDITION: storage really holds 7 (publishes to nobody; no view exists yet).
             Rig("SetCountdownTime", 7);
+            Assert.AreEqual(7, (int)Rig("CountdownTime"),
+                "precondition: MatchFlowManager must actually store 7, otherwise 'the view does not " +
+                "show 7' proves nothing.");
 
             _view = (GameObject)Rig("CreatePostgameCountdownView");
             Rig("SetViewActive", _view, true); // OnEnable: subscribe only, must NOT read the singleton
@@ -40,14 +49,24 @@ namespace Arena.PlayTests
 
             Assert.AreNotEqual("7", (string)Rig("ViewCountdownText", _view),
                 "enabling the view must NOT copy MatchFlowManager.CountdownTime.Value into the text " +
-                "(that would be the old singleton reach-in). The view should wait for a bus event.");
+                "(the old singleton reach-in). Meaningful because the CONTROL below proves this same " +
+                "view can render \"7\" when the BUS says 7.");
 
-            // A bus event with a DIFFERENT value is what drives the view.
+            // 2. PROOF: storage says 7, the bus says 3 -> the view must show 3.
             Rig("FireCountdownEvent", 3);
             yield return null;
-
             Assert.AreEqual("3", (string)Rig("ViewCountdownText", _view),
-                "the countdown text must track NetworkUIEvents.OnCountdownChanged, not the singleton");
+                "the countdown text must track NetworkUIEvents.OnCountdownChanged. Showing 3 while " +
+                "storage still holds 7 is the decoupling; a singleton reader would show 7.");
+            Assert.AreEqual(7, (int)Rig("CountdownTime"),
+                "sanity: the bus event must not have written back to the manager's storage");
+
+            // 3. CONTROL: the view CAN render "7" - from the bus.
+            Rig("FireCountdownEvent", 7);
+            yield return null;
+            Assert.AreEqual("7", (string)Rig("ViewCountdownText", _view),
+                "control: the view renders \"7\" when the BUS carries 7. So the earlier absence of " +
+                "\"7\" was the enable path not reading the singleton - not an inability to show it.");
         }
 
         [UnityTest]
@@ -61,23 +80,44 @@ namespace Arena.PlayTests
             Rig("SetUsername", alpha, "Alpha");
             Rig("SetUsername", bravo, "Bravo");
 
-            // Storage says the leader is Alpha. Publishes to nobody yet.
+            // 1a. PRECONDITION: the harness really set the usernames. NetworkPlayer.ServerSetUsername
+            //     is a [ServerRpc] that silently no-ops in this fixture; without this assert that
+            //     failure surfaces later as an inscrutable null.
+            Assert.AreEqual("Alpha", (string)Rig("Username", alpha),
+                "precondition: the harness must actually set alpha's username");
+            Assert.AreEqual("Bravo", (string)Rig("Username", bravo),
+                "precondition: the harness must actually set bravo's username");
+
+            // 1b. PRECONDITION: the manager really stores Alpha as the leader. Asserted BEFORE the
+            //     view subscribes, because reading the stored leader re-broadcasts it on the bus.
             Rig("SetLeadPlayer", alpha);
+            Assert.AreEqual("Alpha", (string)Rig("StoredLeadUsername"),
+                "precondition: DeathmatchManager must actually store Alpha as the leader, otherwise " +
+                "'the view shows Bravo, not Alpha' is not a real contrast.");
 
             _view = (GameObject)Rig("CreatePostgameCountdownView");
             Rig("SetViewActive", _view, true); // OnEnable: subscribe only, must NOT read leadPlayer
             yield return null;
 
             Assert.AreNotEqual("Alpha", (string)Rig("ViewWinnerText", _view),
-                "enabling the view must NOT copy DeathmatchManager.leadPlayer.Value.Username into the " +
-                "text (the old singleton reach-in). The view should wait for a bus event.");
+                "enabling the view must NOT copy DeathmatchManager.leadPlayer's username into the " +
+                "text (the old singleton reach-in). Meaningful because the CONTROL below proves this " +
+                "same view can render \"Alpha\" when the BUS says Alpha.");
 
-            // A bus event naming a DIFFERENT leader is what drives the view.
+            // 2. PROOF: storage says Alpha, the bus says Bravo -> the view must show Bravo.
             Rig("FireLeadPlayerEvent", bravo);
             yield return null;
-
             Assert.AreEqual("Bravo", (string)Rig("ViewWinnerText", _view),
-                "the winner text must track NetworkUIEvents.OnLeadPlayerChanged, not the singleton");
+                "the winner text must track NetworkUIEvents.OnLeadPlayerChanged. Showing Bravo while " +
+                "DeathmatchManager still stores Alpha is the decoupling; a singleton reader shows Alpha.");
+
+            // 3. CONTROL: the view CAN render "Alpha" - from the bus.
+            Rig("FireLeadPlayerEvent", alpha);
+            yield return null;
+            Assert.AreEqual("Alpha", (string)Rig("ViewWinnerText", _view),
+                "control: the view renders \"Alpha\" when the BUS carries Alpha. So the earlier " +
+                "absence of \"Alpha\" at enable was the view not reading DeathmatchManager.Instance - " +
+                "not an inability to render that name.");
         }
 
         [UnityTearDown]
