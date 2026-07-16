@@ -14,7 +14,9 @@ public sealed class DeathmatchManager : NetworkBehaviour
 
     public float RespawnDelay = 3;
 
-    public readonly SyncVar<NetworkPlayer> leadPlayer = new(); // wish i could keep this private but i'm reading it in PostgameCountdownView
+    // How the leader is stored is this manager's business. Views learn about lead
+    // changes through NetworkUIEvents.OnLeadPlayerChanged, published below.
+    private readonly SyncVar<NetworkPlayer> leadPlayer = new();
 
     [SerializeField] private MatchTimerConfig timerConfig = MatchTimerConfig.Default;
 
@@ -25,6 +27,35 @@ public sealed class DeathmatchManager : NetworkBehaviour
     {
         Instance = this;
     }
+
+    // --- UI bus publishing ---------------------------------------------------
+    // The manager broadcasts lead/score changes onto the NetworkUIEvents bus so the
+    // postgame view never reaches through DeathmatchManager.Instance.leadPlayer.
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        leadPlayer.OnChange += HandleLeadPlayerChanged;
+        // Seed the bus with the current leader for views coming up mid-match.
+        NetworkUIEvents.OnLeadPlayerChanged?.Invoke(leadPlayer.Value);
+    }
+
+    public override void OnStopClient()
+    {
+        base.OnStopClient();
+        leadPlayer.OnChange -= HandleLeadPlayerChanged;
+    }
+
+    private void HandleLeadPlayerChanged(NetworkPlayer prev, NetworkPlayer next, bool asServer)
+    {
+        if (asServer) return;
+        NetworkUIEvents.OnLeadPlayerChanged?.Invoke(next);
+    }
+
+    /// <summary>Re-broadcast the current leader onto the bus. The lead SyncVar last changed
+    /// mid-match, so a postgame view that only just came up would otherwise miss it; the
+    /// MatchMediator asks for this re-emit once the flow reaches PostgameCountdown.</summary>
+    public void PublishLeadToBus() => NetworkUIEvents.OnLeadPlayerChanged?.Invoke(leadPlayer.Value);
 
     [Server]
     public void BeginGame()

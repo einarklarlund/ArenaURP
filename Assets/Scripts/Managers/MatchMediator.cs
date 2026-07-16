@@ -1,5 +1,6 @@
 using FishNet.Object;
 using UnityEngine;
+using System.Collections;
 using System.Linq;
 
 public class MatchMediator : NetworkBehaviour
@@ -40,6 +41,41 @@ public class MatchMediator : NetworkBehaviour
 
         if (pawnManager != null)
             pawnManager.OnPawnKilled -= ServerHandlePawnKilled;
+    }
+
+    // --- client-side manager wiring -----------------------------------------
+    // Managers never subscribe to each other; the mediator is the one place they are
+    // wired. On the client it watches the match state so the DeathmatchManager can
+    // re-broadcast the current leader once the postgame view is up (the lead SyncVar
+    // last changed mid-match, before that view existed to hear it).
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        matchFlowManager.State.OnChange += ClientHandleMatchStateChanged;
+    }
+
+    public override void OnStopClient()
+    {
+        base.OnStopClient();
+        if (matchFlowManager != null)
+            matchFlowManager.State.OnChange -= ClientHandleMatchStateChanged;
+    }
+
+    private void ClientHandleMatchStateChanged(MatchState prev, MatchState next, bool asServer)
+    {
+        if (asServer) return;
+        if (next == MatchState.PostgameCountdown)
+            StartCoroutine(ReseedLeadPlayerNextFrame());
+    }
+
+    // Defer one frame so the PostgameCountdownView (shown this frame in response to the
+    // same state change) has already subscribed to OnLeadPlayerChanged before we re-emit.
+    private IEnumerator ReseedLeadPlayerNextFrame()
+    {
+        yield return null;
+        if (deathmatchManager != null)
+            deathmatchManager.PublishLeadToBus();
     }
 
     /// <summary>

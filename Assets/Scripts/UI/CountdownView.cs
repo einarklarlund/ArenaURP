@@ -14,7 +14,6 @@ public sealed class PregameCountdownView : View
 
     private void OnEnable()
     {
-        countdownText.text = "" + MatchFlowManager.Instance.CountdownTime.Value;
         NetworkUIEvents.OnCountdownChanged += HandleCountdown;
     }
 

@@ -17,6 +17,9 @@ public enum MatchState
 /// - Tracks and exposes the match state and the pre-game countdown.
 /// - Executes the server-authoritative countdown logic by ticking
 ///   <see cref="MatchCountdownProcessor"/> each frame on the server.
+/// - Publishes its client-visible state (match state + countdown) onto the
+///   <see cref="NetworkUIEvents"/> bus so views consume the bus rather than
+///   reaching back through this singleton's SyncVars.
 /// </summary>
 public sealed class MatchFlowManager : NetworkBehaviour
 {
@@ -37,6 +40,45 @@ public sealed class MatchFlowManager : NetworkBehaviour
     private MatchState _countdownNextState;
 
     private void Awake() => Instance = this;
+
+    // --- UI bus publishing ---------------------------------------------------
+    // The manager owns broadcasting its own client-visible state. It watches its
+    // SyncVars on the client and republishes them on the NetworkUIEvents bus, so
+    // no UI object has to read MatchFlowManager.Instance.<field> to stay current.
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        CountdownTime.OnChange += HandleCountdownChanged;
+        State.OnChange += HandleStateChanged;
+        // Seed the bus with the current values for views that come up mid-match
+        // (state first so the view is shown, then the countdown that seeds it).
+        NetworkUIEvents.OnMatchStateChanged?.Invoke(State.Value);
+        NetworkUIEvents.OnCountdownChanged?.Invoke(CountdownTime.Value);
+    }
+
+    public override void OnStopClient()
+    {
+        base.OnStopClient();
+        CountdownTime.OnChange -= HandleCountdownChanged;
+        State.OnChange -= HandleStateChanged;
+    }
+
+    private void HandleCountdownChanged(int prev, int next, bool asServer)
+    {
+        if (asServer) return;
+        NetworkUIEvents.OnCountdownChanged?.Invoke(next);
+    }
+
+    private void HandleStateChanged(MatchState prev, MatchState next, bool asServer)
+    {
+        if (asServer) return;
+        NetworkUIEvents.OnMatchStateChanged?.Invoke(next);
+        // A view shown in response to the state change (e.g. the countdown overlay)
+        // subscribes to OnCountdownChanged during the Invoke above; re-emit the current
+        // countdown right after so it is seeded without reading this manager directly.
+        NetworkUIEvents.OnCountdownChanged?.Invoke(CountdownTime.Value);
+    }
 
     [Server]
     public void StartDebugMatch()

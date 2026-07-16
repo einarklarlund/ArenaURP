@@ -10,18 +10,23 @@ public class PostgameCountdownView : View
 
     private void OnEnable()
     {
-        countdownText.text = "" + MatchFlowManager.Instance.CountdownTime.Value;
         NetworkUIEvents.OnCountdownChanged += HandleCountdown;
-        winnerUsernameText.text = DeathmatchManager.Instance.leadPlayer.Value.Username.Value;
+        NetworkUIEvents.OnLeadPlayerChanged += HandleLeadPlayer;
     }
 
     private void OnDisable()
     {
         NetworkUIEvents.OnCountdownChanged -= HandleCountdown;
+        NetworkUIEvents.OnLeadPlayerChanged -= HandleLeadPlayer;
     }
 
     private void HandleCountdown(int time)
     {
         countdownText.text = time.ToString();
-    }    
+    }
+
+    private void HandleLeadPlayer(NetworkPlayer lead)
+    {
+        winnerUsernameText.text = lead != null ? lead.Username.Value : "";
+    }
 }

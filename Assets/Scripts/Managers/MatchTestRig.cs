@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using UnityEditor;
+using TMPro;
 using UnityEngine;
 
 /// <summary>
@@ -279,5 +280,66 @@ public static class MatchTestRig
     /// <summary>True if any living pawn has a negative Health (an invariant a soak test polls).</summary>
     public static bool AnyPawnHealthNegative()
         => Pawns().ActivePawns.Any(p => p != null && p.Health.Value < 0);
+
+    // ---- UI bus decoupling (W3) ---------------------------------------------
+    // Helpers for the PlayMode test proving the countdown/postgame views update from the
+    // NetworkUIEvents bus rather than reading a manager singleton. The view type lives in
+    // Assembly-CSharp (unreferenceable from the test asmdef), so tests build and read it here.
+
+    public static void SetCountdownTime(int seconds) => Flow().CountdownTime.Value = seconds;
+
+    public static void SetLeadPlayer(NetworkPlayer player)
+    {
+        var field = typeof(DeathmatchManager).GetField(
+            "leadPlayer", BindingFlags.NonPublic | BindingFlags.Instance);
+        var syncVar = (FishNet.Object.Synchronizing.SyncVar<NetworkPlayer>)field.GetValue(Deathmatch());
+        syncVar.Value = player;
+    }
+
+    public static void SetUsername(NetworkPlayer player, string name) => player.ServerSetUsername(name);
+    public static string Username(NetworkPlayer player) => player.Username.Value;
+
+    public static void FireCountdownEvent(int seconds) => NetworkUIEvents.OnCountdownChanged?.Invoke(seconds);
+    public static void FireLeadPlayerEvent(NetworkPlayer player) => NetworkUIEvents.OnLeadPlayerChanged?.Invoke(player);
+    public static void ResetNetworkUIEvents() => NetworkUIEvents.Reset();
+
+    /// <summary>Build a PostgameCountdownView with wired TMP text targets. The GameObject is
+    /// returned INACTIVE so the caller controls when OnEnable (bus subscription) runs, via
+    /// SetViewActive — this lets a test enable the view and then prove the bus, not the
+    /// enable, is what fills the text.</summary>
+    public static GameObject CreatePostgameCountdownView()
+    {
+        var root = new GameObject("TestPostgameCountdownView");
+        root.SetActive(false);
+
+        var winnerGo = new GameObject("Winner");
+        winnerGo.transform.SetParent(root.transform);
+        var winner = winnerGo.AddComponent<TextMeshProUGUI>();
+
+        var countdownGo = new GameObject("Countdown");
+        countdownGo.transform.SetParent(root.transform);
+        var countdown = countdownGo.AddComponent<TextMeshProUGUI>();
+
+        var view = root.AddComponent<PostgameCountdownView>();
+        SetViewField(view, "winnerUsernameText", winner);
+        SetViewField(view, "countdownText", countdown);
+        return root;
+    }
+
+    public static void SetViewActive(GameObject viewRoot, bool active) => viewRoot.SetActive(active);
+    public static string ViewCountdownText(GameObject viewRoot) => ReadTmpText(viewRoot, "countdownText");
+    public static string ViewWinnerText(GameObject viewRoot) => ReadTmpText(viewRoot, "winnerUsernameText");
+    public static void DestroyGameObject(GameObject go) => Object.Destroy(go);
+
+    static void SetViewField(Component view, string field, object value)
+        => view.GetType().GetField(field, BindingFlags.NonPublic | BindingFlags.Instance).SetValue(view, value);
+
+    static string ReadTmpText(GameObject viewRoot, string field)
+    {
+        var view = viewRoot.GetComponent<PostgameCountdownView>();
+        var tmp = (TMP_Text)view.GetType()
+            .GetField(field, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(view);
+        return tmp.text;
+    }
 }
 #endif

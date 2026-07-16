@@ -9,8 +9,9 @@ public static class NetworkUIEvents
     // High-level match events
     public static Action<int> OnCountdownChanged;
     public static Action<MatchState> OnMatchStateChanged;
+    public static Action<NetworkPlayer> OnLeadPlayerChanged;
     public static Action<NetworkPlayer> OnGameModeEnded;
-    
+
     // Player-specific events
     public static Action<bool> OnLocalReadyStatusChanged;
     public static Action<Pawn> OnLocalPawnSpawned;
@@ -25,6 +26,7 @@ public static class NetworkUIEvents
         OnCurrentRoomChanged = null;
         OnCountdownChanged = null;
         OnMatchStateChanged = null;
+        OnLeadPlayerChanged = null;
         OnGameModeEnded = null;
         OnLocalReadyStatusChanged = null;
         OnLocalPawnSpawned = null;

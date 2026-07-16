@@ -5,8 +5,12 @@ using UnityEngine;
 /// <summary>
 /// The reactive bridge between Network SyncVars and the local UI.
 /// Responsibilities:
-/// - Monitors manager and player SyncVars for changes.
+/// - Monitors player SyncVars for changes.
 /// - Translates complex network data into simple, decoupled signals via NetworkUIEvents.
+///
+/// Match-level state (countdown, match state, lead player) is published onto the
+/// NetworkUIEvents bus by the owning managers themselves (MatchFlowManager /
+/// DeathmatchManager), so this bridge no longer reaches into those singletons.
 /// </summary>
 public sealed class NetworkUIController : MonoBehaviour
 {
@@ -14,8 +18,8 @@ public sealed class NetworkUIController : MonoBehaviour
 
     private void Update()
     {
-        // Wait until managers and the local player are ready
-        if (!isSubscribed && NetworkPlayer.LocalInstance != null && MatchFlowManager.Instance != null && DeathmatchManager.Instance != null)
+        // Wait until the managers and the local player are ready
+        if (!isSubscribed && NetworkPlayer.LocalInstance != null && DeathmatchManager.Instance != null)
         {
             InitializeSubscriptions();
         }
@@ -27,17 +31,12 @@ public sealed class NetworkUIController : MonoBehaviour
 
         InstanceFinder.ClientManager.OnClientConnectionState += OnClientConnectionStateChanged;
 
-        MatchFlowManager.Instance.CountdownTime.OnChange += OnCountdownChanged;
-        MatchFlowManager.Instance.State.OnChange += OnMatchStateChanged;
-        
         DeathmatchManager.Instance.OnGameModeEnded += OnGameModeEnded;
-        
+
         NetworkPlayer.LocalInstance.ControlledPawn.OnChange += OnLocalPawnChanged;
         NetworkPlayer.LocalInstance.RespawnTimeEnd.OnChange += OnRespawnTimeEndChanged;
 
         // Manually trigger the first update to sync UI with current state
-        OnCountdownChanged(0, MatchFlowManager.Instance.CountdownTime.Value, false);
-        OnMatchStateChanged(MatchState.Pregame, MatchFlowManager.Instance.State.Value, false);
         OnLocalPawnChanged(null, NetworkPlayer.LocalInstance.ControlledPawn.Value, false);
     }
 
@@ -48,12 +47,6 @@ public sealed class NetworkUIController : MonoBehaviour
         var clientManager = InstanceFinder.ClientManager;
         if (clientManager != null)
             clientManager.OnClientConnectionState -= OnClientConnectionStateChanged;
-
-        if (MatchFlowManager.Instance != null)
-        {
-            MatchFlowManager.Instance.CountdownTime.OnChange -= OnCountdownChanged;
-            MatchFlowManager.Instance.State.OnChange -= OnMatchStateChanged;
-        }
 
         if (DeathmatchManager.Instance != null)
         {
@@ -78,18 +71,6 @@ public sealed class NetworkUIController : MonoBehaviour
     {
         bool started = args.ConnectionState == LocalConnectionState.Started;
         NetworkUIEvents.OnClientConnectionChanged?.Invoke(started);
-    }
-
-    private void OnCountdownChanged(int prev, int next, bool asServer)
-    {
-        if (asServer) return;
-        NetworkUIEvents.OnCountdownChanged?.Invoke(next);
-    }
-
-    private void OnMatchStateChanged(MatchState prev, MatchState next, bool asServer)
-    {
-        if (asServer) return;
-        NetworkUIEvents.OnMatchStateChanged?.Invoke(next);
     }
 
     private void OnGameModeEnded(NetworkPlayer winner)
