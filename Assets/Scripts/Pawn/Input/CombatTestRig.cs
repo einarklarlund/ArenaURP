@@ -146,29 +146,22 @@ public static class CombatTestRig
         input.Fire = false;
     }
 
-    static readonly FieldInfo WeaponDataField =
-        typeof(PawnWeapon).GetField("weaponData", BindingFlags.NonPublic | BindingFlags.Instance);
+    static readonly FieldInfo ConfigField =
+        typeof(PawnWeapon).GetField("config", BindingFlags.NonPublic | BindingFlags.Instance);
 
-    /// <summary>Swap the equipped weapon (private serialized field on PawnWeapon).</summary>
-    public static void SetWeapon(GameObject pawnGo, string weaponDataPath)
-    {
-        var wd = AssetDatabase.LoadAssetAtPath<WeaponData>(weaponDataPath);
-        if (wd == null) throw new System.Exception($"CombatTestRig: missing WeaponData {weaponDataPath}");
-        WeaponDataField.SetValue(Weapon(pawnGo), wd);
-    }
-
-    /// <summary>Reconfigure the equipped weapon for a multi-pellet fan by swapping in a runtime CLONE of its
-    /// WeaponData — so the spread geometry can be exercised without authoring an asset, and the shared SO is never
-    /// dirtied. Keeps the original projectile / fire mode; overrides only pellet count, spread angle and type.</summary>
+    /// <summary>Reconfigure the equipped weapon for a multi-pellet fan by mutating the serialized WeaponConfig struct
+    /// on the component — so the spread geometry can be exercised without authoring an asset. Keeps the original
+    /// projectile / fire mode; overrides only pellet count, spread angle and type. WeaponConfig is a VALUE type, so
+    /// it is read out boxed, mutated field-by-field on the box, and written back through the same FieldInfo.</summary>
     public static void OverrideWeaponSpread(GameObject pawnGo, int pellets, float spreadAngle, bool even = true)
     {
         var weapon = Weapon(pawnGo);
-        var src = (WeaponData)WeaponDataField.GetValue(weapon);
-        var clone = Object.Instantiate(src);
-        clone.ProjectilesPerShot = pellets;
-        clone.SpreadAngle = spreadAngle;
-        clone.SpreadType = even ? SpreadType.Even : SpreadType.Random;
-        WeaponDataField.SetValue(weapon, clone);
+        object boxed = ConfigField.GetValue(weapon); // boxed WeaponConfig
+        var t = boxed.GetType();
+        t.GetField("ProjectilesPerShot").SetValue(boxed, pellets);
+        t.GetField("SpreadAngle").SetValue(boxed, spreadAngle);
+        t.GetField("SpreadType").SetValue(boxed, even ? SpreadType.Even : SpreadType.Random);
+        ConfigField.SetValue(weapon, boxed);
     }
 
     /// <summary>Contribute a spread modifier to the weapon's fold (effective spread = authored × multiplier).

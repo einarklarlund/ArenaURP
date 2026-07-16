@@ -1,6 +1,6 @@
 /// <summary>
 /// Immutable configuration for weapon firing behaviour.
-/// Typically populated from a WeaponData ScriptableObject.
+/// Authored directly on the PawnWeapon component (serialized), alongside the ProjectileType it fires.
 /// </summary>
 [System.Serializable]
 public struct WeaponConfig

@@ -12,7 +12,10 @@ public class PawnWeapon : NetworkBehaviour
     // Configuration
     [SerializeField] private Pawn pawn;
     [SerializeField] private Transform firePoint;
-    [SerializeField] private WeaponData weaponData;
+    [SerializeField] private WeaponConfig config;
+    [Tooltip("The projectile type this weapon fires; it owns the instance prefab + component defaults.")]
+    [SerializeField] private ProjectileType projectile;
+    [SerializeField] private Vector3 spawnPositionOffset;
     [SerializeField] private PawnInput input;
     [SerializeField] private Collider pawnCollider;
     [Tooltip("Optional. While this receiver is stunned, the weapon may not start a new fire event.")]
@@ -32,20 +35,6 @@ public class PawnWeapon : NetworkBehaviour
         bool fireHeld = input.Data.Fire;
         bool firePressed = fireHeld && !_fireHeldLastFrame;
         _fireHeldLastFrame = fireHeld;
-
-        var currentWeapon = weaponData;
-
-        var config = new WeaponConfig
-        {
-            FireMode = currentWeapon.FireMode,
-            FireRate = currentWeapon.FireRate,
-            AmmoPerFire = currentWeapon.AmmoPerFire,
-            ShotsPerFire = currentWeapon.ShotsPerFire,
-            FireDuration = currentWeapon.FireDuration,
-            ProjectilesPerShot = currentWeapon.ProjectilesPerShot,
-            SpreadAngle = currentWeapon.SpreadAngle,
-            SpreadType = currentWeapon.SpreadType,
-        };
 
         // Read the stun window locally. This Update runs on whichever peer simulates the pawn (the owning client
         // for a human, the server for a bot), and the receiver's expiry tick is a SyncVar, so both reach the same
@@ -68,25 +57,25 @@ public class PawnWeapon : NetworkBehaviour
 
             for (int shot = 0; shot < shotsToFire; shot++)
             {
-                ExecuteShot(currentWeapon, effectiveSpread);
+                ExecuteShot(effectiveSpread);
             }
         }
     }
 
-    private void ExecuteShot(WeaponData currentWeapon, float effectiveSpread)
+    private void ExecuteShot(float effectiveSpread)
     {
-        int count = currentWeapon.ProjectilesPerShot;
+        if (projectile == null)
+            return;
+
+        int count = config.ProjectilesPerShot;
 
         for (int i = 0; i < count; i++)
         {
             // effectiveSpread is post-modifier (overheat widens, accuracy buffs tighten); i is this pellet's
             // slot in the fan. The 4-arg overload read the raw SpreadAngle at index 0 — every pellet identical.
             var fireDir = WeaponHelper.CalculateSpread(
-                currentWeapon.SpreadType, count, effectiveSpread, firePoint, i, count);
-            Vector3 spawnPos = firePoint.TransformPoint(currentWeapon.SpawnPositionOffset);
-
-            if (currentWeapon.Projectile == null)
-                continue;
+                config.SpreadType, count, effectiveSpread, firePoint, i, count);
+            Vector3 spawnPos = firePoint.TransformPoint(spawnPositionOffset);
 
             // Instantiate at the spawn pose and network-spawn; the instance's components self-configure
             // (TypeObjectRoot at Awake, NetworkedMotion's anchor at OnStartNetwork from this pose + tick).
@@ -96,7 +85,7 @@ public class PawnWeapon : NetworkBehaviour
             // connection so the predicting client owns its bullet. The firer id is the one per-spawn value a
             // component cannot self-derive (bots have no owning connection), so it is stamped here.
             Quaternion rot = fireDir.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(fireDir) : Quaternion.identity;
-            NetworkObject nob = NetworkManager.GetPooledInstantiated(currentWeapon.Projectile.InstancePrefab, spawnPos, rot, asServer: false);
+            NetworkObject nob = NetworkManager.GetPooledInstantiated(projectile.InstancePrefab, spawnPos, rot, asServer: false);
             if (nob.TryGetComponent<NetPlayerOwnership>(out var ownership))
                 ownership.SpawnOwnerId = pawn.ControllingPlayer.Value != null ? pawn.ControllingPlayer.Value.ObjectId : -1;
             NetworkManager.ServerManager.Spawn(nob, Owner);

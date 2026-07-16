@@ -10,7 +10,7 @@ namespace Arena.PlayTests
     /// and we assert the FULL set of effects a hit produces on the victim ??? discovered by reading the
     /// code + the Pawn Root prefab configuration:
     ///
-    /// - DAMAGE: the DevilDaggers projectile (WeaponData "Devil Daggers Thing 1") deals 3 per hit; the
+    /// - DAMAGE: the DevilDaggers projectile (authored on the pawn as a ProjectileType) deals 3 per hit; the
     ///   victim's Health drops and Pawn.OnDamageTaken fires (server-authoritative, always on).
     /// - COLOR: PawnColor flashes the body to its HitColor (red, 0.3s) on any Health change. No ownership
     ///   gate ??? it fires on the host.
