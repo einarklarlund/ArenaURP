@@ -1,11 +1,12 @@
 # Master execution DAG — the three plans reconciled
 
-_Drafted 2026-07-15. **Transient reconciliation snapshot**, not a fourth standing plan: it only sequences and de-conflicts the open items already owned by the three source plans + DESIGN.md — it restates none of them. **Fold the settled ordering into [DESIGN.md](../../DESIGN.md)'s roadmap and delete this file** once the waves ship (same self-delete rule `spike-features-to-real-content.md` applies to itself). Corrected against an adversarial (design-critic) pass on 2026-07-15 — see the Corrections ledger._
+_Drafted 2026-07-15. **The canonical roadmap + build-sequencing hub** — "what's next, in what order" (Tracks A/B/C). It sequences the open items and points into the detail plans; it does **not** restate them. Its companion is [DESIGN.md](../../DESIGN.md), which stays canonical for the two north stars, the **open design questions** (the deferred-decision register this file points to, never copies — per [[design-elegance-root-value]]), and the ADR index. Individual threads are archived here as they ship; the file persists. Corrected against adversarial (design-critic) passes on 2026-07-15 — see the Corrections ledger._
 
-Source plans (this file points into them; detail lives there):
+Points into (detail lives there):
 - [parnas-modularity-plan.md](parnas-modularity-plan.md) — W1–W5 (modularity leaks, decided, none executed)
 - [spike-features-to-real-content.md](spike-features-to-real-content.md) — Sessions 1–4, OQ1–2
-- [feature-wishlist-consolidation.md](feature-wishlist-consolidation.md) — survivors A1/P1/P2/P5, cuts, ADR agenda
+- [feature-ledger.md](feature-ledger.md) — the 13-feature batch: per-feature disposition + the original effect×dispatch analysis
+- [DESIGN.md](../../DESIGN.md) — open design questions (the "why / deferred decision" for every gate below)
 
 ## How this DAG was derived (read before trusting an edge)
 
