@@ -203004,8 +203004,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1920908883}
-  - component: {fileID: 1920908882}
-  - component: {fileID: 1920908881}
   m_Layer: 0
   m_Name: Level Generator
   m_TagString: Untagged
@@ -203013,47 +203011,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
---- !u!114 &1920908881
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920908880}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1f79a7407b6f3408e8254cfd37fe38c0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  NetworkPlayer: {fileID: 0}
---- !u!114 &1920908882
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920908880}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ac1058351a7e848cc9d68b4b1d250d48, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  WalkerManager: {fileID: 1920908881}
-  ActiveBoundary: {fileID: 11400000, guid: 57b63b08d95c34767a607f012a0fd20b, type: 2}
-  NetworkPlayer: {fileID: 0}
-  GridWidth: 60
-  GridHeight: 60
-  CellSize: 3
-  Steps:
-  - {fileID: 11400000, guid: d9495fcc86c8e48a9ac8e2c3221713c8, type: 2}
-  - {fileID: 11400000, guid: be90dbd77812745968ecc9ae33dd141c, type: 2}
-  - {fileID: 11400000, guid: 639b1377f40a645d7a1089bdb4fc8641, type: 2}
-  - {fileID: 11400000, guid: a5356df8370e54528904ab59b4f3aa4f, type: 2}
-  - {fileID: 11400000, guid: 05e98a8f6cdf44d569e9bd4dd992d740, type: 2}
-  - {fileID: 11400000, guid: 98b1d4d2fcc1f4bc4aa29c95277675d2, type: 2}
-  OnLevelCreated:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!4 &1920908883
 Transform:
   m_ObjectHideFlags: 0
