@@ -124,11 +124,13 @@ public sealed class UIManager : MonoBehaviour
         }
     }
 
-    // Deliberately a switch expression with NO default arm: adding a MatchState
-    // value without mapping it here is a compile error (CS8509, escalated to
-    // error in .editorconfig). Together with MatchStateToViewKind's guard, this
-    // makes "add a match state" fail to build until every mapping site is
-    // updated -- without sharing MatchState into the engine-free UIFlow.Core.
+    // Deliberately a switch expression with NO default arm: an unmapped MatchState
+    // throws SwitchExpressionException at runtime and emits the CS8509
+    // non-exhaustive warning. (Unity ignores .editorconfig diagnostic severity, so
+    // that warning is not a build error.) This side lives in Assembly-CSharp, not
+    // Arena.*.Core, so it is not covered by the EditMode completeness test; the
+    // switch's runtime throw is its guard. Adding a MatchState value also forces a
+    // new UIMatchState arm, which MatchStateToViewKind_IsTotal does catch.
     private static UIStateMapper.UIMatchState ToUIMatchState(MatchState state) => state switch
     {
         MatchState.Pregame           => UIStateMapper.UIMatchState.Pregame,

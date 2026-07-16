@@ -42,10 +42,11 @@ public static class UIStateMapper
     /// Returns ViewKind.None for states that do not drive a view change
     /// (handled by other event sources, e.g. local pawn spawn/death).
     ///
-    /// Deliberately a switch expression with NO default arm: adding a
-    /// UIMatchState value without handling it here is a compile error
-    /// (CS8509, escalated to error in .editorconfig). This is the
-    /// exhaustiveness guard that keeps the MatchState mirror honest without
+    /// Deliberately a switch expression with NO default arm: an unmapped
+    /// UIMatchState throws SwitchExpressionException at runtime (and emits the
+    /// CS8509 non-exhaustive warning). The MatchStateToViewKind_IsTotal EditMode
+    /// test turns that into a hard failure the moment a UIMatchState value is
+    /// added without a mapping arm -- the exhaustiveness guard, kept without
     /// sharing the engine-side enum into this engine-free Core assembly.
     /// </summary>
     public static ViewKind MatchStateToViewKind(UIMatchState state) => state switch
