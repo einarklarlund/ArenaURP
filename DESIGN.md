@@ -13,7 +13,7 @@ The **why** layer. This is where design rationale, alternatives considered, and 
 
 ## Essence (the north star — guard its size)
 
-**What makes this game unique and interesting to PLAY** — not the marketing pitch. Every system, feature, and abstraction answers to this. Kept deliberately tiny: if you can't recite it, it isn't doing its job.
+**What makes this game unique and interesting to PLAY** — not the marketing pitch. Every system, feature, and abstraction answers to this. Kept deliberately tiny — ~2 sentences, and a change **replaces**, never appends: if you can't recite it, it isn't doing its job.
 
 > An arena deathmatch FPS where players **build their characters** a la rogue-like or deck builder.
 >
@@ -23,10 +23,7 @@ The **why** layer. This is where design rationale, alternatives considered, and 
 
 Keep one distinction conscious: systems upgrades **modify** (movement, health, weapons, projectiles) vs. systems that **drive/deliver** interactions (pickups deliver upgrades; **kills** is an interaction *source* — an on-kill event feeding a projectile/weapon/health bonus or a dropped pickup). Kills earns its place as *interaction*, which is the essence — not because it drives progression specifically. Weapons (firing cadence/spread/burst) and projectiles (ballistics + hit reactions) stay separate only because upgrades target them separately.
 
-**Scope guard (the agent holds the user to this — see the anti-sycophancy mandate, canonical in the `ai-workflow-coaching` memory):**
-- The essence stays ~2 sentences. A proposed addition must **replace**, not append — argue what it displaces.
-- The guard is the **interaction test**, not an exclusion clause: an addition earns the essence only if it **(a) drastically changes how someone plays** — its owner *or* their opponent — **and (b) interacts with an existing system.** That still rules things out — a cosmetic, a flat stat-stick, a terminal one-off that composes into nothing — so the essence keeps teeth without naming a genre it avoids. The genre is bounded *structurally* instead: **you win by kills**, so space-shaping and zone effects are combat *tools*, never win conditions. (Replaces the 2026-07-15-removed "rather than control maps and resources" exclusion — space-shaping abilities pass the interaction test, so that clause guarded the wrong boundary. A bare inclusion would justify anything; the interaction test is the replacement that keeps the teeth.)
-- **This decides where code complexity is warranted.** System *interactions* and *upgrades* are the essence, so composition/effect machinery earns its keep **there**. A bespoke one-off that doesn't compose into an upgrade, or generality no upgrade will ever use, is the suspect case — no matter how clean the code. (This is the sharpened test the `IEffect` review applied — resolved in ADR 0002/0003: not "23 types for 4 shapes," but "does each piece serve upgrade-driven system interaction?")
+**Scope guard (the agent holds the user to this — see the anti-sycophancy mandate, canonical in the `ai-workflow-coaching` memory):** An addition earns the essence only if it **(a) drastically changes how someone plays** — its owner *or* their opponent — **and (b) interacts with an existing system.** Whether a new **component or system** is worth adding is then a **recurring-decision count**: tally the features that need the design decision it would hide — one feature is a one-off to inline (rule of two), a decision several features share earns its own module, and generality earns its keep only where multiple real cases need it (the sharpened `IEffect` test — [ADR 0002](Docs/design/0002-ieffect-appropriateness-verdict.md)/[0003](Docs/design/0003-hit-reactions-as-handler-components.md): not "23 types for 4 shapes," but "how many features need this decision?").
 
 ## Elegance (the other north star)
 
