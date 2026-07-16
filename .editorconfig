@@ -1,0 +1,25 @@
+# Repository EditorConfig.
+#
+# W5 (parnas-modularity-plan): compile-time exhaustiveness guard for the
+# MatchState <-> UIMatchState mapping. MatchState is mirrored (not shared) into
+# the engine-free Arena.UIFlow.Core assembly to keep the acyclic module layering
+# intact, so the mirror is kept honest by construction: both mapping sites
+# (UIManager.ToUIMatchState, UIStateMapper.MatchStateToViewKind) are switch
+# expressions with no default arm.
+#
+#   CS8509 - switch expression does not handle a named enum value.
+#            Escalated to ERROR so adding/removing a MatchState or UIMatchState
+#            value fails the build until every mapping site handles it.
+#   CS8524 - switch expression does not handle an unnamed (out-of-range) enum
+#            value. Expected and harmless for a no-default enum switch that
+#            already covers every named value; silenced so CS8509 is the only
+#            signal.
+#
+# Scoped to the two mapping files to keep W5 a light touch; making exhaustive
+# switch expressions a project-wide invariant is a cheap future step once the
+# codebase is confirmed CS8509-clean.
+root = true
+
+[**/{UIManager,UIStateMapper}.cs]
+dotnet_diagnostic.CS8509.severity = error
+dotnet_diagnostic.CS8524.severity = none

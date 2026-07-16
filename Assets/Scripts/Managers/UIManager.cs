@@ -124,18 +124,19 @@ public sealed class UIManager : MonoBehaviour
         }
     }
 
-    private static UIStateMapper.UIMatchState ToUIMatchState(MatchState state)
+    // Deliberately a switch expression with NO default arm: adding a MatchState
+    // value without mapping it here is a compile error (CS8509, escalated to
+    // error in .editorconfig). Together with MatchStateToViewKind's guard, this
+    // makes "add a match state" fail to build until every mapping site is
+    // updated -- without sharing MatchState into the engine-free UIFlow.Core.
+    private static UIStateMapper.UIMatchState ToUIMatchState(MatchState state) => state switch
     {
-        switch (state)
-        {
-            case MatchState.Pregame:           return UIStateMapper.UIMatchState.Pregame;
-            case MatchState.PregameCountdown:  return UIStateMapper.UIMatchState.PregameCountdown;
-            case MatchState.During:            return UIStateMapper.UIMatchState.During;
-            case MatchState.PostgameCountdown: return UIStateMapper.UIMatchState.PostgameCountdown;
-            case MatchState.Postgame:          return UIStateMapper.UIMatchState.Postgame;
-            default:                           return UIStateMapper.UIMatchState.Pregame;
-        }
-    }
+        MatchState.Pregame           => UIStateMapper.UIMatchState.Pregame,
+        MatchState.PregameCountdown  => UIStateMapper.UIMatchState.PregameCountdown,
+        MatchState.During            => UIStateMapper.UIMatchState.During,
+        MatchState.PostgameCountdown => UIStateMapper.UIMatchState.PostgameCountdown,
+        MatchState.Postgame          => UIStateMapper.UIMatchState.Postgame,
+    };
 
     private void HandleLocalDeath()
     {

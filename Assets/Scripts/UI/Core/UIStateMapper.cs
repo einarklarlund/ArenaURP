@@ -41,19 +41,21 @@ public static class UIStateMapper
     /// Maps a match state to the view that should be shown when entering it.
     /// Returns ViewKind.None for states that do not drive a view change
     /// (handled by other event sources, e.g. local pawn spawn/death).
+    ///
+    /// Deliberately a switch expression with NO default arm: adding a
+    /// UIMatchState value without handling it here is a compile error
+    /// (CS8509, escalated to error in .editorconfig). This is the
+    /// exhaustiveness guard that keeps the MatchState mirror honest without
+    /// sharing the engine-side enum into this engine-free Core assembly.
     /// </summary>
-    public static ViewKind MatchStateToViewKind(UIMatchState state)
+    public static ViewKind MatchStateToViewKind(UIMatchState state) => state switch
     {
-        switch (state)
-        {
-            case UIMatchState.Pregame:            return ViewKind.Lobby;
-            case UIMatchState.PregameCountdown:   return ViewKind.PregameCountdown;
-            case UIMatchState.PostgameCountdown:  return ViewKind.PostgameCountdown;
-            case UIMatchState.During:             return ViewKind.None;
-            case UIMatchState.Postgame:           return ViewKind.None;
-            default:                              return ViewKind.None;
-        }
-    }
+        UIMatchState.Pregame           => ViewKind.Lobby,
+        UIMatchState.PregameCountdown  => ViewKind.PregameCountdown,
+        UIMatchState.PostgameCountdown => ViewKind.PostgameCountdown,
+        UIMatchState.During            => ViewKind.None,
+        UIMatchState.Postgame          => ViewKind.None,
+    };
 
     /// <summary>
     /// True if the menu camera should be active while the given view kind is
