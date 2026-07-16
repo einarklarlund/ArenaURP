@@ -1,11 +1,11 @@
-# DESIGN.md — design log, roadmap, and open questions
+# DESIGN.md — design log, open questions, and ADR index
 
 The **why** layer. This is where design rationale, alternatives considered, and open questions live — the things that are neither doctrine (that's `.claude/skills/`), nor a durable fact/norm (that's memory), nor a code-navigation index (that's `CLAUDE.md`).
 
 **The division that keeps these from overlapping:**
 - A **skill** says *"how we always do X"* (doctrine — the effect-command pattern, the MCP-vs-shell rule).
 - An **ADR** (below) says *"why we chose X over Y for this feature, and what we rejected."* Rationale, dated, immutable once accepted.
-- **This file** is the living index of those ADRs + the roadmap + the open questions not yet decided.
+- **This file** is the living index of those ADRs + the open questions not yet decided (the roadmap / build-sequencing now lives in the master execution DAG — see below).
 
 **How the agent uses it:** consult DESIGN.md at the start of any design task or new feature (the `arena-systems-map` and `ai-workflow` skills both point here). When a real decision is made — one with alternatives worth remembering — write an ADR. Don't inflate CLAUDE.md with rationale; link to the ADR instead.
 
