@@ -290,10 +290,13 @@ public static class MatchTestRig
 
     public static void SetLeadPlayer(NetworkPlayer player)
     {
-        var field = typeof(DeathmatchManager).GetField(
-            "leadPlayer", BindingFlags.NonPublic | BindingFlags.Instance);
-        var syncVar = (FishNet.Object.Synchronizing.SyncVar<NetworkPlayer>)field.GetValue(Deathmatch());
-        syncVar.Value = player;
+        // Install `player` as the stored leader through the REAL server path. ServerRecordKill
+        // sets leadPlayer once the killer's score passes the high score (0 before BeginGame), so
+        // one recorded kill makes leadPlayer.Value == player. This is how the game actually sets
+        // the leader, and it mirrors the passing countdown test's direct SyncVar seed (the client
+        // OnChange fires synchronously on the host, to no subscriber yet). It replaces reflecting
+        // into the FishNet-woven private SyncVar field, which returned a null FieldInfo and NRE'd.
+        Deathmatch().ServerRecordKill(player, player);
     }
 
     public static void SetUsername(NetworkPlayer player, string name) => player.ServerSetUsername(name);
