@@ -6,7 +6,7 @@ using UnityEngine;
 /// <summary>
 /// The hitstun-RECEIVING system of an entity: accepts a stun duration a <see cref="HitstunDealer"/> produced and
 /// publishes the resulting stun window. While stunned, <see cref="PawnWeapon"/> refuses to START a new fire event
-/// (an already-committed burst plays out). Sits on the entity ROOT alongside <see cref="Health"/>, so the
+/// (an already-committed burst plays out). Sits on the entity ROOT alongside <see cref="HealthController"/>, so the
 /// collision site resolves it with the same <c>GetComponentInParent</c> walk that resolves <see cref="IDamageable"/>.
 ///
 /// A pure receiver: how long a hit stuns is the DEALER's config. This end owns only its resistance

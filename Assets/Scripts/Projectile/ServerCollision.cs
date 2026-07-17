@@ -19,7 +19,7 @@ using SC = Arena.ServerCollision;
 /// wire. Motion — including the per-tick collision sweep (a beam casts forward; a mover sweeps prev→new) —
 /// comes polymorphically from the sibling motion's <see cref="IMotionStrategy"/>, replacing the old
 /// <c>if (Movement == Laser)</c> branch. Collision is SERVER-AUTHORITATIVE and not predicted, so operations
-/// perform their I/O directly. Despawn is driven here off the sibling <see cref="Health"/> reaching zero, or
+/// perform their I/O directly. Despawn is driven here off the sibling <see cref="HealthController"/> reaching zero, or
 /// the authored lifetime.
 /// </summary>
 public sealed class ServerCollision : NetworkBehaviour
@@ -50,7 +50,7 @@ public sealed class ServerCollision : NetworkBehaviour
     // lives in HitResolver. This driver only classifies the hit and builds the HitContext.
 
     private NetworkedMotion _motion;
-    private Health _health;
+    private HealthController _health;
     private Damage _damage;
     private KnockbackDealer _knockback;
     private HitstunDealer _hitstun;
@@ -73,7 +73,7 @@ public sealed class ServerCollision : NetworkBehaviour
         // This projectile IS the source of every hit it resolves, so its outgoing systems are resolved ONCE here
         // and handed to every context built below. An operation never asks for them.
         _motion = GetComponent<NetworkedMotion>();
-        _health = GetComponent<Health>();
+        _health = GetComponent<HealthController>();
         _damage = GetComponent<Damage>();
         _knockback = GetComponent<KnockbackDealer>();
         _hitstun = GetComponent<HitstunDealer>();

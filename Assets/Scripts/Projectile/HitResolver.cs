@@ -49,7 +49,7 @@ public static class HitResolver
     }
 
     /// <summary>
-    /// The dissolved LoseHealth (ADR 0003): a projectile carrying a live <see cref="Health"/> spends ONE point of
+    /// The dissolved LoseHealth (ADR 0003): a projectile carrying a live <see cref="HealthController"/> spends ONE point of
     /// durability per hit — presence of the Health component IS the durability switch, uniform across every channel
     /// (a normal bullet dies on contact; a bullet buffed to MaxHealth &gt; 1 survives that many bounces). A
     /// projectile with no Health is immortal by construction. Death at zero gates only what comes AFTER the hit:

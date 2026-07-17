@@ -65,7 +65,7 @@ public static class ProjectileDamageTestRig
             UnityEngine.Object.DestroyImmediate(existing);
         for (int i = 0; i < count; i++)
             bullet.AddComponent<RicochetHandler>(); // default EnabledChannels = Surface
-        bullet.GetComponent<Health>().ServerInitMax(100); // survive the per-hit durability spend so it can keep bouncing
+        bullet.GetComponent<HealthController>().ServerInitMax(100); // survive the per-hit durability spend so it can keep bouncing
     }
 
     /// <summary>Set the per-spawn speed buff directly on a live projectile (used to construct the two-peer self-heal gap).</summary>
@@ -96,7 +96,7 @@ public static class ProjectileDamageTestRig
     /// </summary>
     public static void AuthorLethalFirstOnPlayer(UnityEngine.GameObject bullet)
     {
-        bullet.GetComponent<Health>().ServerInitMax(1);   // the per-hit durability spend is lethal at 1 HP
+        bullet.GetComponent<HealthController>().ServerInitMax(1);   // the per-hit durability spend is lethal at 1 HP
     }
 
     /// <summary>

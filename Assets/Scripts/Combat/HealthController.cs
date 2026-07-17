@@ -28,7 +28,7 @@ using HealthCoreState = Arena.Health.HealthState;
 /// PawnManager despawns it; a projectile — its ServerCollision drives despawn off <see cref="IsDead"/>).
 /// Projectiles drain durability via <see cref="ServerLose"/> (no events, no despawn).
 /// </summary>
-public class Health : NetworkBehaviour, IDamageable
+public class HealthController : NetworkBehaviour, IDamageable
 {
     [SerializeField] private int maxHealth = 1;
     [Tooltip("Despawn this object when it dies. FALSE when something else owns the despawn (pawns: PawnManager; projectiles: ServerCollision).")]

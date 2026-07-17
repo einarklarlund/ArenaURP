@@ -8,7 +8,7 @@ using UnityEngine.EventSystems;
 /// the hit site (<see cref="ServerCollision.DispatchHit"/>) to every <see cref="IHitMessageHandler"/> on the source
 /// projectile and the owner's passive instances. Fields mirror the hit the site classified; per-channel population
 /// is a documented contract: <see cref="OtherMotion"/> is non-null only on the Projectile channel, and the
-/// supported-channels guard in <see cref="Functor"/> is what keeps it non-null where consumed.
+/// channel guard in <see cref="Functor"/> is what keeps a handler off a channel it doesn't consume.
 ///
 /// POOLING: server-side hits are per-tick and single-threaded, so instances recycle through a static stack —
 /// <see cref="Get"/> at the dispatch site, <see cref="Release"/> immediately after dispatch returns. A nested
@@ -42,7 +42,7 @@ public sealed class HitMessage : BaseEventData
     /// <summary>The source projectile's motion (velocity, strategy, age).</summary>
     public NetworkedMotion Motion;
     /// <summary>The source projectile's own durability, if it has one — presence is the durability switch.</summary>
-    public Health SelfHealth;
+    public HealthController SelfHealth;
     /// <summary>The OTHER projectile's motion — populated only on the Projectile channel.</summary>
     public NetworkedMotion OtherMotion;
 
@@ -50,7 +50,7 @@ public sealed class HitMessage : BaseEventData
 
     public void Init(HitChannels channel, GameObject source, NetworkPlayer instigator, GameObject victim,
         Vector3 point, Vector3 normal, Vector3 direction, Vector3 sourceCenterPoint,
-        NetworkedMotion motion, Health selfHealth, NetworkedMotion otherMotion = null)
+        NetworkedMotion motion, HealthController selfHealth, NetworkedMotion otherMotion = null)
     {
         Channel = channel;
         Source = source;

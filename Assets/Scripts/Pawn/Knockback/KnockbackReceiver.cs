@@ -5,7 +5,7 @@ using UnityEngine;
 
 /// <summary>
 /// The knockback-RECEIVING system of an entity: accepts an impulse a <see cref="KnockbackDealer"/> produced and
-/// feeds it into the entity's movement. Sits on the entity ROOT alongside <see cref="Health"/>, so the collision
+/// feeds it into the entity's movement. Sits on the entity ROOT alongside <see cref="HealthController"/>, so the collision
 /// site resolves it with the same <c>GetComponentInParent</c> walk that resolves <see cref="IDamageable"/>.
 ///
 /// It is a PURE RECEIVER. It does not watch for damage, and it does not decide how hard a hit shoves — that config

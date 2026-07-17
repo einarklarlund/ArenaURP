@@ -35,13 +35,13 @@ public readonly struct HitContext
     /// <summary>The source projectile's motion (velocity, strategy, age).</summary>
     public readonly NetworkedMotion Motion;
     /// <summary>The source projectile's own durability, if it has one.</summary>
-    public readonly Health SelfHealth;
+    public readonly HealthController SelfHealth;
     /// <summary>The OTHER projectile's motion — populated only on the Projectile channel.</summary>
     public readonly NetworkedMotion OtherMotion;
 
     public HitContext(HitChannels channel, GameObject source, NetworkPlayer instigator, GameObject victim,
         Vector3 point, Vector3 normal, Vector3 direction, Vector3 sourceCenterPoint,
-        NetworkedMotion motion, Health selfHealth, NetworkedMotion otherMotion = null)
+        NetworkedMotion motion, HealthController selfHealth, NetworkedMotion otherMotion = null)
     {
         Channel = channel;
         Source = source;

@@ -4,7 +4,7 @@ using UnityEngine;
 
 /// <summary>
 /// Server-only lifetime: after <see cref="lifetime"/> seconds, deals lethal damage
-/// to the referenced <see cref="Health"/> so it dies through the same Health.OnDeath
+/// to the referenced <see cref="HealthController"/> so it dies through the same HealthController.OnDeath
 /// path as any other kill (VFX wiring, despawnOnDeath, etc.).
 ///
 /// Counts time via TimeManager.OnPostTick rather than coroutines so it stays
@@ -12,7 +12,7 @@ using UnityEngine;
 /// </summary>
 public class KillTimer : NetworkBehaviour
 {
-    [SerializeField] private Health health;
+    [SerializeField] private HealthController health;
     [SerializeField] private float lifetime = 2f;
 
     private float _elapsed;

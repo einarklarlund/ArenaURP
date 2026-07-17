@@ -58,7 +58,7 @@ public sealed class SpawnBuffReceiver : NetworkBehaviour
                 collision.SetRadiusMultiplier(buff.ScaleMultiplier);
         }
 
-        if (buff.MaxHealthMultiplier != 1f && TryGetComponent<Health>(out var health))
+        if (buff.MaxHealthMultiplier != 1f && TryGetComponent<HealthController>(out var health))
             health.SetMaxHealthMultiplier(buff.MaxHealthMultiplier);
     }
 }
