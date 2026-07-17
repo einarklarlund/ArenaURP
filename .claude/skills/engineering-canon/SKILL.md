@@ -55,7 +55,7 @@ These lenses are the intellectual ancestry of the two north stars (`DESIGN.md`):
 
 ## The interview protocol
 
-Runs before any plan is finalized — feature, refactor, or workflow-layer change; in plan mode, before `ExitPlanMode`.
+Runs before any plan is finalized — feature, refactor, or workflow-layer change; in plan mode, before `ExitPlanMode`. Scope caveat: genuinely leaf/dev-only work has no plan to finalize and takes the fast-path — it never enters this interview. [[ai-workflow]] ("Match process weight to coupling") owns *when* the interview is skipped; this skill owns *how* it runs once you're in it.
 
 1. **Read [shared-understandings.md](shared-understandings.md) first.** Never re-ask what is already settled; cite the entry instead. (This register is the memory of the interviews — it loads only with this skill, so remembering costs no ambient context.)
 2. **Pick the lenses that bite.** Feature design: Brooks and Parnas lead. Refactoring: Constantine, Lehman, Parnas. Workflow/tooling changes: Conway, Brooks's law, Lehman. A lens with nothing to say gets one dismissing clause, not a section.

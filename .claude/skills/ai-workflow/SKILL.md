@@ -62,7 +62,7 @@ Lives in [[engineering-canon]] as the **evidence method** — north stars → na
 ## Session habits worth having
 
 - **`/context`** — see what's eating the window before blaming the model.
-- **`/rewind`** — file checkpoints. Reach for it when an edit (or a Unity asset save) goes wrong, instead of hand-reconstructing. Its *conversation-only* mode resets a bloated chat while keeping code changes — reuse a session past the compaction threshold instead of losing its work.
+- **`/rewind`** — file checkpoints. Reach for it when an edit (or a Unity asset save) goes wrong, instead of hand-reconstructing. Its **Restore conversation** option reverts the chat to an earlier point while keeping current code changes — discard a verbose or off-track discussion and keep working in the same session instead of losing the code work (the two **Summarize from/up to here** options free context without reverting anything).
 - **`AskUserQuestion` on unspoken assumptions** — before executing a plan that rests on a guess, surface the guess as a choice rather than picking silently. It asks the question you'd otherwise have taken an unspoken assumption on. (Not a substitute for making a reasonable call on a low-stakes fork — this is for the assumption that changes what gets built.)
 - **Plan mode first** for design work. A design settled in prose is far cheaper than one settled in fifteen files of code.
 - **`--worktree` / `isolation: worktree`** for anything risky or parallel. The editor stays on the main checkout; validate the worktree with batchmode (see the `unity-worktree-headless-validation` memory).
