@@ -24,6 +24,13 @@ public class PawnWeapon : NetworkBehaviour
     // API
     public readonly List<WeaponModifier> Modifiers = new();
 
+    /// <summary>Whether the weapon may START a new fire event (an already-committed burst plays out). Plain data
+    /// this weapon owns: the sibling HitstunController drives it from the replicated stun window on whichever
+    /// peer simulates this pawn — the weapon never reaches into hitstun state.</summary>
+    public bool CanFire { get; private set; } = true;
+
+    public void SetCanFire(bool value) => CanFire = value;
+
     // State
     private WeaponState _state = WeaponState.Default;
     private bool _fireHeldLastFrame;
