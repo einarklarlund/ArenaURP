@@ -34,7 +34,18 @@ Skill drift is not a memory failure, it is an attention failure: after fifteen f
 - Running tests, compile-checking, parsing test XML → **`unity-validator`**.
 - A genuinely open design question with several viable shapes → **plan mode** (`/plan`, or Shift+Tab) before writing any code — and before any plan is finalized, the [[engineering-canon]] interview.
 
+In a **multi-step autonomous run**, validate *between* steps, not only at the end: small per-step error rates compound (four 95%-correct steps ≈ 81%; Gaul), and a gate that fires only at the finish can't localize which step drifted.
+
 A subagent returns a conclusion. If it returns file dumps, its prompt is wrong — fix the agent, not the habit.
+
+## Match process weight to coupling — two speeds
+
+Not every change earns the full gauntlet (plan mode → [[engineering-canon]] interview → ADR). Process weight tracks **coupling and permanence**, not habit. The default has silently been one speed — the slow one; naming the fast-path is permission to stop over-processing the leaves.
+
+- **Fast-path** — leaf code: dev-only tooling, editor scripts, throwaway converters, one-off diagnostics. Low coupling, no invariants to satisfy, cheap to regenerate. *Just try it empirically and verify* (the game runs; a test goes green). Skip the interview. Gaul's economics hold here: regeneration from a description is cheaper than preservation, so the maintenance question ("worth building AND keeping?") stops gating — describe it clearly, let it be built.
+- **Gauntlet** — core code: anything networked, server-authoritative, or wired into the interacting-mechanisms web (`Pawn`/`Health`/projectiles/abilities/match flow). "Correct" here means satisfying non-local invariants no short description carries — our skills and ADRs *are* that description. Regeneration is NOT cheap; the design work is the point, and the gauntlet earns its cost.
+
+The tell: **could a competent stranger regenerate this from one paragraph and be right?** Yes → fast-path. No — the correctness lives in constraints spread across the codebase → gauntlet. A change is never fast-path merely for being *small*: a five-line edit that touches a `SyncVar`/RPC/`[Server]` method or the hit-exchange web is coupled, so it takes the gauntlet.
 
 ## The inventory IS the directory
 
@@ -51,7 +62,8 @@ Lives in [[engineering-canon]] as the **evidence method** — north stars → na
 ## Session habits worth having
 
 - **`/context`** — see what's eating the window before blaming the model.
-- **`/rewind`** — file checkpoints. Reach for it when an edit (or a Unity asset save) goes wrong, instead of hand-reconstructing.
+- **`/rewind`** — file checkpoints. Reach for it when an edit (or a Unity asset save) goes wrong, instead of hand-reconstructing. Its *conversation-only* mode resets a bloated chat while keeping code changes — reuse a session past the compaction threshold instead of losing its work.
+- **`AskUserQuestion` on unspoken assumptions** — before executing a plan that rests on a guess, surface the guess as a choice rather than picking silently. It asks the question you'd otherwise have taken an unspoken assumption on. (Not a substitute for making a reasonable call on a low-stakes fork — this is for the assumption that changes what gets built.)
 - **Plan mode first** for design work. A design settled in prose is far cheaper than one settled in fifteen files of code.
 - **`--worktree` / `isolation: worktree`** for anything risky or parallel. The editor stays on the main checkout; validate the worktree with batchmode (see the `unity-worktree-headless-validation` memory).
 - **`/loop`, `/schedule`, `/batch`, Workflows** — all multiply cost; for genuinely wide work only (practices register, "Workflows" row).
