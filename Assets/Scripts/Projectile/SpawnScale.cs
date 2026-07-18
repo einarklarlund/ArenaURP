@@ -5,7 +5,7 @@ using UnityEngine;
 /// Owns the per-spawn visual scale of a pooled spawnable, so a scale buff never mutates <c>transform.localScale</c>
 /// directly (raw transform state has no ResetState owner and would leak a previous owner's buff across pooled
 /// reuse). Baseline is the prefab-authored localScale, captured once in <see cref="Awake"/> — pooling never
-/// re-runs Awake, and buffs can only run later (at OnStartNetwork via <c>SpawnBuffReceiver</c>), so the capture is
+/// re-runs Awake, and buffs can only run later (at OnStartNetwork via <c>SpawnContributionReceiver</c>), so the capture is
 /// always the clean authored value. Buffs go through the idempotent <see cref="SetScaleMultiplier"/>;
 /// <see cref="ResetState"/> restores the baseline so pooled reuse starts unbuffed.
 ///

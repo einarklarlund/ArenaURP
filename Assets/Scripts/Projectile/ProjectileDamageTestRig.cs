@@ -28,9 +28,9 @@ public static class ProjectileDamageTestRig
 
     public static int PlayerObjectId(NetworkPlayer player) => player.ObjectId;
 
-    /// <summary>The authored Damage of a projectile kind (read off its InstancePrefab's Damage component), for exact assertions.</summary>
+    /// <summary>The authored Damage of a projectile kind (read off its InstancePrefab's DamageController), for exact assertions.</summary>
     public static int TypeDamageAt(string assetPath)
-        => AssetDatabase.LoadAssetAtPath<ProjectileType>(assetPath).InstancePrefab.GetComponent<Damage>().Amount;
+        => AssetDatabase.LoadAssetAtPath<ProjectileType>(assetPath).InstancePrefab.GetComponent<DamageController>().Amount;
 
     /// <summary>The authored baseline InitialSpeed of a projectile kind (off its InstancePrefab's NetworkedMotion).</summary>
     public static float TypeInitialSpeedAt(string assetPath)
@@ -52,19 +52,19 @@ public static class ProjectileDamageTestRig
         => bullet.GetComponent<NetworkedMotion>().State.OriginPos.z;
 
     /// <summary>
-    /// Author exactly <paramref name="count"/> surface-enabled RicochetHandler components on a live bullet, and bump
-    /// its durability high so the per-hit durability spend (ADR 0003) doesn't kill it before it can bounce. TWO
-    /// Ricochets stands in for the powerup-stacking case a bouncy shot actually hits — one on the projectile's own
+    /// Author exactly <paramref name="count"/> surface-enabled RedirectionController components on a live bullet, and
+    /// bump its durability high so the per-hit durability spend (ADR 0003) doesn't kill it before it can bounce. TWO
+    /// redirections stands in for the powerup-stacking case a bouncy shot actually hits — one on the projectile's own
     /// prefab, another contributed by the owner's "bouncy" passive — which must still bounce, not cancel (reflecting
     /// the same incoming direction is idempotent; reflecting the live velocity twice composes to the identity and
     /// drives straight through). Mutates only this spawned instance's components, never the asset.
     /// </summary>
     public static void AuthorRicochetOnSurface(UnityEngine.GameObject bullet, int count)
     {
-        foreach (var existing in bullet.GetComponents<RicochetHandler>())
+        foreach (var existing in bullet.GetComponents<RedirectionController>())
             UnityEngine.Object.DestroyImmediate(existing);
         for (int i = 0; i < count; i++)
-            bullet.AddComponent<RicochetHandler>(); // default EnabledChannels = Surface
+            bullet.AddComponent<RedirectionController>(); // default enabledChannels = Surface (reflect)
         bullet.GetComponent<HealthController>().ServerInitMax(100); // survive the per-hit durability spend so it can keep bouncing
     }
 
@@ -101,7 +101,7 @@ public static class ProjectileDamageTestRig
 
     /// <summary>
     /// Server-spawns a projectile prefab with its <c>NetPlayerOwnership.SpawnOwnerId</c> left at -1 (so a receiving
-    /// client's SpawnBuffReceiver no-ops) but a per-spawn speed multiplier set on the SERVER instance BEFORE the
+    /// client's SpawnContributionReceiver no-ops) but a per-spawn speed multiplier set on the SERVER instance BEFORE the
     /// spawn — standing in for a server-side-only buff resolution. The client must then self-heal to the buffed
     /// speed from the seeded segment SyncVars. <paramref name="owner"/> is the FishNet connection to grant network
     /// ownership to purely so the object REPLICATES to that peer — it is INDEPENDENT of SpawnOwnerId (nothing in the

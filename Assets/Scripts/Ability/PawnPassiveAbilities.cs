@@ -9,11 +9,12 @@ using UnityEngine;
 /// the same modifiers locally.
 ///
 /// This component folds each equipped passive's multipliers into the pawn's <see cref="PawnMovement"/> /
-/// <see cref="PawnWeapon"/> modifier lists (Remove-old / Add-new, the PawnTemperature discipline). The passives'
-/// contributed hit reactions are <see cref="IHitHandler"/> components on the instance prefabs, harvested at the hit
-/// site (<see cref="CollectHitHandlers"/>); only their effective channel mask (<see cref="OwnerHitChannelMask"/>) is
-/// cached here, for ServerCollision's projectile-channel gate. Instances call <see cref="NotifyInventoryChanged"/>
-/// from their network start/stop. Active abilities live on the sibling <see cref="PawnActiveAbilities"/>.
+/// <see cref="PawnWeapon"/> modifier lists (Remove-old / Add-new, the PawnTemperature discipline). A passive's
+/// contributed on-hit behaviour is NOT harvested here or at the hit site: it rides an
+/// <see cref="IOwnedObjectContribution"/> on the passive instance that <see cref="SpawnContributionReceiver"/> copies onto
+/// the owner's spawned objects at spawn, so by hit time it is an ordinary handler on the source and this component
+/// knows nothing about hit dispatch. Instances call <see cref="NotifyInventoryChanged"/> from their network
+/// start/stop. Active abilities live on the sibling <see cref="PawnActiveAbilities"/>.
 /// </summary>
 public sealed class PawnPassiveAbilities : NetworkBehaviour
 {
@@ -27,10 +28,6 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
     // ---- local (per-peer) state ----
     private readonly List<MovementModifier> _appliedMove = new();
     private readonly List<WeaponModifier> _appliedWeapon = new();
-    // The effective hit-channel mask of the handlers this pawn's passives contribute (OR of each handler's
-    // Supported ∩ Enabled), recomputed on roster change. ServerCollision reads it O(1) per flight-tick to decide
-    // whether an owner passive wants the projectile-vs-projectile channel woken (the effective-channel-mask gate).
-    private HitChannels _ownerHitChannelMask;
 
     // Scratch buffer for child enumeration (avoid per-call allocation).
     private readonly List<PassiveAbility> _passivesBuf = new();
@@ -66,7 +63,7 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
     /// <summary>
     /// The combined on-spawn buff this pawn's current passives contribute — each passive's authored
     /// <see cref="PassiveAbility.SpawnBuff"/> MULTIPLIED together (identity = 1 contributes nothing), for the
-    /// on-spawn buff path (<c>SpawnBuffReceiver</c>). A FRESH PER-PEER read off the replicated child passives —
+    /// on-spawn buff path (<c>SpawnContributionReceiver</c>). A FRESH PER-PEER read off the replicated child passives —
     /// it runs identically on observers, and is deliberately NOT routed through the server-only owner
     /// contributions, which only the server ever reads.
     /// </summary>
@@ -82,25 +79,6 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
         }
         return folded;
     }
-
-    /// <summary>
-    /// Append the <see cref="IHitHandler"/> components authored on this pawn's passive instance prefabs — the
-    /// owner-contribution harvest of handler dispatch (component-handler shape, DESIGN.md migration thread).
-    /// Read SERVER-SIDE by <see cref="HitResolver"/> at hit time, after the projectile's own handlers; presence
-    /// on the instance IS the contribution, so there is no serialized list and nothing to re-derive.
-    /// </summary>
-    public void CollectHitHandlers(List<IHitHandler> results)
-    {
-        GetPassives(_passivesBuf);
-        foreach (var p in _passivesBuf)
-        {
-            p.GetComponents(_handlerBuf); // GetComponents(List) clears the buffer itself
-            for (int i = 0; i < _handlerBuf.Count; i++)
-                results.Add(_handlerBuf[i]);
-        }
-    }
-
-    private readonly List<IHitHandler> _handlerBuf = new();
 
     // ---- server: acquisition / removal ----
 
@@ -130,8 +108,8 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
     // ---- change propagation: passive instances call this when they start/stop ----
 
     /// <summary>
-    /// Re-derive everything that depends on the current child instances (modifiers, owner projectile
-    /// operations) and raise <see cref="InventoryChanged"/>. <paramref name="leaving"/> is the instance whose
+    /// Re-derive everything that depends on the current child instances (the movement/weapon modifiers) and raise
+    /// <see cref="InventoryChanged"/>. <paramref name="leaving"/> is the instance whose
     /// network-stop triggered this notify, excluded from the re-derive: FishNet flips IsSpawned only AFTER the
     /// stop callbacks, so inside that window the spawn-state filter alone would still see the corpse
     /// (removal-first — the RemoveAt-before-Despawn discipline, keeping derived state off dying objects).
@@ -145,14 +123,12 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
     /// <summary>
     /// Remove our previous contributions, then collect each current passive's authored stat-buff modifiers
     /// (identity entries contribute nothing and are skipped) and apply them to the pawn's movement/weapon
-    /// modifier lists, and re-aggregate the passives' authored projectile operations. Runs on every peer;
-    /// only the peer that actually simulates movement/weapon consumes the modifiers, and only the server
-    /// reads the operations.
+    /// modifier lists. Runs on every peer; only the peer that actually simulates movement/weapon consumes the
+    /// modifiers.
     /// </summary>
     private void ReapplyPassiveModifiers(PassiveAbility leaving = null)
     {
         ClearAppliedModifiers(); // removes previous contributions from the live lists and clears the tracking lists
-        _ownerHitChannelMask = HitChannels.None;
 
         GetPassives(_passivesBuf);
         foreach (var p in _passivesBuf)
@@ -161,11 +137,6 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
                 continue;
             if (!p.MovementBuff.Equals(MovementModifier.Identity)) _appliedMove.Add(p.MovementBuff);
             if (!p.WeaponBuff.Equals(WeaponModifier.Identity)) _appliedWeapon.Add(p.WeaponBuff);
-            // Fold this passive's contributed hit handlers' effective channel mask (what they CAN serve ∩ are
-            // authored to) so the projectile-channel gate can decide on roster change alone, never per hit.
-            p.GetComponents(_handlerBuf); // GetComponents(List) clears the buffer itself
-            for (int i = 0; i < _handlerBuf.Count; i++)
-                _ownerHitChannelMask |= _handlerBuf[i].SupportedChannels & _handlerBuf[i].EnabledChannels;
         }
 
         // Push the contributed modifiers onto the pawn's live modifier lists (ClearAppliedModifiers removes them).
@@ -181,14 +152,6 @@ public sealed class PawnPassiveAbilities : NetworkBehaviour
         else if (_appliedWeapon.Count > 0)
             Debug.LogWarning($"{name}: dropping {_appliedWeapon.Count} weapon-buff contribution(s) — no weapon ref wired", this);
     }
-
-    /// <summary>
-    /// The effective hit-channel mask of the handlers this pawn's passives contribute (OR of each handler's
-    /// Supported ∩ Enabled), refreshed on every roster change. Read SERVER-SIDE by ServerCollision's
-    /// projectile-channel gate; the handlers themselves are harvested at hit time (<see cref="CollectHitHandlers"/>),
-    /// never serialized onto the projectile.
-    /// </summary>
-    public HitChannels OwnerHitChannelMask => _ownerHitChannelMask;
 
     private void ClearAppliedModifiers()
     {

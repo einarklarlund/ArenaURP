@@ -112,7 +112,7 @@ public sealed class NetworkedMotion : NetworkBehaviour
             Motion = new LinearMotion();
         }
 
-        // Effective spawn speed = baseline × per-spawn buff layer. An on-spawn buff (SpawnBuffReceiver) may have
+        // Effective spawn speed = baseline × per-spawn buff layer. An on-spawn buff (SpawnContributionReceiver) may have
         // called SetSpeedMultiplier before this — its OnStartNetwork can run either side of ours — so fold the
         // multiplier in here rather than assuming it arrives later (see SetSpeedMultiplier for the after-case).
         _state = MotionCoreState.Spawn(Id, SpawnPosition, SpawnForward, InitialSpeed * _speedMultiplier);

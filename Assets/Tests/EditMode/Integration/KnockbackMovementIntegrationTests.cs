@@ -5,31 +5,36 @@ using UnityEngine;
 /// <summary>
 /// Cross-processor integration test for the Knockback -> Movement impulse handshake.
 ///
-/// Asserts on the CONTRACT: that the Vector3 impulse produced by KnockbackHelper.ComputeImpulse
-/// is consumed by MovementProcessor.Process via MovementInput.Impulses and observably displaces
-/// the pawn in the impulse direction. If MovementProcessor stops summing the impulses list, or
-/// the consumer/producer drift on direction conventions, hits would stop knocking pawns.
+/// Asserts on the CONTRACT: that a Vector3 impulse (of the shape KnockbackController produces — a
+/// horizontal hit lifted to the minimum launch angle, at SpeedOnHit) is consumed by
+/// MovementProcessor.Process via MovementInput.Impulses and observably displaces the pawn in the impulse
+/// direction. If MovementProcessor stops summing the impulses list, or the consumer/producer drift on
+/// direction conventions, hits would stop knocking pawns.
 ///
-/// Observable assertion: integrate velocity over a few frames after applying the impulse and
-/// compare displacement vs. a no-impulse baseline. Compares the X axis specifically because the
-/// hit direction is along +X.
+/// The impulse is HARDCODED here rather than computed: the outgoing-impulse arithmetic now lives inside
+/// KnockbackController (an Assembly-CSharp MonoBehaviour, unreachable from this pure-Core test asmdef), and
+/// its own edge cases are covered by the PlayMode combat suite. This test owns only the Movement half of the
+/// handshake, so a representative +X impulse is all it needs.
 /// </summary>
 [TestFixture]
 public class KnockbackMovementIntegrationTests
 {
     private MovementConfig _movementConfig;
-    private KnockbackConfig _knockbackConfig;
+
+    // A representative outgoing knockback impulse for a hit from +X: the horizontal direction lifted to the
+    // default 35-degree launch angle, at the default SpeedOnHit of 7 → roughly (5.7, 4.0, 0). The exact vector
+    // is immaterial; the test asserts only that a positive-X impulse displaces the pawn along +X.
+    private static readonly Vector3 KnockbackImpulseFromPlusX = new(5.735f, 4.015f, 0f);
 
     [SetUp]
     public void SetUp()
     {
         _movementConfig = MovementConfig.Default;
-        _knockbackConfig = KnockbackConfig.Default;
     }
 
     /// <summary>
     /// Simulates the airborne integration loop a pawn would experience after taking a hit:
-    /// the impulse is applied on the first tick (as KnockbackReceiver would push it into
+    /// the impulse is applied on the first tick (as KnockbackController would push it into
     /// PendingImpulses), and subsequent ticks integrate velocity into a position estimate.
     /// </summary>
     private Vector3 SimulateAirborneDisplacement(List<Vector3> impulsesFirstFrameOnly, int frames = 30)
@@ -64,18 +69,14 @@ public class KnockbackMovementIntegrationTests
     [Test]
     public void KnockbackImpulse_DisplacesPawnInHitDirection_ViaMovementProcessor()
     {
-        // Arrange: compute the impulse the way a KnockbackDealer does, for a hit from +X.
-        Vector3 hitDirection = new Vector3(1f, 0f, 0f);
-        Vector3 impulse = KnockbackHelper.ComputeImpulse(hitDirection, in _knockbackConfig);
-
-        // Sanity: the impulse should have a positive X component (preserves hit direction).
-        Assert.Greater(impulse.x, 0f,
+        // Sanity: the representative impulse preserves the hit direction (+X).
+        Assert.Greater(KnockbackImpulseFromPlusX.x, 0f,
             "Knockback impulse should have a positive X component for a +X hit direction.");
 
         // Act: feed the impulse into MovementInput.Impulses (the same list PawnMovement.Update
         // sources from PawnMovement.PendingImpulses).
         Vector3 displacementWithImpulse = SimulateAirborneDisplacement(
-            new List<Vector3> { impulse });
+            new List<Vector3> { KnockbackImpulseFromPlusX });
 
         Vector3 displacementBaseline = SimulateAirborneDisplacement(impulsesFirstFrameOnly: null);
 

@@ -1,14 +1,17 @@
 using System.Collections.Generic;
-using Arena.NetworkedMotion;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 /// <summary>
-/// The ONE fan-out hit context (ADR 0005, the layered model): a pooled, typed ExecuteEvents message dispatched at
-/// the hit site (<see cref="ServerCollision.DispatchHit"/>) to every <see cref="IHitMessageHandler"/> on the source
-/// projectile and the owner's passive instances. Fields mirror the hit the site classified; per-channel population
-/// is a documented contract: <see cref="OtherMotion"/> is non-null only on the Projectile channel, and the
-/// channel guard in <see cref="Functor"/> is what keeps a handler off a channel it doesn't consume.
+/// The ONE fan-out hit context (ADR 0005, the layered model): a pooled, typed ExecuteEvents message the collision
+/// site builds and hands to <see cref="Dispatch"/>, which runs it against every <see cref="IHitMessageHandler"/>
+/// on the source projectile. Owner-contributed behaviour rides the source too — a passive ADDS its handler onto
+/// the owner's projectiles at spawn — so dispatch never has to know about the ability system. The message carries
+/// only the two context GameObjects (<see cref="Source"/>, <see cref="Victim"/>), the resolved
+/// <see cref="Instigator"/>, and the hit geometry; every COMPONENT a handler needs it looks up itself from Source
+/// or Victim (as <c>DamageController</c>/<c>KnockbackController</c>/<c>RedirectionController</c> do),
+/// channel-independently — so no component ref can go stale in the pool. The channel guard in <see cref="Functor"/>
+/// keeps a handler off a channel it doesn't consume.
 ///
 /// POOLING: server-side hits are per-tick and single-threaded, so instances recycle through a static stack —
 /// <see cref="Get"/> at the dispatch site, <see cref="Release"/> immediately after dispatch returns. A nested
@@ -39,18 +42,11 @@ public sealed class HitMessage : BaseEventData
     /// <summary>This mover's centre at contact — stands off the surface point by the sweep radius along the
     /// normal, so a redirect resumes tangent to the surface instead of embedded in it.</summary>
     public Vector3 SourceCenterPoint;
-    /// <summary>The source projectile's motion (velocity, strategy, age).</summary>
-    public NetworkedMotion Motion;
-    /// <summary>The source projectile's own durability, if it has one — presence is the durability switch.</summary>
-    public HealthController SelfHealth;
-    /// <summary>The OTHER projectile's motion — populated only on the Projectile channel.</summary>
-    public NetworkedMotion OtherMotion;
 
     private HitMessage() : base(null) { }
 
     public void Init(HitChannels channel, GameObject source, NetworkPlayer instigator, GameObject victim,
-        Vector3 point, Vector3 normal, Vector3 direction, Vector3 sourceCenterPoint,
-        NetworkedMotion motion, HealthController selfHealth, NetworkedMotion otherMotion = null)
+        Vector3 point, Vector3 normal, Vector3 direction, Vector3 sourceCenterPoint)
     {
         Channel = channel;
         Source = source;
@@ -60,9 +56,6 @@ public sealed class HitMessage : BaseEventData
         Normal = normal;
         Direction = direction;
         SourceCenterPoint = sourceCenterPoint;
-        Motion = motion;
-        SelfHealth = selfHealth;
-        OtherMotion = otherMotion;
     }
 
     /// <summary>Null every reference (the pool must retain nothing across hits).</summary>
@@ -77,9 +70,6 @@ public sealed class HitMessage : BaseEventData
         Normal = Vector3.zero;
         Direction = Vector3.zero;
         SourceCenterPoint = Vector3.zero;
-        Motion = null;
-        SelfHealth = null;
-        OtherMotion = null;
     }
 
     // ---- pool (server-only, single-threaded — the same discipline the old scratch buffers relied on) ----
@@ -109,4 +99,30 @@ public sealed class HitMessage : BaseEventData
         if ((handler.EnabledHitChannels & hit.Channel) != 0)
             handler.OnHit(hit);
     };
+
+    // ---- the atomic hit sequence (ADR 0005) ----
+
+    /// <summary>
+    /// Resolve a classified hit ATOMICALLY: (1) spend the source's per-hit durability FIRST — presence of a live
+    /// <see cref="HealthController"/> is the durability switch — then (2) dispatch this message to every
+    /// <see cref="IHitMessageHandler"/> on the source, in component order, each filtered to the hit's channel by
+    /// <see cref="Functor"/>. Every handler runs even if the projectile died on the durability spend, so authored
+    /// order can never change a hit's outcome. Owner-contributed handlers are NOT reached here — a passive
+    /// contributes by ADDING its handler onto the owner's projectiles at spawn (see SpawnContributionReceiver), so by hit
+    /// time they are ordinary handlers on the source. Server-only by construction: every caller is server-side
+    /// hit resolution. Any handler may build and dispatch a further HitMessage (an explosion, a ricochet) — that
+    /// is an ordinary nested call.
+    /// </summary>
+    public static void Dispatch(HitMessage hit)
+    {
+        if (hit.Source == null)
+            return;
+
+        // (1) durability spent first — a mid-hit death cannot retract a handler that runs below. Presence of a
+        // live HealthController on the source is the durability switch; a source without one is indestructible.
+        hit.Source.GetComponent<HealthController>()?.ServerLose(1);
+
+        // (2) every handler on the source, component order, channel-filtered by the functor.
+        ExecuteEvents.Execute(hit.Source, hit, Functor);
+    }
 }

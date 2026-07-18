@@ -2,7 +2,7 @@
 /// The on-spawn buffs a passive ability applies to each networked object its owner spawns — authored DATA, not a
 /// command (the component-handler migration, ADR 0003: varies-in-data → an authored struct). One identity-default
 /// struct of multipliers, the shape shared with <see cref="MovementModifier"/> / <see cref="WeaponModifier"/>:
-/// a passive's <c>SpawnBuff</c> field, folded by <see cref="SpawnBuffReceiver"/> which — on every peer, at the
+/// a passive's <c>SpawnBuff</c> field, folded by <see cref="SpawnContributionReceiver"/> which — on every peer, at the
 /// spawn instant — walks the owner's roster, MULTIPLIES the contributions together, and pokes the spawned
 /// object's generic sibling systems once each (never a raw scale/health write; the idempotent per-spawn
 /// multiplier layer that resets under pooling).

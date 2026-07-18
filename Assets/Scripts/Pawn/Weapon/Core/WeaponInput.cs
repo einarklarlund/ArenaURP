@@ -21,7 +21,8 @@ public struct WeaponInput
 
     /// <summary>
     /// Whether the pawn is in hitstun and may not START a new fire event. An already-committed burst is NOT
-    /// interrupted — see <see cref="WeaponProcessor.Process"/>. Sourced from the pawn's HitstunReceiver.
+    /// interrupted — see <see cref="WeaponProcessor.Process"/>. Sourced from the pawn's HitstunController, which
+    /// drives PawnWeapon.CanFire (Stunned = !CanFire).
     /// </summary>
     public bool Stunned;
 

@@ -8,7 +8,7 @@ namespace Arena.PlayTests
 {
     /// <summary>
     /// Integration tests for the on-spawn passive-buff path: a spawned projectile snapshots the firer's passives
-    /// as resolved on this peer at the spawn instant (SpawnBuffReceiver → PawnPassiveAbilities.GetSpawnBuffs →
+    /// as resolved on this peer at the spawn instant (SpawnContributionReceiver → PawnPassiveAbilities.GetSpawnBuffs →
     /// each OnSpawn effect), with NOTHING extra on the wire. Exercises both buff categories — speed (Option A
     /// idempotent motion setter) and scale, where the one BuffScale drives both the visual SpawnScale path and the
     /// server-only ServerCollision radius — plus the unbuffed no-op.

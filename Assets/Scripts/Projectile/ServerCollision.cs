@@ -2,17 +2,20 @@ using System.Collections.Generic;
 using Arena.NetworkedMotion;
 using FishNet.Object;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using SC = Arena.ServerCollision;
 
 /// <summary>
 /// The server-only collision driver of a projectile. Each tick it advances the sibling
 /// <see cref="NetworkedMotion"/>'s age, casts the world broadphase and overlaps the projectile broadphase
-/// itself, classifies each hit with the pure <see cref="SC.ServerCollisionProcessor"/>, then resolves the hit:
-/// on an enemy hit it first runs the hit EXCHANGES from component presence (dealer on this projectile ∧ receiver
-/// on the victim — damage/knockback/hitstun, see <see cref="ResolveExchanges"/>; ADR 0002), spends the source's
-/// per-hit durability, and dispatches the presence-discovered <see cref="IHitHandler"/> reactions — this
-/// projectile's own components first, then the owner's passive-contributed ones (looked up server-side; ADR 0003).
-/// This driver enumerates only the classification; it authors no reaction list.
+/// itself, classifies each hit with the pure <see cref="SC.ServerCollisionProcessor"/>, then resolves the hit by
+/// building the one pooled <see cref="HitMessage"/> and handing it to <see cref="HitMessage.Dispatch"/> (ADR 0005).
+/// The hit sequence is atomic: durability is spent FIRST, then every <see cref="IHitMessageHandler"/> on this
+/// projectile runs — the damage/knockback/hitstun dealer halves and the reactions alike, in component order, each
+/// filtered to the hit's channel by the one guard in <see cref="HitMessage.Functor"/>. Owner-contributed reactions
+/// ride the source too: a passive ADDS its handler onto the owner's projectiles at spawn (SpawnContributionReceiver), so by
+/// hit time they are ordinary handlers here. This driver enumerates only the classification; it authors no reaction
+/// list and knows nothing about the ability system.
 ///
 /// It holds no ProjectileType: its collision radius and lifetime are AUTHORED ON THE PREFAB
 /// (prefab-per-kind), so they are runtime-tunable per instance and identical on every peer with nothing on the
@@ -44,21 +47,19 @@ public sealed class ServerCollision : NetworkBehaviour
     // Public as a read-only derived surface (like Radius): the authoritative collision size after any on-spawn buff.
     public float EffectiveRadius => Radius * _radiusMultiplier;
 
-    // Hit REACTIONS are IHitHandler components authored on this prefab (ADR 0003) — ricochet, on-hit instantiate,
-    // etc. — discovered by presence at the hit site and dispatched by HitResolver's per-channel entry points; there
-    // is no serialized reaction list here. The source's per-hit durability spend (the dissolved LoseHealth) also
-    // lives in HitResolver. This driver only classifies the hit and builds the HitContext.
+    // Hit responders are IHitMessageHandler components on this object (ADR 0005) — the damage/knockback/hitstun
+    // dealer halves plus any reactions — present either from authoring or from an owner contribution added at
+    // spawn. They are dispatched the one HitMessage; there is no serialized reaction list here. The source's
+    // per-hit durability spend and the dispatch loop both live in HitMessage.Dispatch. This driver only classifies
+    // the hit and builds the HitMessage.
 
     private NetworkedMotion _motion;
     private HealthController _health;
-    private Damage _damage;
-    private KnockbackDealer _knockback;
-    private HitstunDealer _hitstun;
     private NetPlayerOwnership _ownership;
 
-    // This projectile's OWN handlers' effective Projectile-channel bit — a prefab constant (handlers are fixed at
-    // authoring), computed once in Awake so the per-tick projectile-channel gate stays O(1). The owner's
-    // passive-contributed mask folds in separately, on roster change (PawnPassiveAbilities.OwnerHitChannelMask).
+    // The effective Projectile-channel bit of every handler now on this object — authored ones AND any an owner
+    // contribution added at spawn — folded once per spawn (RecomputeProjectileChannelMask) so the per-tick
+    // projectile-channel gate stays O(1).
     private HitChannels _ownProjectileMask;
 
     // Projectile-channel one-shot-on-enter dedupe guard (was ProjectileState.LastHitProjectileId).
@@ -70,28 +71,34 @@ public sealed class ServerCollision : NetworkBehaviour
 
     private void Awake()
     {
-        // This projectile IS the source of every hit it resolves, so its outgoing systems are resolved ONCE here
-        // and handed to every context built below. An operation never asks for them.
+        // This projectile IS the source of every hit it resolves; its durability and motion are resolved ONCE here.
         _motion = GetComponent<NetworkedMotion>();
         _health = GetComponent<HealthController>();
-        _damage = GetComponent<Damage>();
-        _knockback = GetComponent<KnockbackDealer>();
-        _hitstun = GetComponent<HitstunDealer>();
         _ownership = GetComponent<NetPlayerOwnership>();
+    }
 
-        // Fold this prefab's own handlers' effective mask down to the Projectile bit, once. Handlers are fixed at
-        // authoring (never AddComponent'd on a pooled instance), so this constant survives pooled reuse unchanged.
-        var handlers = new List<IHitHandler>();
-        GetComponents(handlers);
+    // Scratch reused by the projectile-channel mask fold (server-only).
+    private readonly List<IHitMessageHandler> _handlerScratch = new();
+
+    /// <summary>
+    /// Fold the effective Projectile-channel bit of EVERY handler now on this object — the ones present from
+    /// authoring AND any an owner contribution added at spawn (<see cref="SpawnContributionReceiver"/> runs in
+    /// OnStartNetwork, before this OnStartServer). Recomputed once per (pooled) spawn so the per-tick channel gate
+    /// stays O(1) and an owner contribution can wake the projectile-vs-projectile sweep.
+    /// </summary>
+    private void RecomputeProjectileChannelMask()
+    {
+        GetComponents(_handlerScratch);
         _ownProjectileMask = HitChannels.None;
-        for (int i = 0; i < handlers.Count; i++)
-            _ownProjectileMask |= handlers[i].SupportedChannels & handlers[i].EnabledChannels;
+        for (int i = 0; i < _handlerScratch.Count; i++)
+            _ownProjectileMask |= _handlerScratch[i].EnabledHitChannels;
         _ownProjectileMask &= HitChannels.Projectile;
     }
 
     public override void OnStartServer()
     {
         base.OnStartServer();
+        RecomputeProjectileChannelMask();
         TimeManager.OnTick += ServerTick;
     }
 
@@ -143,7 +150,6 @@ public sealed class ServerCollision : NetworkBehaviour
         Vector3 vel = NetworkedMotionProcessor.VelocityAt(strategy, in state);
         int ownerId = _ownership != null ? _ownership.SpawnOwnerId : -1;
         NetworkPlayer owner = NetPlayerResolver.Resolve(ownerId);
-        PawnPassiveAbilities ownerPassives = ResolveOwnerPassives(owner);
 
         // ---- world channel: the strategy chooses the cast segment (a beam casts forward; a mover sweeps prev->new) ----
         MotionSweep sweep = strategy != null
@@ -158,17 +164,15 @@ public sealed class ServerCollision : NetworkBehaviour
             // to the surface, not embedded a radius deep in it (which would immediately re-collide).
             Vector3 sourceCenter = worldInfo.Point + worldInfo.Normal * EffectiveRadius;
             HitChannels channel = worldInfo.Category == SC.HitCategory.Enemy ? HitChannels.Player : HitChannels.Surface;
-            var hitCtx = new HitContext(channel, gameObject, owner, hitObject,
-                worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter,
-                _motion, _health);
-            if (channel == HitChannels.Player)
-                HitResolver.ResolvePlayerHit(_damage, _knockback, _hitstun, in hitCtx);
-            else
-                HitResolver.ResolveSurfaceHit(in hitCtx);
+            var msg = HitMessage.Get();
+            msg.Init(channel, gameObject, owner, hitObject,
+                worldInfo.Point, worldInfo.Normal, worldInfo.Direction, sourceCenter);
+            HitMessage.Dispatch(msg);
+            HitMessage.Release(msg);
         }
 
         // ---- projectile channel ----
-        if (!IsDead() && WantsProjectileChannel(ownerPassives))
+        if (!IsDead() && WantsProjectileChannel())
             ResolveProjectileChannel(newPos, vel, in state, ownerId, owner);
 
         if (IsDead())
@@ -196,10 +200,11 @@ public sealed class ServerCollision : NetworkBehaviour
 
             // In the projectile channel the classified Point IS this mover's own centre (selfPos), so the
             // source-centre resume anchor coincides with it — no surface standoff to apply.
-            var hitCtx = new HitContext(HitChannels.Projectile, gameObject, owner, other.gameObject,
-                info.Point, info.Normal, info.Direction, info.Point,
-                _motion, _health, other);
-            HitResolver.ResolveProjectileHit(in hitCtx);
+            var msg = HitMessage.Get();
+            msg.Init(HitChannels.Projectile, gameObject, owner, other.gameObject,
+                info.Point, info.Normal, info.Direction, info.Point);
+            HitMessage.Dispatch(msg);
+            HitMessage.Release(msg);
 
             if (firstHandled < 0)
                 firstHandled = other.Id;
@@ -212,19 +217,12 @@ public sealed class ServerCollision : NetworkBehaviour
 
     /// <summary>
     /// The effective-channel-mask gate (ADR 0003): wake the projectile-vs-projectile overlap sweep iff some
-    /// participating handler both SUPPORTS and is ENABLED on the Projectile channel — this projectile's OWN
-    /// handlers (<see cref="_ownProjectileMask"/>, a prefab constant) OR the owner's passive-contributed handlers
-    /// (<see cref="PawnPassiveAbilities.OwnerHitChannelMask"/>, folded on roster change). This is the SAME mask
-    /// handler dispatch ANDs against the current channel, so "wants projectile" stays ONE notion, and an owner
-    /// passive CAN wake the channel ("your projectiles deflect enemy projectiles").
+    /// handler now on this object is enabled on the Projectile channel (<see cref="_ownProjectileMask"/>, folded in
+    /// <see cref="RecomputeProjectileChannelMask"/> from every current handler — authored or owner-contributed).
+    /// This is the SAME mask handler dispatch ANDs against the current channel, so "wants projectile" stays ONE
+    /// notion, and an owner contribution added at spawn CAN wake the channel.
     /// </summary>
-    private bool WantsProjectileChannel(PawnPassiveAbilities ownerPassives)
-    {
-        HitChannels mask = _ownProjectileMask;
-        if (ownerPassives != null)
-            mask |= ownerPassives.OwnerHitChannelMask;
-        return (mask & HitChannels.Projectile) != 0;
-    }
+    private bool WantsProjectileChannel() => (_ownProjectileMask & HitChannels.Projectile) != 0;
 
     // ---- broadphase (the physics formerly in ProjectileWorldProvider) ----
 
@@ -261,25 +259,18 @@ public sealed class ServerCollision : NetworkBehaviour
         return written;
     }
 
-    // ---- owner lookup (server-side; the owner's operations are never payloaded) ----
-    // Owner id -> NetworkPlayer resolution lives in the shared NetPlayerResolver so this and SpawnBuffReceiver
-    // can't drift.
-
-    private static PawnPassiveAbilities ResolveOwnerPassives(NetworkPlayer owner)
-    {
-        var pawn = owner != null ? owner.ControlledPawn.Value : null;
-        return pawn != null && pawn.TryGetComponent<PawnPassiveAbilities>(out var passives) ? passives : null;
-    }
+    // ---- owner lookup (server-side; the owner is used only to attribute the hit) ----
+    // Owner id -> NetworkPlayer resolution lives in the shared NetPlayerResolver so this and SpawnContributionReceiver
+    // can't drift. The owner rides the HitMessage as its Instigator; the owner's CONTRIBUTIONS are not read here —
+    // they are added onto this object at spawn (SpawnContributionReceiver), so by hit time they are ordinary handlers.
 
     // ---- hit resolution policy ----
-    // The exchanges (presence-dispatch: dealer + receiver; ADR 0002), the durability spend, and the reactions
-    // (presence-discovered IHitHandler components; ADR 0003) all run through the shared HitResolver's per-channel
-    // entry points. A classified hit resolves ATOMICALLY: the exchanges, the spend, and every reaction run (this
-    // prefab's, then the owner's contributions) even if the projectile dies mid-hit, so authored order can never
-    // change a hit's outcome. Death gates only what comes AFTER the hit: the projectile channel, further overlap
-    // hits, and despawn. Exchanges deliberately do NOT run in the projectile channel. The projectile-vs-projectile
-    // channel is woken by WantsProjectileChannel's effective-channel-mask gate (own-prefab constant OR the owner's
-    // roster-folded mask), so a projectile-channel handler — own or owner-contributed — wakes it.
+    // The durability spend and every handler (dealer halves plus reactions) run through HitMessage.Dispatch. A
+    // classified hit resolves ATOMICALLY: the spend and every handler run even if the projectile dies mid-hit, so
+    // authored order can never change a hit's outcome. Death gates only what comes AFTER the hit: the projectile
+    // channel, further overlap hits, and despawn. The projectile-vs-projectile channel is woken by
+    // WantsProjectileChannel's effective-channel-mask gate over every handler now on this object (authored or
+    // owner-contributed), so a projectile-channel handler wakes it.
 
     private bool IsDead() => _health != null && _health.IsDead;
 

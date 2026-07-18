@@ -1,9 +1,9 @@
 using UnityEngine;
 
 /// <summary>
-/// The hitstun a source DEALS on hit — authored on the dealing entity's <c>HitstunDealer</c> (the projectile
-/// prefab), not on the thing being hit. Folded with the dealer's modifiers into a duration by
-/// <see cref="HitstunProcessor.ResolveDuration"/>.
+/// The hitstun a source DEALS on hit — authored on the dealing entity's <see cref="HitstunController"/> (the
+/// projectile prefab), not on the thing being hit. The controller's dealer half folds it with its outgoing
+/// modifiers into a duration.
 /// </summary>
 [System.Serializable]
 public struct HitstunConfig

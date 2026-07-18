@@ -1,9 +1,9 @@
 using UnityEngine;
 
 /// <summary>
-/// The knockback a source DEALS on hit — authored on the dealing entity's <c>KnockbackDealer</c> (the projectile
-/// prefab), not on the thing being hit. Folded with the dealer's modifiers into an impulse by
-/// <see cref="KnockbackHelper.ResolveImpulse"/>.
+/// The knockback a source DEALS on hit — authored on the dealing entity's <see cref="KnockbackController"/> (the
+/// projectile prefab), not on the thing being hit. The controller's dealer half folds it with its outgoing
+/// modifiers into an impulse.
 /// </summary>
 [System.Serializable]
 public struct KnockbackConfig

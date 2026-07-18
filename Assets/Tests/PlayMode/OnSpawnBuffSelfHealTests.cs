@@ -10,7 +10,7 @@ namespace Arena.PlayTests
     /// Two-peer test for the §5 speed self-heal: a client that never applied an on-spawn speed buff locally is
     /// corrected in the SAME spawn iteration by the server-seeded initial segment SyncVars — no persistent
     /// divergence, no visible pop. The divergence is CONSTRUCTED directly instead of raced: the server spawns a
-    /// bullet with SpawnOwnerId = -1 (so the client's SpawnBuffReceiver no-ops) but with a per-spawn speed
+    /// bullet with SpawnOwnerId = -1 (so the client's SpawnContributionReceiver no-ops) but with a per-spawn speed
     /// multiplier set on the server instance before Spawn (standing in for a server-side-only buff resolution).
     /// FishNet network-ownership is granted to the client purely so the object replicates — that is independent of
     /// SpawnOwnerId; nothing in the buff path reads NetworkObject.Owner.

@@ -14,7 +14,7 @@ using HealthCoreState = Arena.Health.HealthState;
 ///
 /// Two notification surfaces:
 ///  - C# events <see cref="OnDamageTaken"/> / <see cref="OnDeath"/> fire IN-PROCESS wherever <see cref="TakeDamage"/>
-///    is invoked — for the standard projectile-hit path (ServerCollision → HitResolver) that is the server. They
+///    is invoked — for the standard projectile-hit path (ServerCollision → HitMessage.Dispatch) that is the server. They
 ///    carry the full <see cref="DamageInfo"/> (attacker, amount, hit point) for server-side reactions and kill
 ///    attribution (PawnManager reads <see cref="OnDeath"/>). CROSS-PEER cosmetic reactions do NOT use these — a hit
 ///    resolves server-only, so the events never reach a remote client; those reactions ride the
@@ -57,7 +57,7 @@ public class HealthController : NetworkBehaviour, IDamageable
 
     public bool IsDead => CurrentHealth.Value <= 0;
 
-    // Per-spawn on-spawn buff layer over the authored max (SpawnBuffReceiver → BuffMaxHealth). Kept SEPARATE
+    // Per-spawn on-spawn buff layer over the authored max (SpawnContributionReceiver → BuffMaxHealth). Kept SEPARATE
     // from the baseline `maxHealth` field so a pooled reuse never inherits a previous spawn's buff; reset to identity
     // in ResetState. Server-only knob — the SyncVars are ServerOnly, so clients self-heal from the seeded values.
     private float _maxMultiplier = 1f;

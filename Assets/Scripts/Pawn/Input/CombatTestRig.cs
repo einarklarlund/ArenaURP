@@ -50,8 +50,8 @@ public static class CombatTestRig
     static PawnColor Color_(GameObject go) => go.GetComponentInChildren<PawnColor>(true);
     static PawnActiveAbilities ActiveAbilities(GameObject go) => go.GetComponentInChildren<PawnActiveAbilities>(true);
     static PawnPassiveAbilities PassiveAbilities(GameObject go) => go.GetComponentInChildren<PawnPassiveAbilities>(true);
-    static KnockbackReceiver Knockback(GameObject go) => go.GetComponentInChildren<KnockbackReceiver>(true);
-    static HitstunReceiver Hitstun(GameObject go) => go.GetComponentInChildren<HitstunReceiver>(true);
+    static KnockbackController Knockback(GameObject go) => go.GetComponentInChildren<KnockbackController>(true);
+    static HitstunController Hitstun(GameObject go) => go.GetComponentInChildren<HitstunController>(true);
 
     static NetworkPlayerManager Players() => Object.FindAnyObjectByType<NetworkPlayerManager>();
 
@@ -77,8 +77,8 @@ public static class CombatTestRig
         var pawnGo = Object.Instantiate(prefab, position, rot);
         // Server-spawned (no owning client) — these are server-driven pawns, like bots, so ScriptedPawnInput.IsActive
         // (IsServerInitialized) makes the server simulate their movement and weapon. All the effects we assert run
-        // server-authoritative: damage (ServerOnly Health), color (Health.OnChange), knockback (KnockbackReceiver
-        // takes its no-owner branch and applies the impulse here), and hitstun (a ServerOnly SyncVar tick).
+        // server-authoritative: damage (ServerOnly HealthController), color (HealthController.OnChange), knockback
+        // (KnockbackController takes its no-owner branch and applies the impulse here), and hitstun (a ServerOnly SyncVar tick).
         nm.ServerManager.Spawn(pawnGo);
         var pawn = pawnGo.GetComponent<Pawn>();
 
@@ -192,19 +192,19 @@ public static class CombatTestRig
     public static void SetKnockbackResistance(GameObject pawnGo, float multiplier)
     {
         var kb = Knockback(pawnGo);
-        if (kb == null) throw new System.Exception("CombatTestRig: pawn has no KnockbackReceiver");
-        kb.Modifiers.Clear();
-        kb.Modifiers.Add(new KnockbackModifier { ImpulseMultiplier = multiplier });
+        if (kb == null) throw new System.Exception("CombatTestRig: pawn has no KnockbackController");
+        kb.IncomingModifiers.Clear();
+        kb.IncomingModifiers.Add(new KnockbackModifier { ImpulseMultiplier = multiplier });
     }
 
-    /// <summary>Contribute a standing hitstun-resistance modifier to this pawn's receiver. 1 = unchanged,
+    /// <summary>Contribute a standing hitstun-resistance modifier to this pawn's controller. 1 = unchanged,
     /// 0 = stun-immune.</summary>
     public static void SetHitstunResistance(GameObject pawnGo, float multiplier)
     {
         var hs = Hitstun(pawnGo);
-        if (hs == null) throw new System.Exception("CombatTestRig: pawn has no HitstunReceiver");
-        hs.Modifiers.Clear();
-        hs.Modifiers.Add(new HitstunModifier { DurationMultiplier = multiplier });
+        if (hs == null) throw new System.Exception("CombatTestRig: pawn has no HitstunController");
+        hs.IncomingModifiers.Clear();
+        hs.IncomingModifiers.Add(new HitstunModifier { DurationMultiplier = multiplier });
     }
 
     /// <summary>Whether this pawn is currently in hitstun (weapon may not start a new fire event).</summary>
@@ -231,10 +231,11 @@ public static class CombatTestRig
             .Invoke(ActiveAbilities(pawnGo), new object[] { dir });
 
     /// <summary>
-    /// Attach a <see cref="PassiveStealOnHit"/> handler to the FIRST passive instance under this pawn — the
-    /// spike's stand-in for authoring the component on a passive instance prefab (same serialized surface;
-    /// runtime attachment only because the headless run has no editor to author a prefab with). With
-    /// <paramref name="enabled"/> false the authored channel mask is set to None, so dispatch must filter the
+    /// Attach a <see cref="PassiveStealController"/> to the FIRST passive instance under this pawn — the stand-in
+    /// for authoring the component on a passive instance prefab (same serialized surface; runtime attachment only
+    /// because the headless run has no editor to author a prefab with). As an <see cref="IOwnedObjectContribution"/>
+    /// it self-clones onto the owner's projectiles at spawn, so any bullet fired after this call steals on hit.
+    /// With <paramref name="enabled"/> false the authored channel mask is set to None, so dispatch filters the
     /// handler out on every channel.
     /// </summary>
     public static void AttachStealHandler(GameObject pawnGo, bool enabled = true)
@@ -243,9 +244,9 @@ public static class CombatTestRig
         PassiveAbilities(pawnGo).GetPassives(passives);
         if (passives.Count == 0)
             throw new System.Exception("CombatTestRig: pawn has no passive instance to host the steal handler");
-        var handler = passives[0].gameObject.AddComponent<PassiveStealOnHit>();
+        var handler = passives[0].gameObject.AddComponent<PassiveStealController>();
         if (!enabled)
-            typeof(PassiveStealOnHit).GetField("enabledChannels", BindingFlags.NonPublic | BindingFlags.Instance)
+            typeof(PassiveStealController).GetField("enabledChannels", BindingFlags.NonPublic | BindingFlags.Instance)
                 .SetValue(handler, HitChannels.None);
     }
 
@@ -387,17 +388,24 @@ public static class CombatTestRig
     // PendingImpulses is still empty when OnDamageTaken fires. Assert on the resulting displacement instead.
 
     /// <summary>
-    /// Destroy the HitstunDealer on every live projectile (composability pin, ADR 0002): with the component gone
-    /// the hitstun exchange must fall silent while the damage exchange on the same hit still lands. Idempotent —
-    /// call it every frame while bullets are in flight so none lands with its dealer intact. Returns how many
-    /// dealers were stripped this call.
+    /// Disable the HitstunController on every live projectile (composability pin, ADR 0002): a disabled handler is
+    /// silent (the strip hook), so the hitstun exchange falls quiet while the damage exchange on the same hit still
+    /// lands. Disable rather than Destroy — the controller is a NetworkBehaviour and must not be torn off a spawned
+    /// object. Projectiles are identified by their NetworkedMotion so the pawns' own HitstunControllers (receivers)
+    /// are untouched. Idempotent via the enabled guard; call it every frame while bullets fly so none lands with
+    /// its dealer live. Returns how many were disabled this call.
     /// </summary>
     public static int StripHitstunDealersFromLiveProjectiles()
     {
-        var dealers = UnityEngine.Object.FindObjectsByType<HitstunDealer>(FindObjectsSortMode.None);
-        foreach (var d in dealers)
-            UnityEngine.Object.Destroy(d);
-        return dealers.Length;
+        int n = 0;
+        foreach (var kvp in InstanceFinder.ServerManager.Objects.Spawned)
+        {
+            var nob = kvp.Value;
+            if (nob == null || nob.GetComponentInChildren<NetworkedMotion>(true) == null) continue;
+            var hs = nob.GetComponentInChildren<HitstunController>(true);
+            if (hs != null && hs.enabled) { hs.enabled = false; n++; }
+        }
+        return n;
     }
 
     public static bool IsPawnOwner(GameObject pawnGo) => PawnOf(pawnGo).IsOwner;

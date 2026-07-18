@@ -18,15 +18,14 @@ public class PawnWeapon : NetworkBehaviour
     [SerializeField] private Vector3 spawnPositionOffset;
     [SerializeField] private PawnInput input;
     [SerializeField] private Collider pawnCollider;
-    [Tooltip("Optional. While this receiver is stunned, the weapon may not start a new fire event.")]
-    [SerializeField] private HitstunReceiver hitstun;
 
     // API
     public readonly List<WeaponModifier> Modifiers = new();
 
     /// <summary>Whether the weapon may START a new fire event (an already-committed burst plays out). Plain data
-    /// this weapon owns: the sibling HitstunController drives it from the replicated stun window on whichever
-    /// peer simulates this pawn — the weapon never reaches into hitstun state.</summary>
+    /// this weapon owns: the sibling HitstunController pushes it from the replicated stun window on whichever peer
+    /// simulates this pawn (server for a bot, owning client for a human), so both reach the same verdict and the
+    /// weapon never reaches into hitstun state.</summary>
     public bool CanFire { get; private set; } = true;
 
     public void SetCanFire(bool value) => CanFire = value;
@@ -43,15 +42,14 @@ public class PawnWeapon : NetworkBehaviour
         bool firePressed = fireHeld && !_fireHeldLastFrame;
         _fireHeldLastFrame = fireHeld;
 
-        // Read the stun window locally. This Update runs on whichever peer simulates the pawn (the owning client
-        // for a human, the server for a bot), and the receiver's expiry tick is a SyncVar, so both reach the same
-        // verdict — the owner never predicts a shot the server would reject.
+        // CanFire is pushed by the sibling HitstunController from the replicated stun window, on whichever peer
+        // simulates this pawn, so the owner never predicts a shot the server would reject.
         var weaponInput = new WeaponInput
         {
             FireHeld = fireHeld,
             FirePressed = firePressed,
             HasAmmo = true,
-            Stunned = hitstun != null && hitstun.IsStunned,
+            Stunned = !CanFire,
             Modifiers = Modifiers,
         };
 

@@ -2,13 +2,12 @@ using System.Collections.Generic;
 
 /// <summary>
 /// A multiplicative modifier on a knockback impulse. Stacked multiplicatively, exactly like
-/// <see cref="MovementModifier"/> / <see cref="WeaponModifier"/>, and folded by
-/// <see cref="KnockbackHelper.FoldMultiplier"/>.
+/// <see cref="MovementModifier"/> / <see cref="WeaponModifier"/>, and folded by <see cref="KnockbackController"/>.
 ///
-/// The SAME struct serves both ends of a knockback exchange, because both ends scale the same quantity:
-/// a <c>KnockbackDealer</c> folds its list into the impulse it emits (how hard this bullet shoves), and a
-/// knockback receiver folds its own list into the impulse it accepts (armour, a heavyweight passive). Neither end
-/// knows the other exists.
+/// The SAME struct serves both halves the controller owns, because both scale the same quantity: the dealer half
+/// folds its OutgoingModifiers into the impulse it emits (how hard this bullet shoves), and the receiver half
+/// folds its IncomingModifiers into the impulse it accepts (armour, a heavyweight passive). Neither half needs the
+/// other's list.
 /// </summary>
 [System.Serializable]
 public struct KnockbackModifier
