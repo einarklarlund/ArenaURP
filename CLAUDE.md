@@ -4,7 +4,7 @@ Guidance for Claude Code in this repository.
 
 **This file is an INDEX, not a manual.** It holds only what is non-obvious and always relevant. The detail lives in `.claude/skills/`, which load on demand — keep it that way. Start with the `arena-systems-map` skill whenever a task spans more than one system, and `ai-workflow` whenever the *process* feels repetitive or error-prone.
 
-**Before design work or a new feature, read `DESIGN.md`** (open questions + ADR index + the two north stars) and the **roadmap/sequencing in `Docs/plans/master-execution-dag.md`** — several decisions are deliberately deferred in DESIGN.md and must not be improvised. Before any plan is *finalized*, interview it through the `engineering-canon` skill's six lenses (Parnas/Brooks/Lehman/Conway/Dijkstra/Constantine) — agreement is reached, not assumed, and settled positions live in its shared-understandings register.
+**Before design work or a new feature, read `DESIGN.md`** (open questions + ADR index + the two north stars) and the **roadmap/sequencing in `Docs/plans/master-execution-dag.md`** — several decisions are deliberately deferred in DESIGN.md and must not be improvised. Before any plan is *finalized*, interview it through the `engineering-canon` skill's seven lenses (Parnas/Brooks/Lehman/Conway/Dijkstra/Constantine/Martin) — agreement is reached, not assumed, and settled positions live in its shared-understandings register.
 
 ## Project
 
@@ -29,11 +29,11 @@ EditMode (`Assets/Tests/EditMode/`, asmdef `Arena.Tests`) targets the **pure `Ar
 
 **Delegate test runs to the `unity-validator` subagent** rather than driving the runner from the main thread — it knows the traps (PlayMode's JSON is never written; a stale results file reads as a fresh pass). Rules for what deserves a test, and the gate *"can this test fail?"*, are in the `integration-testing` skill. **Every networked change gets a PlayMode test.**
 
-## The one architectural rule
+## Where component logic goes
 
-**Gameplay logic goes in a pure `Arena.<System>.Core` processor; the `Pawn<X>` NetworkBehaviour is Unity glue only** — read serialized refs, build an `<X>Input`, call `<X>Processor.Process`, apply the result. Enforced by asmdef boundaries: a Core assembly cannot reference UnityEngine wrappers, FishNet, or other gameplay code. Need a new dependency in a processor? Add a field to its `Config`/`Input` struct instead.
+**Logic goes in the component (MonoBehaviour composition) by default** — that IS the architecture, engine-native. Two authoring guidelines: **generic-via-config** (a component's presence defines a capability; specifics live in serialized config, never special-case code) and **flat hierarchy** (co-locate communicating components so `GetComponents`/`GetComponentInParent` presence-dispatch resolves locally).
 
-Bot AI follows the same split (`BotBrainLogic`/`BotStateMachine`/`BotInputMath`/`BotVisionMath` ↔ `BotBrain`). → `functional-core-imperative-shell` skill.
+**Exception — extract a pure `Arena.<X>.Core` processor + EditMode test ONLY when the logic is determinism-critical** (re-run on multiple peers / on reconcile — a regression is a silent peer desync a PlayMode host won't catch) **or heavily branchy** (state machines, classification, geometry). Reuse is NOT a reason. When extracted, the shell reads serialized refs, builds an `<X>Input`, calls `<X>Processor.Process`, applies the result; the asmdef boundary keeps those cores pure (no UnityEngine wrappers, FishNet, or other gameplay code) — add a field to a `Config`/`Input` struct rather than a new dependency. Bot AI is a kept core (heavily branchy: `BotBrainLogic`/`BotStateMachine`/`BotInputMath`/`BotVisionMath` ↔ `BotBrain`). → `component-design` skill; rationale in ADR 0008.
 
 ## Composition & communication
 

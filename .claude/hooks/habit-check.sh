@@ -39,10 +39,10 @@ fi
 
 # Intent classification — most work-heavy match leads. A prompt can trip several; keep to ~2.
 if printf '%s' "$lc" | grep -Eq '\b(design|architect|approach|options|trade-?offs?|should (we|i)|how should|figure out|decide|redesign)\b'; then
-  add "This reads as DESIGN. Prefer plan mode (/plan or Shift+Tab) BEFORE any code — settle it in prose. Before the plan is FINAL, run the engineering-canon interview (six lenses; check its shared-understandings register before re-asking). If a real decision gets made, it wants an ADR in Docs/design/ (see DESIGN.md)."
+  add "This reads as DESIGN. Prefer plan mode (/plan or Shift+Tab) BEFORE any code — settle it in prose. Before the plan is FINAL, run the engineering-canon interview (seven lenses; check its shared-understandings register before re-asking). If a real decision gets made, it wants an ADR in Docs/design/ (see DESIGN.md)."
 fi
 if printf '%s' "$lc" | grep -Eq '\b(implement|add|build|create|write|wire|codify|refactor|rewrite|change|introduce|hook up|make (it|a|the))\b'; then
-  add "This reads as BUILD. Say the AI-effective plan first (what delegates to unity-scout, what wants plan mode). Name the test that will PROVE it before writing it. Gameplay logic -> Core processor, not the MonoBehaviour."
+  add "This reads as BUILD. First: is it leaf/dev-only (tooling, converter, one-off)? Then fast-path it — try+verify, skip the interview (ai-workflow 'two speeds'). If it touches networked/core code (SyncVar/RPC/[Server]/the hit-exchange web), it's the gauntlet: say the AI-effective plan first (what delegates to unity-scout, what wants plan mode), name the test that will PROVE it before writing it, gameplay logic -> Core processor not the MonoBehaviour."
 fi
 if printf '%s' "$lc" | grep -Eq '\b(where|how does|how do|find|locate|which file|trace|investigate|understand|look into|search for|what references|what uses)\b'; then
   add "This reads as INVESTIGATE. Delegate it to @agent-unity-scout rather than reading files in the main thread — main-thread context is for the design. Anything crossing a prefab/scene boundary MUST use the Unity MCP, not grep."

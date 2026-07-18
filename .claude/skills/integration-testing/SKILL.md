@@ -13,7 +13,7 @@ description: How to write Unity integration tests that verify components interac
 
 Two disciplines bound the work:
 
-- **Push each test down the pyramid.** Logic in a Core processor → EditMode owns it; don't re-verify it through a live GameObject. PlayMode is for what EditMode can't reach: lifecycle, wiring, SyncVar replication, real physics, multi-frame timing. Reaching for PlayMode to test branchy decision logic means logic leaked out of Core — move it back.
+- **Push each test down the pyramid.** EditMode owns the pure cores we keep — determinism-critical or heavily-branchy logic extracted into an `Arena.*.Core` processor ([[component-design]]); when logic lives there, don't re-verify it through a live GameObject. Most component logic is PlayMode-tested (that's the default unit now). PlayMode is also for what EditMode can't reach regardless: lifecycle, wiring, SyncVar replication, real physics, multi-frame timing. But if you're reaching for PlayMode to test *branchy decision* logic, that logic met the bar for a pure core — extract it and test it in EditMode.
 - **Assert observable behaviour, never internal structure**, so tests survive refactors. For broad coverage cheap, use **invariant/soak assertions**: run a bot match 20–30s and assert what must always hold (no error logs — the framework fails on them for free; health never negative; score only increases; the match actually ends).
 
 ## Worth writing? Five gates

@@ -8,7 +8,7 @@ using HealthCoreState = Arena.Health.HealthState;
 
 /// <summary>
 /// The ONE health system for every damageable entity — pawns, bullets, props. Current/Max HP are SyncVars; the
-/// arithmetic is the pure <see cref="HealthProcessor"/> (EditMode-tested in Arena.Health.Core). This is the sole
+/// heal/loss clamps are inlined here (a clamp is not worth a pure core — ADR 0008). This is the sole
 /// <see cref="IDamageable"/>: hit operations and HurtBoxes deal damage here, and everything that cares about a
 /// health value reads/subscribes to it (a pawn's <c>Pawn</c> forwards to it so its own consumers don't change).
 ///
@@ -142,8 +142,8 @@ public class HealthController : NetworkBehaviour, IDamageable
     [Server]
     public void ServerHeal(int amount)
     {
-        var state = new HealthCoreState { Hp = CurrentHealth.Value, MaxHp = MaxHealth.Value };
-        CurrentHealth.Value = HealthProcessor.Heal(state, amount).Hp;
+        if (amount > 0)
+            CurrentHealth.Value = Mathf.Min(MaxHealth.Value, CurrentHealth.Value + amount);
     }
 
     /// <summary>Server: drain HP without the damage-event / despawn path (e.g. projectile self-damage).</summary>
@@ -152,7 +152,7 @@ public class HealthController : NetworkBehaviour, IDamageable
 
     private void ApplyLoss(int amount)
     {
-        var state = new HealthCoreState { Hp = CurrentHealth.Value, MaxHp = MaxHealth.Value };
-        CurrentHealth.Value = HealthProcessor.ApplyDamage(state, amount).Hp;
+        if (amount > 0)
+            CurrentHealth.Value = Mathf.Max(0, CurrentHealth.Value - amount);
     }
 }

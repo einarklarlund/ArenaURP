@@ -24,11 +24,9 @@ Smell: widening a `WritePayload`/RPC signature with gameplay config the owning p
 
 Motion is closed-form/deterministic on every peer, so only the server ticks collision — no `[Replicate]`/`[Reconcile]` needed. Mirror this shape for anything new that detects contact.
 
-## Rule 3 — You can't sync an asset reference; sync a database index
+## Rule 3 — You can't sync an asset reference; make identity travel as the instance
 
-FishNet serializes NetworkObject/NetworkBehaviour refs and primitives — not ScriptableObject refs. Where a synced asset identity is genuinely needed, use a Resources registry + custom serializer: `WeaponData` syncs as its index in `WeaponDatabase` (FishNet codegen auto-discovers `Write*`/`Read*` extension methods, so `SyncVar<WeaponData>` stays ergonomic). New assets must be added to the database or the index won't resolve.
-
-But first ask whether you need it at all: **ability and projectile types have no database** — identity travels as the spawned instance itself (its prefab's `TypeObjectRoot` back-ref resolves the SO locally on every peer). Prefer that shape for anything that exists in the world.
+FishNet serializes NetworkObject/NetworkBehaviour refs and primitives — not ScriptableObject refs. So a synced asset identity never travels as the SO reference: **it travels as the spawned instance itself.** A type's prefab carries a `TypeObjectRoot` back-ref to its SO, which resolves locally on every peer — projectile and ability types work exactly this way, and since ADR 0007 so does weapon config (authored on the `PawnWeapon` prefab component). Spawn the thing and let its instance carry its identity; there is no type database or synced index anywhere in the codebase, and a new one would be a fresh design decision, not a default.
 
 ## Rule 4 — Server writes; clients send intent
 
@@ -59,6 +57,6 @@ Anything touching SyncVar/SyncList/RPC, payloads, server ticks, collision, or ow
 
 - New payload/SyncVar/RPC field? → derivable from an id? (1)
 - Contact? → server tick + cast. (2)
-- Asset over the wire? → database index — or better, instance identity. (3)
+- Asset over the wire? → instance identity; there is no type database. (3)
 - Gameplay mutation? → `[Server]`; client intent via `[ServerRpc]`. (4)
 - Changed any of it? → PlayMode test. (5)

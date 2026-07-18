@@ -31,13 +31,12 @@ public sealed class HumanPawnInput : PawnInput
         float sensitivity = SettingsManager.Instance.Settings.MouseSensitivity;
         Vector2 rawLook = InputManager.PawnControls.Look.ReadValue<Vector2>();
 
+        Vector2 look = rawLook * sensitivity;
         #if UNITY_WEBGL && !UNITY_EDITOR
-            const bool isWebGL = true;
-        #else
-            const bool isWebGL = false;
+            // Mouse-look delta in WebGL is ~an order of magnitude larger than editor/standalone, so scale it down.
+            const float webGLLookDivisor = 10f;
+            look /= webGLLookDivisor;
         #endif
-
-        Vector2 look = HumanInputMath.ApplyLookSensitivity(rawLook, sensitivity, isWebGL);
 
         Data = new PawnInputData
         {
