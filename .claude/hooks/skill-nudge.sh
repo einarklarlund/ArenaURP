@@ -31,7 +31,7 @@ if printf '%s' "$body" | grep -Eq '(SyncVar<|SyncList<|\[ServerRpc\]|\[Observers
 fi
 
 if printf '%s' "$body" | grep -Eq '^[[:space:]]*(public|internal)[[:space:]]+interface[[:space:]]+I[A-Z]'; then
-  notes+=("no-speculative-interfaces / functional-core-imperative-shell: you just declared an interface. How many REAL concretions does it have? If one, delete it and use the concrete type — an interface earns its keep only at the SECOND real case (rule of two). When it does, it is a capability ON the component that carries the behaviour, discovered by presence (the IHitHandler shape), not a parallel abstraction.")
+  notes+=("no-speculative-interfaces / component-design: you just declared an interface. How many REAL concretions does it have? If one, delete it and use the concrete type — an interface earns its keep only at the SECOND real case (rule of two). When it does, it is a capability ON the component that carries the behaviour, discovered by presence (the IHitHandler shape), not a parallel abstraction.")
 fi
 
 if [[ "$fp" == *"/Tests/PlayMode/"* ]]; then

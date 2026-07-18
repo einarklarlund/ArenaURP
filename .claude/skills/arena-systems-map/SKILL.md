@@ -5,12 +5,12 @@ description: The story of this codebase — players/pawns, projectiles, matches,
 
 # Arena systems map
 
-One governing idea: **a server-authoritative simulation whose logic lives in pure, EditMode-tested cores.** Every decision below is a consequence, and each has a skill with the detailed rules.
+One governing idea: **a server-authoritative simulation assembled from components, with determinism-critical and branchy logic isolated in pure, EditMode-tested cores.** Every decision below is a consequence, and each has a skill with the detailed rules.
 
 ## The decisions
 
 1. **Server-authoritative over FishNet.** The server is the single source of truth; clients send intent and observe synced results. Send nothing a peer can derive or look up — identity in, state looked up. → [[fishnet-conventions]]
-2. **Functional core, imperative shell.** Gameplay logic lives in pure `Arena.<X>.Core` processors (`Process(state, in config, in input, dt) → newState`); the `Pawn<X>` MonoBehaviour is a thin shell that builds the input struct, calls the processor, applies the result. Query results go in as data, effects come out as data — never an injected `IWorld`. → [[functional-core-imperative-shell]]
+2. **Components are the primary unit; pure cores are a targeted exception.** Logic lives in the component (MonoBehaviour composition) by default — generic-via-config, flat hierarchy. Determinism-critical or heavily-branchy logic is extracted into a pure `Arena.<X>.Core` processor (`Process(state, in config, in input, dt) → newState`) with an EditMode test: query results go in as data, effects come out as data — never an injected `IWorld`. Reuse is not a reason to extract; silent-desync / branchy-decision test-isolation is (ADR 0008). → [[component-design]]
 3. **Few communication mechanisms.** Systems influence each other through producer-owned contribution lists folded per tick (modifiers, impulses) or notifications (events, SyncVar.OnChange, the MatchMediator) — and we actively consolidate rather than invent new channels. → [[cross-component-communication]]
 4. **Kinds are identity-only type objects.** A projectile/ability *kind* is an empty ScriptableObject (name, icon, `InstancePrefab`) plus its own prefab copy; all gameplay config is authored on the prefab's generic components, so every peer has it locally and nothing rides the wire. Instances self-initialize on every peer — that's what makes client-predicted spawn correct. → [[type-object-pattern]]
 5. **Behaviour is composed from components discovered by presence.** Swappable behaviour is a component you attach, not an authored operation list: a hit reaction is an `IHitHandler` component filtered by hit channel (the call site), an ability's spawn is a `SpawnNetworkObjects` component — the site finds them with `GetComponents`. Varies-in-data (stat / on-spawn buffs) is an authored struct. Engine-native composition, no owned dispatch machinery (ADR 0003). → [[presence-dispatch]]

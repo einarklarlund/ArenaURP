@@ -1,6 +1,6 @@
 ---
 name: presence-dispatch
-description: How swappable combat behaviour is composed — behaviour that varies is a COMPONENT discovered by presence (GetComponents), behaviour that varies only in data is an authored struct; we own no dispatch machinery. Use BEFORE adding or editing any hit reaction, buff, or ability behaviour; adding a handler component, hit channel, or dealer/receiver exchange; deciding where a behaviour's config lives; or inventing a new family of interchangeable behaviour variants. Pairs with [[type-object-pattern]] and [[functional-core-imperative-shell]].
+description: How swappable combat behaviour is composed — behaviour that varies is a COMPONENT discovered by presence (GetComponents), behaviour that varies only in data is an authored struct; we own no dispatch machinery. Use BEFORE adding or editing any hit reaction, buff, or ability behaviour; adding a handler component, hit channel, or dealer/receiver exchange; deciding where a behaviour's config lives; or inventing a new family of interchangeable behaviour variants. Pairs with [[type-object-pattern]] and [[component-design]].
 ---
 
 # Swappable combat behaviour

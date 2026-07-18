@@ -70,6 +70,7 @@ _One line each; the file holds context + decision + alternatives + consequences.
 | [0004](Docs/design/0004-cross-peer-damage-cosmetics-ride-replication.md) | Cross-peer damage cosmetics ride the CurrentHealth SyncVar OnChange (PawnColor pattern), not an ObserversRpc; C# damage events narrow to server-side | Accepted | 2026-07-15 |
 | [0006](Docs/design/0006-remove-dormant-level-generation.md) | Remove the dormant Level Generation subsystem (delete the isolated island; art prefabs + Online scene components flagged for editor-side sweep) | Accepted | 2026-07-15 |
 | [0007](Docs/design/0007-weapon-config-on-component.md) | Weapon firing config lives on the PawnWeapon component (serialized WeaponConfig + ProjectileType ref); WeaponData/WeaponDatabase deleted (one type-object authority) | Accepted | 2026-07-15 |
+| [0008](Docs/design/0008-components-primary-pure-core-exception.md) | Components are the primary unit of logic; FCIS mandate retired; pure Arena.*.Core + EditMode test kept only for determinism-critical/branchy logic; generic-via-config + flat-hierarchy guidelines | Accepted | 2026-07-17 |
 
 ## Writing an ADR
 

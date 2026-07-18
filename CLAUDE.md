@@ -29,11 +29,11 @@ EditMode (`Assets/Tests/EditMode/`, asmdef `Arena.Tests`) targets the **pure `Ar
 
 **Delegate test runs to the `unity-validator` subagent** rather than driving the runner from the main thread — it knows the traps (PlayMode's JSON is never written; a stale results file reads as a fresh pass). Rules for what deserves a test, and the gate *"can this test fail?"*, are in the `integration-testing` skill. **Every networked change gets a PlayMode test.**
 
-## The one architectural rule
+## Where component logic goes
 
-**Gameplay logic goes in a pure `Arena.<System>.Core` processor; the `Pawn<X>` NetworkBehaviour is Unity glue only** — read serialized refs, build an `<X>Input`, call `<X>Processor.Process`, apply the result. Enforced by asmdef boundaries: a Core assembly cannot reference UnityEngine wrappers, FishNet, or other gameplay code. Need a new dependency in a processor? Add a field to its `Config`/`Input` struct instead.
+**Logic goes in the component (MonoBehaviour composition) by default** — that IS the architecture, engine-native. Two authoring guidelines: **generic-via-config** (a component's presence defines a capability; specifics live in serialized config, never special-case code) and **flat hierarchy** (co-locate communicating components so `GetComponents`/`GetComponentInParent` presence-dispatch resolves locally).
 
-Bot AI follows the same split (`BotBrainLogic`/`BotStateMachine`/`BotInputMath`/`BotVisionMath` ↔ `BotBrain`). → `functional-core-imperative-shell` skill.
+**Exception — extract a pure `Arena.<X>.Core` processor + EditMode test ONLY when the logic is determinism-critical** (re-run on multiple peers / on reconcile — a regression is a silent peer desync a PlayMode host won't catch) **or heavily branchy** (state machines, classification, geometry). Reuse is NOT a reason. When extracted, the shell reads serialized refs, builds an `<X>Input`, calls `<X>Processor.Process`, applies the result; the asmdef boundary keeps those cores pure (no UnityEngine wrappers, FishNet, or other gameplay code) — add a field to a `Config`/`Input` struct rather than a new dependency. Bot AI is a kept core (heavily branchy: `BotBrainLogic`/`BotStateMachine`/`BotInputMath`/`BotVisionMath` ↔ `BotBrain`). → `component-design` skill; rationale in ADR 0008.
 
 ## Composition & communication
 

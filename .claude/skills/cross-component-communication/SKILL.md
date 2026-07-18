@@ -60,7 +60,7 @@ Most needs: **reuse the mechanism already present in the files you're editing.**
 2. Thing-happened / value-changed → **Family B** at the narrowest scope; across managers → **MatchMediator**.
 3. Just reading a sibling's state → a direct serialized ref to its published surface is fine.
 
-The *content* still comes from a pure core: the modifier a contributor pushes is computed by a processor and EditMode-tested; the MonoBehaviour only plumbs it ([[functional-core-imperative-shell]]).
+When a contribution's content is determinism-critical or branchy, it comes from a kept pure core: the modifier a contributor pushes is computed by a processor and EditMode-tested; the MonoBehaviour only plumbs it. Otherwise the component computes it directly ([[component-design]]).
 
 ## Smells
 
