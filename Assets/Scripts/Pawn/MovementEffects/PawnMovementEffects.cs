@@ -23,7 +23,14 @@ public sealed class PawnMovementEffects : NetworkBehaviour
         var movementConfig = movement.Config;
 
         pawnWeapon.Modifiers.Remove(activeModifier);
-        activeModifier = MovementEffectsProcessor.Process(in movementState, in movementConfig, in config);
+        // Both multipliers lerp from their configured zero-speed value toward 1.0 (identity) at max speed.
+        // Clamp01 prevents overshoot past identity above max speed.
+        float t = Mathf.Clamp01(movementState.Velocity.magnitude / movementConfig.MaxSpeedXZ);
+        activeModifier = new WeaponModifier
+        {
+            FireRateMultiplier = Mathf.Lerp(config.FireRateMultiplier, 1f, t),
+            SpreadMultiplier = Mathf.Lerp(config.SpreadAngleMultiplier, 1f, t),
+        };
         pawnWeapon.Modifiers.Add(activeModifier);
     }
 }

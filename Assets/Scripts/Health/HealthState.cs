@@ -1,10 +1,10 @@
 namespace Arena.Health
 {
     /// <summary>
-    /// Per-instance state of the generic Health system: current and maximum hit points. A value type with
-    /// no behaviour; the pure <see cref="HealthProcessor"/> transforms it and the Health component holds it
-    /// (its <c>Hp</c> as a SyncVar). Reusable by anything that can take damage — projectiles now, pawns and
-    /// destructibles later.
+    /// Per-instance state of the generic Health system: current and maximum hit points. A small value type; the
+    /// Health component holds it (its <c>Hp</c> as a SyncVar) and reads its derived <see cref="Fraction"/> —
+    /// which guards a zero/negative max against divide-by-zero. Reusable by anything that can take damage —
+    /// projectiles now, pawns and destructibles later.
     /// </summary>
     [System.Serializable]
     public struct HealthState
