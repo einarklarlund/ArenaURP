@@ -26,7 +26,7 @@ Motion is closed-form/deterministic on every peer, so only the server ticks coll
 
 ## Rule 3 — You can't sync an asset reference; sync a database index
 
-FishNet serializes NetworkObject/NetworkBehaviour refs and primitives — not ScriptableObject refs. Where a synced asset identity is genuinely needed, use a Resources registry + custom serializer: `WeaponData` syncs as its index in `WeaponDatabase` (FishNet codegen auto-discovers `Write*`/`Read*` extension methods, so `SyncVar<WeaponData>` stays ergonomic). New assets must be added to the database or the index won't resolve.
+FishNet serializes NetworkObject/NetworkBehaviour refs and primitives — not ScriptableObject refs. Where a synced asset identity is genuinely needed, use a Resources registry + custom serializer keyed by a synced index — FishNet codegen auto-discovers the `Write*`/`Read*` extension methods, so the `SyncVar<T>` stays ergonomic; new assets must be registered or the index won't resolve. **No live code needs this today**: weapon config, the last user, moved onto the `PawnWeapon` component (ADR 0007) — it survives as a caution, not a live pattern.
 
 But first ask whether you need it at all: **ability and projectile types have no database** — identity travels as the spawned instance itself (its prefab's `TypeObjectRoot` back-ref resolves the SO locally on every peer). Prefer that shape for anything that exists in the world.
 
