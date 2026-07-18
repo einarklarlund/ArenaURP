@@ -1,4 +1,4 @@
-> Status: PLANNED — design settled 2026-07-16, **doctrine amended 2026-07-16 (all amendments Einar-approved)**, not yet implemented. This file is the editable source of truth for the slice; a future session executes it. **Delete it on ship** — its durable half is ADR 0005 + the skill updates.
+> Status: **IN PROGRESS — source cutover SHIPPED 2026-07-18** (commit `0f0cfe25`, branch `worktree-hit-pipeline-slice`, local only), compiles clean + **EditMode 258/258**; **PlayMode + ADR 0005 pending**. The design DIVERGED from this plan body during execution (all Einar-directed) — **read the `Execution status — 2026-07-18` section below FIRST; it is current, the plan body is historical intent.** Design settled 2026-07-16, doctrine amended 2026-07-16 (all Einar-approved). **Delete this file on ship** — its durable half is ADR 0005 + the skill updates.
 >
 > **Read the Amendments section before executing.** The slice's shape is unchanged. Four things moved: **R2 gains three clauses** (the one-clause form greenlights a promotion that breaks silently across the peer boundary); **the depth bound and R1 are deleted** in favour of a runtime cycle guard, so any layer may dispatch; **the idiom's honest reach is two instances**, recorded rather than hidden; and **`<X>Controller` becomes a defined rule** (owns state + exposes an API to modify it), which renames `Health` → `HealthController` in a rename-only Phase 1b and explicitly does NOT rename `Damage`. A damage/DamageTaken context was considered and **rejected** — `CurrentHealth.OnChange` already is the better dispatcher.
 >
@@ -8,6 +8,35 @@
 > - **The extraction trigger's cases are already on the roadmap, and firing it is a RESHAPE, not a method move.** "Explosion over N victims" *is* Session 1, the very next feature; "a cast" *is* OQ2's open question. Against the verified `HitContext` shape, a blast leaves ~5 of `HitMessage`'s 11 fields null/meaningless (`Motion`, `SelfHealth`, `OtherMotion`, `SourceCenterPoint`, `Normal`), needs a per-target falloff field that no longer exists (see below), and dispatches **one message per victim** (`Direction` is per-victim radial). See the DAG's falsifiable check 5.
 
 # Migrate the hit slice to merged controllers + typed messages over ExecuteEvents
+
+## Execution status — 2026-07-18 (source cutover SHIPPED; PlayMode + ADR pending)
+
+**Committed:** `0f0cfe25` on `worktree-hit-pipeline-slice` (worktree `.claude/worktrees/hit-pipeline-slice`), **local only, not pushed**. 86 files, +614/−1555 (net ~940-line deletion). Compiles clean; **EditMode 258/258**. PlayMode NOT yet run — blocked on prefab surgery (below).
+
+**The design DIVERGED from the plan body below during execution — every change Einar-directed, mid-session. Treat this section as current; the plan body is historical intent.** What changed:
+
+1. **Functional-core ABANDONED for these controllers** (Einar: "I'm pushing back on the functional core principle"). Knockback/Hitstun/Damage arithmetic is INLINED into the MonoBehaviour controllers; `Arena.Knockback.Core` / `Arena.Hitstun.Core` / `Arena.Damage.Core` asmdefs + their processors/helpers + EditMode tests are DELETED. `Arena.Health.Core`/`HealthProcessor` kept.
+2. **`Damage` WAS renamed to `DamageController`** — reversing amendment 4's "Damage stays Damage" (Einar: "Rename to DamageController and extract the processor into this script"). It has a public `Amount` setter, so it satisfies the controller rule after all.
+3. **Handlers declare only `EnabledHitChannels`** (which channel they react on). `SupportedChannels` removed entirely; what a handler ACTS ON is resolved by lookup from the hit context, channel-independently.
+4. **`HitMessage` carries only `Source`, `Victim`, `Instigator` + geometry.** `Motion`, `SelfHealth`, `OtherMotion` REMOVED (Einar) — every handler looks up the components it needs from `Source`/`Victim` via GetComponent. This directly dissolves the DAG's falsifiable-check-5 "≈5 of 11 fields null on a blast" concern: those fields no longer exist.
+5. **Ricochet + Deflect CONSOLIDATED into `RedirectionController`** (Einar) — one component, branches on whether the victim resolves to a `NetworkedMotion` (mover → adopt its heading = old Deflect; surface → reflect across normal = old Ricochet). No per-channel config struct added (nothing varies yet).
+6. **Owner contribution is a SPAWN-TIME self-clone, not a hit-time harvest.** `IOwnedObjectContribution` (on a passive instance) self-clones its reaction onto the owner's spawned objects at spawn, via `SpawnContributionReceiver` (renamed from `SpawnBuffReceiver`, now applies stat buffs AND handler contributions); torn down on despawn for pooling. **Dispatch is SOURCE-ONLY and ignorant of the ability system.** WHY it can't be removed: the pawn root carries dealer-capable Knockback/Hitstun controllers, so dispatching to the owner would fire those as double-dealers; filtering re-couples dispatch to `PawnPassiveAbilities`.
+7. **Renames** (`.cs`+`.meta` git-mv, GUID preserved so prefab refs survive): `Health`→`HealthController`, `Damage`→`DamageController`, `PassiveStealOnHit`→`PassiveStealController`, `InstantiateOnHitHandler`→`InstantiationController` (now holds its own prefab list), `RicochetHandler`+`DeflectHandler`→`RedirectionController`. **Deleted:** `HitResolver`, `HitContext`, `IHitHandler`, `KnockbackDealer`, `HitstunDealer`, `KnockbackReceiver`, `HitstunReceiver`, `InstantiableObjects`.
+8. **Dispatch lives in `HitMessage.Dispatch`** (durability spend + source-only fan-out via `ExecuteEvents`), NOT `ServerCollision.DispatchHit` (never existed). The DAG's "hands downstream" table still names `ServerCollision.DispatchHit` and `DamageProcessor.Resolve(_amount,1f)` — both stale (→ `HitMessage.Dispatch`; damage inlined in `DamageController.OnHit` with the multiplier slot gone). Reconcile in Phase 3.
+
+### Next steps (in order, with WHY)
+
+1. **Prefab surgery — needs a live Unity editor on the worktree** (headless batchmode can't rewrite prefab GUID refs, so the runtime hit path can't be exercised until prefabs carry the new controllers — the critical path to proving the design end-to-end):
+   - **Bullet**: `KnockbackDealer`→`KnockbackController` (SpeedOnHit 7, MinAngle 35); `HitstunDealer`→`HitstunController` (Seconds 0.2, `weapon` ref null); confirm `SpawnContributionReceiver` present.
+   - **Pawn Root**: `KnockbackReceiver`→`KnockbackController` (wire `movement`); `HitstunReceiver`→`HitstunController` (wire `weapon`).
+   - **TestBonusDamagePassive.prefab**: remove the now-missing `InstantiableObjects`, add `InstantiationController` with prefabs = `[TestHitMarker]` (guid `8e66615d…`).
+   - Any old `DeflectHandler` carrier: add `RedirectionController` on the Projectile channel.
+   - **FishNet → Refresh Default Prefabs**.
+2. **PlayMode verification + test-doc sweep** — WHY: project floor (every networked change gets a PlayMode test). `HitstunKnockbackTests` / `BotShootsEnemyTests` / `PassiveStealOnHitTests` name deleted types in docs/asserts → update to the controller/contribution vocabulary. Confirm `OwnerProjectileEffectTests` (the contribution chain) goes green.
+3. **ADR 0005 + canon interview + skills + register** — WHY: this plan is "delete on ship"; its durable half becomes ADR 0005 + skill updates (`presence-dispatch`, `cross-component-communication`). Deliberately deferred until PlayMode-green so the ADR documents a VALIDATED design (it churned heavily this session) and is canon-interviewed against reality, not intent. Also correct DESIGN.md's dead per-target-`damageMultiplier` evidence citation, and reconcile the DAG's stale H1 hand-off seams.
+4. **On approval only: fast-forward main + tear down the worktree** (per the merge-to-main-on-approval memory). Not before PlayMode-green.
+
+Open naming follow-up already applied this session: the `IOwnedObjectContribution` / `SpawnContributionReceiver` rename is DONE (was `IProjectileContribution` / `SpawnBuffReceiver`).
 
 ## Context
 

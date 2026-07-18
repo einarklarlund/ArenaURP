@@ -43,7 +43,7 @@ Edge count is **not** a modularity metric: a deep chain over stable interfaces h
 
 ```mermaid
 graph LR
-  H1["H1 — hit pipeline<br/>layered messages<br/>(ADR 0005) · NEXT"]
+  H1["H1 — hit pipeline<br/>layered messages<br/>(ADR 0005) · IN PROGRESS"]
   subgraph TrackB["Track B — features (largely a SEQUENCE)"]
     OQ1["OQ1 no double-dip"] --> S1["Session 1<br/>Proximity explosion<br/>= EXTRACTION TRIGGER"]
     OQ2["OQ2 plain cast*"] --> S2["Session 2 / A1<br/>Passive-steal active"]
@@ -62,7 +62,9 @@ graph LR
 
 `*` OQ2's *deeper* question is unsettled — see Restored items. Track A is archived below; Track C is its own section.
 
-### H1 — the hit-pipeline slice (NEXT, and the trunk)
+### H1 — the hit-pipeline slice (IN PROGRESS, and the trunk)
+
+> **Status 2026-07-18:** source cutover SHIPPED (commit `0f0cfe25` on `worktree-hit-pipeline-slice`, local; EditMode 258/258; PlayMode + ADR 0005 pending). **The design diverged materially during execution — the plan's `Execution status — 2026-07-18` section is authoritative.** Consequences for THIS file's hand-off table, to reconcile in H1's Phase 3: dispatch is `HitMessage.Dispatch` (not `ServerCollision.DispatchHit`); `HitMessage` carries **no** per-target multiplier and no `Motion`/`SelfHealth`/`OtherMotion` (all component look-ups now); damage arithmetic is inlined in `DamageController.OnHit` (Core asmdefs deleted); the owner-reaction bridge is `IOwnedObjectContribution` self-cloned at spawn (source-only dispatch). Falsifiable check 5 (blast leaves ~5 null fields) is **discharged** — those fields were removed. DESIGN.md's per-target-`damageMultiplier` evidence citation for Session 3 is now **void** and must be corrected (H1 has landed).
 
 Detail lives in [hit-pipeline-layered-messages-plan.md](hit-pipeline-layered-messages-plan.md). What this file owns is **why it sequences first** and **what it hands downstream**:
 
