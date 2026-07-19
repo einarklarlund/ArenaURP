@@ -110,9 +110,9 @@ GameObject:
   - component: {fileID: 1301860381354357671}
   - component: {fileID: 8258599476529368086}
   - component: {fileID: 5787041171014183143}
-  - component: {fileID: 7399000305494032952}
-  - component: {fileID: 2214597886880612033}
   - component: {fileID: 3806785158795063262}
+  - component: {fileID: 6215655728875828578}
+  - component: {fileID: 873322879924793270}
   m_Layer: 9
   m_Name: Bullet
   m_TagString: Untagged
@@ -303,6 +303,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Damage
   _amount: 3
+  enabledChannels: 2
 --- !u!114 &5777096885218030
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -362,35 +363,6 @@ MonoBehaviour:
   _componentIndexCache: 6
   _addedNetworkObject: {fileID: -339553929967437806}
   _networkObjectCache: {fileID: -339553929967437806}
---- !u!114 &7399000305494032952
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5204570706634878648}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0e88b485d68444391807a10db9a4d651, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::KnockbackDealer
-  config:
-    SpeedOnHit: 7
-    MinimumAngleOnHit: 35
---- !u!114 &2214597886880612033
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5204570706634878648}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0807c9e04740a442db8d540bf266aef6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HitstunDealer
-  config:
-    Seconds: 0.2
 --- !u!114 &3806785158795063262
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -404,6 +376,43 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RicochetHandler
   enabledChannels: 1
+--- !u!114 &6215655728875828578
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5204570706634878648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 882d774f8aec048488375774e00f6737, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KnockbackController
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: -339553929967437806}
+  _networkObjectCache: {fileID: 0}
+  config:
+    SpeedOnHit: 7
+    MinimumAngleOnHit: 35
+  movement: {fileID: 0}
+--- !u!114 &873322879924793270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5204570706634878648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05326e91bfe2f431bb5792ad59ce8ed8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitstunController
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: -339553929967437806}
+  _networkObjectCache: {fileID: 0}
+  config:
+    Seconds: 0.2
+  weapon: {fileID: 0}
 --- !u!1 &7664607775731829085
 GameObject:
   m_ObjectHideFlags: 0

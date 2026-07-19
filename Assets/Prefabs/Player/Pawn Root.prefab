@@ -506,8 +506,8 @@ GameObject:
   - component: {fileID: 1159318610755632454}
   - component: {fileID: 4500148841451139641}
   - component: {fileID: 496888658077780900}
-  - component: {fileID: 3322776701892305187}
-  - component: {fileID: 4255844378497566376}
+  - component: {fileID: 2425589451528480005}
+  - component: {fileID: 2659153805544261344}
   m_Layer: 7
   m_Name: Pawn Root
   m_TagString: Untagged
@@ -793,7 +793,7 @@ MonoBehaviour:
   onServerDeath:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &3322776701892305187
+--- !u!114 &2425589451528480005
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -802,14 +802,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 4613304413970483175}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c2ec4658d6b324d4996c38f6c23fab9a, type: 3}
+  m_Script: {fileID: 11500000, guid: 882d774f8aec048488375774e00f6737, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::KnockbackReceiver
+  m_EditorClassIdentifier: Assembly-CSharp::KnockbackController
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 0}
+  config:
+    SpeedOnHit: 7
+    MinimumAngleOnHit: 35
   movement: {fileID: 1975820720333990052}
---- !u!114 &4255844378497566376
+--- !u!114 &2659153805544261344
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -818,12 +821,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 4613304413970483175}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 101df8d02d50449698adafef41c7151a, type: 3}
+  m_Script: {fileID: 11500000, guid: 05326e91bfe2f431bb5792ad59ce8ed8, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HitstunReceiver
+  m_EditorClassIdentifier: Assembly-CSharp::HitstunController
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 8049762553664656302}
   _networkObjectCache: {fileID: 0}
+  config:
+    Seconds: 0.35
+  weapon: {fileID: 1555019613777059898}
 --- !u!1 &4680480237612131196
 GameObject:
   m_ObjectHideFlags: 0
@@ -998,4 +1004,3 @@ MonoBehaviour:
   spawnPositionOffset: {x: 0, y: 0, z: 0}
   input: {fileID: 0}
   pawnCollider: {fileID: 7538533630776666726}
-  hitstun: {fileID: 4255844378497566376}
