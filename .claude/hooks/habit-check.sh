@@ -44,6 +44,11 @@ fi
 if printf '%s' "$lc" | grep -Eq '\b(implement|add|build|create|write|wire|codify|refactor|rewrite|change|introduce|hook up|make (it|a|the))\b'; then
   add "This reads as BUILD. First: is it leaf/dev-only (tooling, converter, one-off)? Then fast-path it — try+verify, skip the interview (ai-workflow 'two speeds'). If it touches networked/core code (SyncVar/RPC/[Server]/the hit-exchange web), it's the gauntlet: say the AI-effective plan first (what delegates to unity-scout, what wants plan mode), name the test that will PROVE it before writing it, gameplay logic -> Core processor not the MonoBehaviour."
 fi
+if printf '%s' "$lc" | grep -Eq '\b(refactor|simplify|clean ?up|redesign|rework|restructure|consolidate|tech debt|convoluted|overcomplicated|too many|too complex)\b'; then
+  # The passive-refactor miss (2026-07-19): a plan patched from the status quo and preserved its machinery
+  # against a stated simplifying principle. Re-derive + measure catches that at finalization.
+  add "This is a REFACTOR/SIMPLIFY. Guardrail (engineering-canon protocol step 7): re-derive the target FROM the stated goal, do NOT patch the status quo — a scout's current-state map is migration cost, not the target's shape, and studying it deeply anchors you to its parts. At plan-finalization: (1) state a PART-COUNT delta (mechanisms/types/components added vs removed); a 'simplify' that nets UP is a stop. (2) Name each principle the user affirmed and WHERE the plan encodes it — verbal agreement is not integration until it's in the artifact."
+fi
 if printf '%s' "$lc" | grep -Eq '\b(where|how does|how do|find|locate|which file|trace|investigate|understand|look into|search for|what references|what uses)\b'; then
   add "This reads as INVESTIGATE. Delegate it to @agent-unity-scout rather than reading files in the main thread — main-thread context is for the design. Anything crossing a prefab/scene boundary MUST use the Unity MCP, not grep."
 fi

@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2045441223809936651}
   - component: {fileID: 5962160421372665651}
   - component: {fileID: 7043097995886159608}
+  - component: {fileID: 7887551978028119425}
   m_Layer: 0
   m_Name: Network Player
   m_TagString: Untagged
@@ -49,6 +50,7 @@ MonoBehaviour:
   _componentIndexCache: 0
   _addedNetworkObject: {fileID: 5962160421372665651}
   _networkObjectCache: {fileID: 5962160421372665651}
+  PassiveLoadout: {fileID: 7887551978028119425}
 --- !u!114 &5962160421372665651
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -123,3 +125,19 @@ MonoBehaviour:
   _updateHostVisibility: 1
   _observerConditions:
   - {fileID: 11400000, guid: 2033f54fd2794464bae08fa5a55c8996, type: 2}
+--- !u!114 &7887551978028119425
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4224843278410770045}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 429a99486cdf84b28afe02dfd016e2bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerPassiveLoadout
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 5962160421372665651}
+  _networkObjectCache: {fileID: 0}
+  persistAcrossDeath: 1
