@@ -24,7 +24,7 @@ _Durable record. **Supersedes `feature-wishlist-consolidation.md`** (folded here
 
 ## Mechanism analysis (original snapshot, 2026-07-15)
 
-The batch was originally analysed as an effect × dispatch matrix. Its load-bearing finding: **every then-surviving feature routed AROUND the victim-side `hit-received` column** — that column was demanded only by the (then) cut features. Track C revisits exactly this: with the map-control and per-observer-rendering decisions, victim-side hit-received now has real (if non-composing) consumers (A2/P3/P7), so it is **adopted-but-gated** (wait for a composing first payload — heal-on-hit, thorns), not absent. The other originally-missing column a survivor touched (`timer`, via P1) is satisfied by the shipped `HitstunReceiver`-shaped Core-processor pattern, not a new mechanism.
+The batch was originally analysed as an effect × dispatch matrix. Its load-bearing finding: **every then-surviving feature routed AROUND the victim-side `hit-received` column** — that column was demanded only by the (then) cut features. Track C revisits exactly this: with the map-control and per-observer-rendering decisions, victim-side hit-received now has real (if non-composing) consumers (A2/P3/P7), so it is **adopted-but-gated** (wait for a composing first payload — heal-on-hit, thorns), not absent. The other originally-missing column a survivor touched (`timer`, via P1) is satisfied by the shipped `HitstunController`-shaped pattern (post-H1: the old `HitstunReceiver`/`HitstunDealer` pair merged into one controller, its `Arena.Hitstun.Core` inlined — ADR 0005), not a new mechanism.
 
 Original matrix (preserved for reference; cut-decisions in it are superseded by the disposition table above):
 
@@ -46,4 +46,4 @@ Original matrix (preserved for reference; cut-decisions in it are superseded by 
 
 ## Open questions this batch raised
 
-Live in [DESIGN.md](../../DESIGN.md)'s "Open design questions" (canonical). This session decided **acquisition** (two-tier smash-ball pickups + limited-use active pickups; ADR pending) and adopted **per-observer rendering** + the **timed victim-debuff channel** (generalize `HitstunReceiver`). Still open: the damage-buff channel (ADR 0005), hitstun-feel playtest, and passive **persistence** (per-life vs per-game).
+Live in [DESIGN.md](../../DESIGN.md)'s "Open design questions" (canonical). This session decided **acquisition** (two-tier smash-ball pickups + limited-use active pickups; ADR pending) and adopted **per-observer rendering** + the **timed victim-debuff channel** (generalize `HitstunController` — post-H1 noun). Still open: the damage-buff channel (ADR by title — 0005 went to H1), hitstun-feel playtest, and passive **persistence** (per-life vs per-game).
