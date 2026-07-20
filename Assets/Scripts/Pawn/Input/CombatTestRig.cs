@@ -408,6 +408,55 @@ public static class CombatTestRig
         return n;
     }
 
+    static readonly List<System.Type> _handlerOrderBefore = new();
+
+    /// <summary>
+    /// Rotate the IHitMessageHandler component order on every live projectile's root (order-independence pin,
+    /// ADR 0005): sink the first hit handler below the rest, so ExecuteEvents delivers the same hit in a
+    /// NON-authored order. HitMessage.Dispatch spends durability before the handler loop and runs every handler
+    /// unconditionally, so a hit's outcome must not depend on this order. Call it every frame while bullets fly so
+    /// no hit lands in authored order. Projectiles are identified by their NetworkedMotion (pawns carry handlers
+    /// too). Returns how many projectiles whose handler sequence DEMONSTRABLY CHANGED — verified by comparing the
+    /// type sequence before and after, so a test asserting on this count cannot pass vacuously when the reorder
+    /// silently no-ops. Editor-only (ComponentUtility), like the rest of this rig.
+    /// </summary>
+    public static int ScrambleHitHandlerOrderOnLiveProjectiles()
+    {
+        int n = 0;
+        var handlers = new List<IHitMessageHandler>();
+        foreach (var kvp in InstanceFinder.ServerManager.Objects.Spawned)
+        {
+            var nob = kvp.Value;
+            if (nob == null || nob.GetComponentInChildren<NetworkedMotion>(true) == null) continue;
+            nob.gameObject.GetComponents(handlers);
+            if (handlers.Count < 2) continue;
+
+            _handlerOrderBefore.Clear();
+            for (int i = 0; i < handlers.Count; i++)
+                _handlerOrderBefore.Add(handlers[i].GetType());
+
+            // Sink the first hit handler to the BOTTOM of the component list — past every other handler — so
+            // ExecuteEvents delivers this hit in a rotated, non-authored order. (This Unity's ComponentUtility has
+            // MoveComponentDown but no relative-move; stepping down by the component count reaches the bottom, and
+            // extra steps once there are harmless no-ops.)
+            var first = (Component)handlers[0];
+            int steps = nob.gameObject.GetComponents<Component>().Length;
+            for (int i = 0; i < steps; i++)
+                UnityEditorInternal.ComponentUtility.MoveComponentDown(first);
+
+            // Count ONLY when the handler sequence DEMONSTRABLY changed, so a caller asserting on this count proves
+            // the delivery order really was permuted — not merely that a move was attempted (a MoveComponentDown on
+            // a component already at the bottom is a silent no-op, which would make the pin vacuous). Bullet
+            // handlers are distinct types, so comparing the type sequence is sufficient here.
+            nob.gameObject.GetComponents(handlers);
+            for (int i = 0; i < handlers.Count && i < _handlerOrderBefore.Count; i++)
+            {
+                if (handlers[i].GetType() != _handlerOrderBefore[i]) { n++; break; }
+            }
+        }
+        return n;
+    }
+
     public static bool IsPawnOwner(GameObject pawnGo) => PawnOf(pawnGo).IsOwner;
 
     /// <summary>Unsubscribe every capture. Call in test teardown so the static latches don't dangle

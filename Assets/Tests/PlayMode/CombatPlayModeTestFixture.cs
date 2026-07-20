@@ -102,6 +102,7 @@ namespace Arena.PlayTests
         protected bool IsPawnOwner(GameObject pawn) => (bool)Invoke("IsPawnOwner", pawn);
         protected bool IsStunned(GameObject pawn) => (bool)Invoke("IsStunned", pawn);
         protected int StripHitstunDealersFromLiveProjectiles() => (int)Invoke("StripHitstunDealersFromLiveProjectiles");
+        protected int ScrambleHitHandlerOrderOnLiveProjectiles() => (int)Invoke("ScrambleHitHandlerOrderOnLiveProjectiles");
 
         // ---- coroutine polling helpers -----------------------------------------------------
 
