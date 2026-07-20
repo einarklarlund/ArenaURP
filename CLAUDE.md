@@ -37,9 +37,9 @@ EditMode (`Assets/Tests/EditMode/`, asmdef `Arena.Tests`) targets the **pure `Ar
 
 ## Composition & communication
 
-`Pawn` is the network identity hub (`SyncVar<NetworkPlayer> ControllingPlayer`) and a thin facade over the sibling generic `Health` — the ONE health system and sole `IDamageable`, shared by pawns, projectiles and props. It deliberately knows little; siblings reference each other through serialized fields.
+`Pawn` is the network identity hub (`SyncVar<NetworkPlayer> ControllingPlayer`) and a thin facade over the sibling generic `HealthController` — the ONE health system and sole `IDamageable`, shared by pawns, projectiles and props. It deliberately knows little; siblings reference each other through serialized fields.
 
-The **hit-RECEIVING** systems (`Health`, `KnockbackReceiver`, `HitstunReceiver`) sit on the entity ROOT, because the collision site resolves each with the same `GetComponentInParent` walk up from the struck collider.
+The **hit-RECEIVING** half of each datum lives on its per-datum controller (`HealthController`, `KnockbackController`, `HitstunController`) on the entity ROOT, because the collision site resolves each with the same `GetComponentInParent` walk up from the struck collider (ADR 0005 merged the old dealer/receiver pairs into these controllers).
 
 `PawnInput` has three implementations behind one base — `HumanPawnInput` (client-owned), `BotPawnInput` (server-owned), `ScriptedPawnInput` (editor-only) — and every `Pawn<X>` updater early-outs on `if (!input.IsActive) return;`, so one prefab serves humans, bots and tests. **This decides which peer simulates what** → `fishnet-conventions` Rule 4b.
 
@@ -50,11 +50,11 @@ Systems never call each other. They contribute to collections the producer folds
 ## Conventions you must not rediscover
 
 - **Server-authoritative.** Any gameplay mutation runs inside a `[Server]` method or is triggered from one. → `fishnet-conventions` skill (payload avoidance, SyncVar/RPC discipline, cast-based collision, and **which peer simulates**).
-- **A hit exchange is dealer component + receiver component, fired from component presence** at the hit site (`HitResolver`) — no courier effect, no authored row; each end folds its own modifiers; never mutate an authored baseline (ADR 0002). → `presence-dispatch` skill.
-- **Swappable behaviour is a COMPONENT discovered by presence** — a hit reaction is an `IHitHandler` component filtered by channel (the call site), an ability's spawn is a `SpawnNetworkObjects` component; the site finds them with `GetComponents`, no authored operation list. Varies-in-data (stat buffs, on-spawn buffs) is authored struct data. Engine-native composition, not owned dispatch machinery (ADR 0003). → `presence-dispatch` skill.
+- **A hit is one typed `HitMessage` dispatched to `IHitMessageHandler` components on the source** (`HitMessage.Dispatch`); each datum is a per-datum controller owning both deal + receive halves — no courier effect, no authored row, no dispatch class; each end folds its own modifiers; never mutate an authored baseline (ADR 0002/0005). → `presence-dispatch` skill.
+- **Swappable behaviour is a COMPONENT discovered by presence** — a hit reaction is an `IHitMessageHandler` component filtered by its `EnabledHitChannels`, an ability's spawn is a `SpawnNetworkObjects` component; the site finds them with `GetComponents`, no authored operation list. Varies-in-data (stat buffs, on-spawn buffs) is authored struct data. Engine-native composition, not owned dispatch machinery (ADR 0003/0005). → `presence-dispatch` skill.
 - **A KIND of thing is an identity-only SO + an independent prefab copy** carrying all config; instances self-configure on every peer. Spawning anything a player can own means stamping `NetPlayerOwnership.SpawnOwnerId` *before* `ServerManager.Spawn`. Abilities are instance prefabs with load-bearing roster ordering (**Spawn before Add, RemoveAt before Despawn**). → `type-object-pattern` skill.
 - `Pawn` and `NetworkPlayer` serve **both humans and bots** (`NetworkPlayer.IsBot`). Never assume a client connection on a player.
-- **No interface with one concretion.** A capability interface earns its keep only at a second, genuinely non-tree concretion (rule of two) — and when it does, it lives ON the component that carries the behaviour, discovered by presence (the `IHitHandler` shape).
+- **No interface with one concretion.** A capability interface earns its keep only at a second, genuinely non-tree concretion (rule of two) — and when it does, it lives ON the component that carries the behaviour, discovered by presence (the `IHitMessageHandler` shape).
 
 ## Working with Unity from Claude
 

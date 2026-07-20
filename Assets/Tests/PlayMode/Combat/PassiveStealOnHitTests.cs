@@ -6,10 +6,13 @@ using UnityEngine.TestTools;
 namespace Arena.PlayTests
 {
     /// <summary>
-    /// Evidence spike for the component-handler migration (DESIGN.md thread): passive-steal-ON-HIT built as an
-    /// owner-contributed <c>IHitHandler</c>. Exercises the two things the shape must prove — the OWNER-HARVEST
-    /// path (a handler authored on a passive instance, discovered at the hit site with no serialized list) and
-    /// the CHANNEL FILTER (supported ∩ authored-enabled ∩ current channel). Networked change → PlayMode test.
+    /// Steal-a-passive-ON-HIT, owner-contributed (the layered model, ADR 0005). A passive's steal reaction is a
+    /// <c>PassiveStealController</c> (<c>IHitMessageHandler</c>); as an <c>IOwnedObjectContribution</c> it
+    /// SELF-CLONES onto the projectiles the owner spawns (via SpawnContributionReceiver), so by hit time it is an
+    /// ordinary handler on the source and <c>HitMessage.Dispatch</c> never resolves the ability system. Exercises
+    /// the two things the shape must prove — the SPAWN-TIME CONTRIBUTION path (the handler rides the owner's
+    /// projectile with no serialized hit-site list) and the CHANNEL FILTER (EnabledHitChannels ∩ current channel).
+    /// Networked change → PlayMode test.
     /// </summary>
     public class PassiveStealOnHitTests : CombatPlayModeTestFixture
     {

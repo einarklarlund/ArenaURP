@@ -9,15 +9,19 @@ description: How one gameplay system passes data to another WITHOUT coupling to 
 
 **A shrinking solution set:** every distinct mechanism is a thing future-you must recognize and debug. Prefer an existing mechanism over a new one; actively look to collapse two into one. A new bespoke channel is a maintainability regression even when locally convenient — argue it explicitly or don't add it.
 
-## The governing rule
+## The governing rule — the layered model (ADR 0005)
 
-**Reference a sibling for its DATA SURFACE, never its BEHAVIOUR; cross a composition boundary only through a notification.**
+**Pick the fewest mechanisms, by the SHAPE of the communication:**
 
-- ✅ Read a sibling's published state, or contribute to a collection it exposes on purpose (`weapon.Modifiers.Add(...)`).
-- ❌ Call a sibling's logic, drive its lifecycle, or reach past its surface into its processor.
+- **Fan-out context** (many unrelated systems respond to one event) → a pooled, typed `ExecuteEvents` **message** — but ONLY at all four clauses: **≥2 unrelated responders, on the dispatch target's own GameObject, on the same peer, served synchronously.** "Hit" (`HitMessage`) is the one context that qualifies. Drop any clause and it is *not* a message:
+  - **cross-peer fan-out rides a replicated `SyncVar.OnChange`** (ADR 0004) — `ExecuteEvents` is in-process and reaches no other peer;
+  - **off-hierarchy fan-out stays a C# event or a `MatchMediator` wire** — a message is GameObject-scoped (`ExecuteEvents` calls `GetComponents` on ONE GO), while a C# event is reference-scoped and reaches a child, parent, or other scene.
+  - (Why all four: the one-clause form greenlit promoting `PawnManager.OnPawnKilled`, which would silently break the client ragdoll — its responders are peer-disjoint. See ADR 0005.)
+- **Single-receiver operation** (one component's capability, a known receiver) → a **direct call into that component's public operation API** — contribute to a collection it exposes on purpose (`weapon.Modifiers.Add(...)`), or call a controller's layer-3 operation (`ApplyKnockback`/`TakeDamage`). A message with a known singular receiver is dispatch theater.
+- ❌ Still forbidden: reach **past** a component's public surface into its processor/internals, or drive its lifecycle.
 - ❌ Across managers / gameplay↔UI / non-siblings: only a notification the producer fires without knowing listeners.
 
-Litmus: *if I deleted the consumer, would the producer's code change?* If yes, invert it.
+Litmus: *if I deleted the consumer, would the producer's code change?* If yes, invert it. (The layered model supersedes the old "never call a sibling's behaviour": a controller's public layer-3 operation, called from a typed layer-2 handler, is legitimate and named — reaching past the surface into internals is not.)
 
 ## Family A — a contribution collection the producer folds (data, pulled)
 
@@ -29,9 +33,9 @@ foreach (var mod in input.Modifiers) speedMult *= mod.WalkSpeedMultiplier;  // p
 movement.Modifiers.Remove(prev); movement.Modifiers.Add(next); // a contributor swaps its OWN entry
 ```
 
-`PawnMovement.Modifiers`, `PawnWeapon.Modifiers`, and `PawnMovement.PendingImpulses` are one family — the only difference is lifetime (a modifier persists until its contributor removes it; an impulse is consume-once, cleared by the producer after folding). A `PassiveAbility`'s plain `MovementModifier`/`WeaponModifier` struct fields (`MovementBuff`/`WeaponBuff`) are this family's authored-data face: the buff IS a modifier; `PawnPassiveAbilities` owns the Remove-old/Add-new bookkeeping on every roster change. Contributors: `PawnTemperature`, `PawnMovementEffects`, `PawnPassiveAbilities`, `KnockbackReceiver`.
+`PawnMovement.Modifiers`, `PawnWeapon.Modifiers`, and `PawnMovement.PendingImpulses` are one family — the only difference is lifetime (a modifier persists until its contributor removes it; an impulse is consume-once, cleared by the producer after folding). A `PassiveAbility`'s plain `MovementModifier`/`WeaponModifier` struct fields (`MovementBuff`/`WeaponBuff`) are this family's authored-data face: the buff IS a modifier; `PawnPassiveAbilities` owns the Remove-old/Add-new bookkeeping on every roster change. Contributors: `PawnTemperature`, `PawnMovementEffects`, `PawnPassiveAbilities`, `KnockbackController`.
 
-The hit-exchange components (`Damage`/`KnockbackDealer`/`HitstunDealer` and `Health`/`KnockbackReceiver`/`HitstunReceiver`) are this family too, folded at READ time rather than per tick: each carries a modifier list with a neutral identity, and each end folds only its OWN list — the dealer scales what it emits, the receiver scales what it accepts. The exchanges fire from component presence (dealer AND receiver both exist) via `HitResolver.ResolveExchanges` — no courier effect, no authored row (ADR 0002); the resolver performs no arithmetic of its own, which is what keeps the two ends ignorant of each other.
+The per-datum controllers (`DamageController`, `KnockbackController`, `HitstunController`, `HealthController`) are this family too, folded at READ time rather than per tick: each owns two modifier registries with a neutral identity (`OutgoingModifiers` / `IncomingModifiers`), and each half folds only its OWN — the dealer half scales what it emits, the receiver half scales what it accepts. The exchange fires when the dealer half (a layer-2 `IHitMessageHandler`) responds to a `HitMessage` and makes a direct call into the victim's controller (ADR 0005) — no courier effect, no authored row (ADR 0002); the two ends stay ignorant of each other because neither reads the other's registry.
 
 *Discipline:* a contributor owns only its own entries (never `Clear()` a producer's list — you'd wipe others). Every contribution struct has a **neutral identity** (multiplier `1f`, `Vector3.zero`) so an absent contributor changes nothing.
 

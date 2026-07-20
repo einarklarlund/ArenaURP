@@ -14,11 +14,11 @@ namespace Arena.PlayTests
     ///   victim's Health drops and Pawn.OnDamageTaken fires (server-authoritative, always on).
     /// - COLOR: PawnColor flashes the body to its HitColor (red, 0.3s) on any Health change. No ownership
     ///   gate ??? it fires on the host.
-    /// - KNOCKBACK: the bullet carries a KnockbackDealer, so the hit's knockback exchange shoves the victim along
-    ///   the shot direction (+Z here). Strength is authored on the BULLET, not the victim, so this test needs no
-    ///   setup for it: KnockbackDealer -> KnockbackReceiver (folds resistance) -> PawnMovement.PendingImpulses
-    ///   -> CharacterController. The rig's pawns are server-spawned with no owner, so the receiver takes its
-    ///   no-owner branch and applies the impulse on the server.
+    /// - KNOCKBACK: the bullet carries a KnockbackController, so the hit's knockback exchange shoves the victim
+    ///   along the shot direction (+Z here). Strength is authored on the BULLET, not the victim, so this test needs
+    ///   no setup for it: the bullet's KnockbackController dealer half -> the victim's KnockbackController receiver
+    ///   half (folds resistance) -> PawnMovement.PendingImpulses -> CharacterController. The rig's pawns are
+    ///   server-spawned with no owner, so the receiver half takes its no-owner branch and applies the impulse on the server.
     ///
     /// - HITSTUN: covered separately in HitstunTests.
     ///

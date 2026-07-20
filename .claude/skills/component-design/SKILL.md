@@ -25,7 +25,7 @@ Breakable in specific cases (a genuinely one-off orchestration component with no
 
 Presence-dispatch resolves siblings with `GetComponents` (same object) or `GetComponentInParent` (a walk up from a struck collider). Both are cheapest and most predictable when communicating components sit together. Deep nesting scatters a conversation across transforms and forces wider, more fragile walks.
 
-The existing root-placement fact generalizes here: the hit-RECEIVING systems (`Health`, `KnockbackReceiver`, `HitstunReceiver`) sit on the entity **root** precisely so one `GetComponentInParent` walk from any child collider resolves them all. When you add a component that talks to others, put it where its interlocutors already are — don't introduce a child object unless the engine forces one (a separate collider, a distinct renderer/transform that must move independently).
+The existing root-placement fact generalizes here: the hit-RECEIVING half of each datum's controller (`HealthController`, `KnockbackController`, `HitstunController`) sits on the entity **root** precisely so one `GetComponentInParent` walk from any child collider resolves them all. When you add a component that talks to others, put it where its interlocutors already are — don't introduce a child object unless the engine forces one (a separate collider, a distinct renderer/transform that must move independently).
 
 ## The exception — extract a pure `Arena.<X>.Core` processor
 

@@ -6,25 +6,25 @@ using UnityEngine.TestTools;
 namespace Arena.PlayTests
 {
     /// <summary>
-    /// PlayMode coverage for the two new hit exchanges, end to end through the real networked path that no
-    /// EditMode test can reach:
+    /// PlayMode coverage for the knockback + hitstun exchanges, end to end through the real networked path that no
+    /// EditMode test can reach (the layered model, ADR 0005):
     ///
-    ///   ServerCollision (presence-dispatch: dealer component ∧ receiver component; ADR 0002)
-    ///     -> KnockbackDealer.EffectiveImpulse / HitstunDealer.EffectiveSeconds   (dealer folds its modifiers)
-    ///     -> KnockbackReceiver.ApplyImpulse / HitstunReceiver.ApplyHitstun        (receiver folds its resistance)
-    ///     -> PawnMovement.PendingImpulses / a ServerOnly SyncVar expiry tick      (the observable effect)
+    ///   HitMessage.Dispatch  (the atomic hit sequence; every IHitMessageHandler on the source, channel-filtered)
+    ///     -> KnockbackController / HitstunController DEALER half (a layer-2 handler folds its OUTgoing modifiers)
+    ///     -> the victim's KnockbackController / HitstunController RECEIVER half (ApplyKnockback / ApplyHitstun folds resistance)
+    ///     -> PawnMovement.PendingImpulses / a ServerOnly SyncVar expiry tick   (the observable effect)
     ///
-    /// The Bullet prefab ships KnockbackDealer(SpeedOnHit=7) and HitstunDealer(Seconds=0.2); carrying the dealer
-    /// component IS what makes a hit shove/stun, so a plain hit exercises all of it. Both magnitudes are
-    /// properties of the BULLET now, not of the victim — nothing here configures the pawn except when a test is
-    /// deliberately exercising the receiving-end modifier fold.
+    /// The Bullet prefab ships a KnockbackController(SpeedOnHit=7) and a HitstunController(Seconds=0.2); carrying
+    /// the controller IS what makes a hit shove/stun (presence, ADR 0002), so a plain hit exercises all of it. Both
+    /// magnitudes are properties of the BULLET now, not of the victim — nothing here configures the pawn except
+    /// when a test is deliberately exercising the receiving-end modifier fold.
     ///
     /// EVERY absence-assertion here (not stunned / did not move) is paired with a POSITIVE CONTROL proving the
     /// mechanism fires when unsuppressed. Without one, these tests pass against a Bullet prefab carrying neither
-    /// dealer component — which is exactly what happened once. See the integration-testing skill, gate 5.
+    /// controller — which is exactly what happened once. See the integration-testing skill, gate 5.
     ///
     /// CombatTestRig spawns pawns server-side with no owning connection, so ScriptedPawnInput.IsActive
-    /// (IsServerInitialized) makes the host simulate them and KnockbackReceiver takes its no-owner branch.
+    /// (IsServerInitialized) makes the host simulate them and the victim's KnockbackController takes its no-owner branch.
     /// </summary>
     public sealed class HitstunKnockbackTests : CombatPlayModeTestFixture
     {
@@ -51,7 +51,7 @@ namespace Arena.PlayTests
             SetFiring(shooter, true);
 
             yield return WaitUntil(() => IsStunned(target), timeoutSeconds: 3f);
-            Assert.IsTrue(IsStunned(target), "a bullet carrying a HitstunDealer should stun the pawn it hits");
+            Assert.IsTrue(IsStunned(target), "a bullet carrying a HitstunController should stun the pawn it hits");
             Assert.Less(Health(target), StartHealth, "sanity: the stun came from an actual hit");
 
             SetFiring(shooter, false);
@@ -152,19 +152,20 @@ namespace Arena.PlayTests
             SetFiring(shooter, false);
 
             Assert.Greater(Position(target).z, startZ + 0.1f,
-                "a bullet carrying a KnockbackDealer should shove the victim away from the shooter (+Z)");
+                "a bullet carrying a KnockbackController should shove the victim away from the shooter (+Z)");
         }
 
         // ---- composability (presence-dispatch; ADR 0002) -----------------------------------------
 
         /// <summary>
-        /// The exchange switch IS the dealer component: strip HitstunDealer off every bullet in flight and the
-        /// hitstun exchange falls silent while the SAME hits' damage exchange still lands. Damage landing is the
-        /// in-test positive control (the hits really resolved); the stun-happens control is the hitstun tests
-        /// above, which run the identical setup unstripped.
+        /// The exchange switch IS the controller's presence: disable the HitstunController (an IHitMessageHandler,
+        /// silent when disabled — the strip hook) on every bullet in flight and the hitstun exchange falls silent
+        /// while the SAME hits' damage exchange still lands. Damage landing is the in-test positive control (the
+        /// hits really resolved); the stun-happens control is the hitstun tests above, which run the identical
+        /// setup unstripped.
         /// </summary>
         [UnityTest]
-        public IEnumerator Stripping_the_hitstun_dealer_component_silences_only_that_exchange()
+        public IEnumerator Stripping_the_hitstun_controller_component_silences_only_that_exchange()
         {
             var pair = SpawnFacingPair(8f, health: StartHealth);
             var shooter = pair[0];
@@ -174,7 +175,7 @@ namespace Arena.PlayTests
             AimAt(shooter, Position(target));
             SetFiring(shooter, true);
 
-            // Strip every frame so no bullet can land with its dealer intact; watch for any stun the whole time.
+            // Disable every frame so no bullet can land with its HitstunController audible; watch for any stun the whole time.
             bool everStunned = false;
             float t = 0f;
             while (Health(target) >= StartHealth && t < 4f)
@@ -190,7 +191,7 @@ namespace Arena.PlayTests
             Assert.Less(Health(target), StartHealth,
                 "sanity + positive control: the dealer-stripped bullets still hit and their damage exchange landed");
             Assert.IsFalse(everStunned,
-                "with the HitstunDealer component destroyed the hitstun exchange must not fire — component " +
+                "with the HitstunController component disabled the hitstun exchange must not fire — component " +
                 "presence is the switch, and the other exchanges on the same hit are unaffected");
         }
 

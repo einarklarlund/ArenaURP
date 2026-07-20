@@ -46,7 +46,7 @@ Granting an ability = instantiate its kind's prefab, `NetworkObject.SetParent(pa
 Pooling never re-runs `Awake`, and `ResetState` must preserve the authored baseline while resetting everything a spawn-time contributor touched:
 
 - **Baseline** (authored `InitialSpeed`, prefab scale, `maxHealth`, effect lists): never wiped in `ResetState`. Safe because prefab-per-kind fixes a pooled instance's kind forever.
-- **Per-spawn layer** (buff multipliers, anchors, owner id, scratch buffers): reset to identity every despawn — `NetworkedMotion._speedMultiplier`, `Health._maxMultiplier`, `SpawnScale`, `SpawnBuffReceiver`, `NetPlayerOwnership.SpawnOwnerId`.
+- **Per-spawn layer** (buff multipliers, anchors, owner id, scratch buffers): reset to identity every despawn — `NetworkedMotion._speedMultiplier`, `HealthController._maxMultiplier`, `SpawnScale`, `SpawnContributionReceiver`, `NetPlayerOwnership.SpawnOwnerId`.
 
 Rule of thumb: *any field a spawn-time contributor mutates gets reset in `ResetState`; never multiply onto the last spawn's value* (`effective = baseline × multiplier`, idempotent setters). A per-spawn transform mutation needs an owning component with its own `ResetState` (`SpawnScale`) — a raw `transform.localScale` write has no reset owner and leaks across reuse.
 
