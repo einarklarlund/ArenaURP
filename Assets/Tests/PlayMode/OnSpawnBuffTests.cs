@@ -22,6 +22,7 @@ namespace Arena.PlayTests
         const string NpmPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestNpm.prefab";
         const string PlayerPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestPlayer.prefab";
         const string PawnPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestTargetPawn.prefab";
+        const string RegistryPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestPassiveRegistry.prefab";
         const string BulletTypePath = "Assets/Data/Projectiles/Bullet.asset";
         const int StartHealth = 21;
         const float Tol = 1e-3f;
@@ -98,6 +99,11 @@ namespace Arena.PlayTests
             Dmg("Wire", npmGo.GetComponent("NetworkPlayerManager"),
                 ownerPlayerGo.GetComponent("NetworkPlayer"), ownerPawnGo.GetComponent("Pawn"), StartHealth);
             setOwnerId((int)Dmg("PlayerObjectId", ownerPlayerGo.GetComponent("NetworkPlayer")));
+
+            // Spawn the shared passive registry (its nested KIND children spawn with it) so a grant can resolve a
+            // KIND by name and the projectile's SpawnContributionReceiver can resolve the owned KIND refs at spawn.
+            SpawnServerPrefab(RegistryPrefabPath, Vector3.zero);
+            for (int i = 0; i < 2; i++) yield return null;
 
             if (grantMethod != null)
                 Ability(grantMethod, ownerPawnGo);

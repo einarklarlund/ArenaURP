@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6800373469972151396}
   - component: {fileID: 6104297244942929373}
   - component: {fileID: 4069736298210909678}
+  - component: {fileID: 5425581424526599731}
   m_Layer: 0
   m_Name: TestPlayer
   m_TagString: Untagged
@@ -105,3 +106,20 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 6104297244942929373}
   _networkObjectCache: {fileID: 0}
+  PassiveLoadout: {fileID: 5425581424526599731}
+--- !u!114 &5425581424526599731
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6544558092845873116}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 429a99486cdf84b28afe02dfd016e2bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerPassiveLoadout
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 6104297244942929373}
+  _networkObjectCache: {fileID: 0}
+  persistAcrossDeath: 1

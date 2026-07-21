@@ -54,11 +54,27 @@ public static class AbilityTestRig
     /// <summary>Passive whose PassiveAbility.SpawnBuff multiplies spawned projectiles' scale ×2 (on every peer, at spawn).</summary>
     const string TestScaleBuffPassivePath = "Assets/Tests/PlayMode/Prefabs/TestScaleBuffPassive.asset";
 
-    /// <summary>Grant the on-spawn speed-buff passive — exercises the every-peer on-spawn buff path (Option A speed setter).</summary>
-    public static void GrantSpeedBuffPassive(GameObject pawn) => AddPassive(pawn, TestSpeedBuffPassivePath);
+    /// <summary>Grant the on-spawn speed passive KIND — exercises the every-peer on-spawn buff path (SpeedPassive → NetworkedMotion).</summary>
+    public static void GrantSpeedBuffPassive(GameObject pawn) => GrantPassive(pawn, "TestSpeed");
 
-    /// <summary>Grant the on-spawn scale-buff passive — exercises the no-sync-channel snapshot path (SpawnScale).</summary>
-    public static void GrantScaleBuffPassive(GameObject pawn) => AddPassive(pawn, TestScaleBuffPassivePath);
+    /// <summary>Grant the on-spawn scale passive KIND — exercises the no-sync-channel snapshot path (ScalePassive + CollisionRadiusPassive).</summary>
+    public static void GrantScaleBuffPassive(GameObject pawn) => GrantPassive(pawn, "TestScale");
+
+    /// <summary>Grant a passive KIND (a child of the spawned <see cref="PassiveRegistry"/>) into the pawn owner's
+    /// <see cref="PlayerPassiveLoadout"/> — the new-model server grant path (a reference add). Requires the registry
+    /// to be spawned in the scene and the pawn's owner (NetworkPlayer) resolved.</summary>
+    public static void GrantPassive(GameObject pawn, string kindName)
+    {
+        var owner = OwnerPlayer(pawn);
+        var kind = PassiveRegistry.Resolve(kindName);
+        owner.PassiveLoadout.Grant(kind);
+    }
+
+    static NetworkPlayer OwnerPlayer(GameObject pawn)
+    {
+        var p = pawn.GetComponentInParent<Pawn>();
+        return p != null ? p.ControllingPlayer.Value : null;
+    }
 
     /// <summary>
     /// Product of every <see cref="WeaponModifier.FireRateMultiplier"/> currently folded into the pawn's weapon
