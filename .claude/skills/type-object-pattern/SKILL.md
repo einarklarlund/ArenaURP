@@ -34,12 +34,12 @@ ServerManager.Spawn(nob /*, ownerConn for predicted */);
 
 `SpawnOwnerId` must be stamped by the spawner — it can't be self-derived (bots have no owning connection, so `NetworkObject.Owner` won't stand in). Current sites: `PawnWeapon.ExecuteShot` (client-predicted: the firer's own NetworkManager, `asServer:false`) and the `SpawnNetworkObjects` effect (server, `asServer:true`). Keep new sites to that exact shape.
 
-## Abilities: granting is spawning a child
+## Active abilities: granting is spawning a child
 
-Granting an ability = instantiate its kind's prefab, `NetworkObject.SetParent(pawn's NOB)` (never raw `transform.SetParent` — only SetParent replicates the hierarchy), then Spawn (`AbilityGrant.Spawn`). Gameplay state lives on the instance's `ActiveAbility`/`PassiveAbility` components (`UsesRemaining` is a SyncVar; effect lists are authored per kind on the prefab).
+Granting an **active** ability = instantiate its kind's prefab, `NetworkObject.SetParent(pawn's NOB)` (never raw `transform.SetParent` — only SetParent replicates the hierarchy), then Spawn (`AbilityGrant.Spawn`). Gameplay state lives on the instance's `ActiveAbility` component (`UsesRemaining` is a SyncVar; effect lists are authored per kind on the prefab). **Passives are no longer spawned children (ADR 0009)** — see below.
 
 - **Actives** keep a `SyncList<ActiveAbility>` roster (slot order + HUD hooks). Ordering is load-bearing: **Spawn before Add, RemoveAt before Despawn** — an unspawned NetworkBehaviour ref serializes as permanent null, and removal-first keeps deltas off dying objects. Mutate the roster only through the facade's single add/remove paths.
-- **Passives** have no roster — no individual-removal path, so membership derives from the replicated child instances; `PawnPassiveAbilities` re-derives modifiers and owner contributions on every change.
+- **Passives** are references, not spawned instances (ADR 0009): a KIND is authored once as a nested-`NetworkObject` child of a shared `PassiveRegistry` (spawned per match by `MatchMediator`), and each owner's `PlayerPassiveLoadout` on `NetworkPlayer` holds a `SyncList<NetworkObject>` of refs to those KINDs. Grant = add a ref, remove = remove, steal = move a ref between loadouts (no spawn/despawn). A pawn applies its owner's loadout at spawn (`PawnPassiveLoadout.ApplyOwnedTo`); a spawned object at spawn (`SpawnContributionReceiver`).
 
 ## Pooling: baseline vs per-spawn layer
 

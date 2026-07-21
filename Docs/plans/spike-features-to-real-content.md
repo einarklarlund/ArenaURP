@@ -10,7 +10,7 @@ Governing doctrine: [DESIGN.md](../../DESIGN.md) (essence, elegance, open questi
 
 Two facts the roadmap text predates:
 
-1. **A passive-steal already shipped on main** as an on-hit handler — `PassiveStealOnHit` (`Assets/Scripts/Ability/PassiveStealOnHit.cs`) with two PlayMode tests. `PawnPassiveAbilities.RemovePassive`, kind-before-despawn resolution, and double-remove guards all exist. Roadmap item 2 is therefore only the **active, capsule-cast variant**.
+1. **A passive-steal already shipped on main** as an on-hit handler — `PassiveStealController` (`Assets/Scripts/Ability/PassiveStealController.cs`, formerly `PassiveStealOnHit`) with two PlayMode tests (`PassiveStealOnHitTests.cs`). Post-ADR-0009 the steal is a `PlayerPassiveLoadout` ref-move (`Remove`+`Grant`), not the old `PawnPassiveAbilities.RemovePassive`/despawn path. Roadmap item 2 is therefore only the **active, capsule-cast variant**.
 2. **The spike worktrees are gone.** The `agent-*` worktrees named in the roadmap ("REFERENCE ONLY") no longer exist on disk or in any git ref; their learnings survive only in ADR 0002 and DESIGN.md prose.
 
 Both belong in a DESIGN.md housekeeping edit (below).
@@ -46,7 +46,7 @@ The named **extraction trigger** from [ADR 0005](../design/0005-hit-pipeline-lay
 The steal mechanics exist and are tested; this session builds only the delivery. Two pieces:
 
 1. **`IUseHandler` — the earned interface.** `ActiveAbility.ServerUse` is hard-typed to `GetComponents<SpawnNetworkObjects>` (`ActiveAbility.cs:80-82`), with a rule-of-two note anticipating exactly this moment. The steal is the second use-site behaviour, so the interface is now earned: `IUseHandler.OnUse(origin, direction, instigator)`, implemented by `SpawnNetworkObjects` and the new `StealPassiveOnUse`, discovered by the same `GetComponents` presence dispatch as hit handlers. **This is the session's Lehman offset** — a bespoke hard-typed dispatch collapses into the one mechanism the project already runs.
-2. **`StealPassiveOnUse`:** server-side capsule-cast from the already-plumbed `aimSource` (`PawnActiveAbilities.cs:134-136`) against Players; resolve the victim `Pawn` via `GetComponentInParent` (the `AbilityPickup` idiom); run the steal core **extracted from `PassiveStealOnHit` into a shared method both variants call** — the guarantee the two steals can't drift. Authoring: new ability prefab copy + `AbilityType` SO, modeled on ScatterBurst.
+2. **`StealPassiveOnUse`:** server-side capsule-cast from the already-plumbed `aimSource` (`PawnActiveAbilities.cs:134-136`) against Players; resolve the victim `Pawn` via `GetComponentInParent` (the `AbilityPickup` idiom); run the steal core **extracted from `PassiveStealController` into a shared method both variants call** — the guarantee the two steals can't drift. Authoring: new ability prefab copy + `AbilityType` SO, modeled on ScatterBurst.
 
 Targeting mechanism is open question 2 (plain cast vs. dispatching a `HitMessage` from the cast site).
 

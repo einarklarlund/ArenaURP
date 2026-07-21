@@ -74,6 +74,7 @@ _One line each; the file holds context + decision + alternatives + consequences.
 | [0006](Docs/design/0006-remove-dormant-level-generation.md) | Remove the dormant Level Generation subsystem (delete the isolated island; art prefabs + Online scene components flagged for editor-side sweep) | Accepted | 2026-07-15 |
 | [0007](Docs/design/0007-weapon-config-on-component.md) | Weapon firing config lives on the PawnWeapon component (serialized WeaponConfig + ProjectileType ref); WeaponData/WeaponDatabase deleted (one type-object authority) | Accepted | 2026-07-15 |
 | [0008](Docs/design/0008-components-primary-pure-core-exception.md) | Components are the primary unit of logic; FCIS mandate retired; pure Arena.*.Core + EditMode test kept only for determinism-critical/branchy logic; generic-via-config + flat-hierarchy guidelines | Accepted | 2026-07-17 |
+| [0009](Docs/design/0009-passive-shared-registry-applicator.md) | Passives = shared-registry KINDs (nested-NObj children of a spawned PassiveRegistry) + component-coupled Passive applicators (one per affected component) + player-held SyncList references (PlayerPassiveLoadout); steal = ref move; PassiveAbility/PawnPassiveAbilities/PassiveAbilityType deleted | Accepted | 2026-07-21 |
 
 ## Writing an ADR
 

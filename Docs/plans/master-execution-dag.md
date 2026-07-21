@@ -7,7 +7,7 @@ Points into (detail lives there):
 - ~~[parnas-modularity-plan.md](parnas-modularity-plan.md) — W1–W5~~ **all five shipped 2026-07-15/16** (see Track A). **Plan file deleted 2026-07-20 (this pass).**
 - [spike-features-to-real-content.md](spike-features-to-real-content.md) — Sessions 1–4, OQ1–2
 - [feature-ledger.md](feature-ledger.md) — the 13-feature batch: per-feature disposition + the original effect×dispatch analysis
-- [passive-loadout-refactor.md](passive-loadout-refactor.md) — **PR** (the passive-ownership refactor: shared registry + applicator passives + player-held refs). In flight — storage core landed **inert** on main (`09e9c68d`/`33ff569a`); ADR pending. Re-scoped 2026-07-20 (H1 discharged its hardest step). See the **PR** section below.
+- ~~[passive-loadout-refactor.md](passive-loadout-refactor.md)~~ — **PR** (the passive-ownership refactor: shared registry + applicator passives + player-held refs). **SHIPPED 2026-07-20/21 as [ADR 0009](../design/0009-passive-shared-registry-applicator.md)** (`b2f178e1`→`fee88d42` retires the old per-player-NObj system); plan file retired. See the **PR** section below (archived).
 - [DESIGN.md](../../DESIGN.md) — open design questions (the "why / deferred decision" for every gate below)
 
 **The two idioms govern every hit-adjacent edge below** (from H1's plan; ADR 0005 on ship). Stated once here because they *change the sequencing*, not to restate the plan:
@@ -55,7 +55,7 @@ graph LR
     P1["P1 combo fire-rate<br/>(unblocked — W2 shipped)"]
     P5["P5 hitstun passive"]
   end
-  PR["PR — passive-loadout refactor<br/>(shared registry + ref-move steal)<br/>· in flight, ADR pending"]
+  PR["PR — passive-loadout refactor<br/>(shared registry + ref-move steal)<br/>(ADR 0009) · LANDED"]
   H1 -->|"deletes HitResolver;<br/>2nd hit source EXTRACTS"| S1
   H1 -->|"dealer registries +<br/>the per-target multiplier"| S3
   H1 -->|"retypes PawnWeapon.hitstun<br/>→ HitstunController"| P5
@@ -83,9 +83,9 @@ Detail lives in [hit-pipeline-layered-messages-plan.md](hit-pipeline-layered-mes
 
 **The one honest wart, recorded not hidden:** `HitMessage.Dispatch` is inline at **N=1 hit source**. That is the rule-of-two honesty condition working as intended (a decision must be *seen* to vary before a seam hides it), and the plan names the extraction trigger rather than pre-building a home. The cost lands at Session 1 — see check 5.
 
-### PR — passive-loadout refactor (in flight; the loadout/grant/steal trunk)
+### PR — passive-loadout refactor (LANDED as ADR 0009; the loadout/grant/steal trunk)
 
-> **Status 2026-07-20:** storage-core scaffolding **landed inert on main** (`09e9c68d`/`33ff569a`) — the new shapes compile and `NetworkPlayer.PassiveLoadout` is wired, but **nothing grants into them and `PassiveRegistry` does not exist yet**; the old per-player-`NetworkObject` passive system is still the live one. **ADR pending** (registry + applicator model), owed before "done". Detail — the reconciled work-list — lives in [passive-loadout-refactor.md](passive-loadout-refactor.md).
+> **Status 2026-07-21:** **LANDED** as **[ADR 0009](../design/0009-passive-shared-registry-applicator.md)** (Accepted). The grant path is cut to the shared-registry model, steal is a `SyncList` ref-move, and the old per-player-`NetworkObject` system (`PassiveAbility`/`PawnPassiveAbilities`/`PassiveAbilityType`) is deleted (`fee88d42`). Durable record: ADR 0009 + the reconciled `type-object-pattern`/`presence-dispatch`/`arena-systems-map`/`cross-component-communication`/`fishnet-conventions` skills; the detail plan is retired.
 
 **What it is:** retires the per-passive-per-player `NetworkObject` model (derive-from-children membership + corpse-window hacks; no foreign read). A passive KIND is authored once as a child of a shared `PassiveRegistry`; every owner holds a **reference** to it (`PlayerPassiveLoadout.Owned`, a `SyncList<NetworkObject>` on `NetworkPlayer`). Grant = add a ref; **steal = MOVE a ref**; `persistAcrossDeath` is the single per-life/per-game knob. Ownership on the player (foreign-HUD-readable, per-game persistent); execution on the pawn/projectile.
 
@@ -101,7 +101,7 @@ Detail lives in [hit-pipeline-layered-messages-plan.md](hit-pipeline-layered-mes
 
 **Part-count honesty (Lehman / Elegance):** PR is **not** net-negative in types — it deletes ~4 old shapes (`PassiveAbility`, `PawnPassiveAbilities`, the `PassiveAbilityType` SO, `AbilityGrant`'s passive path) and adds more (`Passive`, `PassiveInfo`, `PlayerPassiveLoadout`, `PawnPassiveLoadout`, the buff/steal applicators, `PassiveRegistry`). That is a *model change* (per-player spawn → shared registry + refs, buying foreign-read + clean persistence), not a consolidation — the trade is the **pending ADR's** to justify through the canon interview, not something this fold ratifies. Flagged so the net-up is seen, not smuggled.
 
-**Replan verdict (2026-07-20):** **no existing DAG edge breaks and no feature is re-architected.** The changes are additive — PR gains a node here, a soft edge to Session 2 and Item 4, and the "implementation home" pointer for Q1/Q2. The one substantive move is **striking PR's own step 2** (H1 did it). OQ2's *"should the steal BE a hit"* is now partly answered by shipped reality — on-hit steal already IS a hit (`PassiveStealController : IHitMessageHandler`); OQ2's live remainder is the *active-cast* steal (Session 2), unchanged. **Watch (Lehman):** the two passive systems now COEXIST inert-vs-live on main — the risk the [[passives-convoluted-refactor-later]] note names is exactly this cutover stalling half-done. PR's value is realized only when the old shapes are deleted.
+**Replan verdict (2026-07-20):** **no existing DAG edge breaks and no feature is re-architected.** The changes are additive — PR gains a node here, a soft edge to Session 2 and Item 4, and the "implementation home" pointer for Q1/Q2. The one substantive move is **striking PR's own step 2** (H1 did it). OQ2's *"should the steal BE a hit"* is now partly answered by shipped reality — on-hit steal already IS a hit (`PassiveStealController : IHitMessageHandler`); OQ2's live remainder is the *active-cast* steal (Session 2), unchanged. **Resolved (2026-07-21):** the cutover completed — the old shapes are deleted (`fee88d42`), so PR's value is realized and the [[passives-convoluted-refactor-later]] risk is discharged.
 
 ### Track A — modularity · **ARCHIVED, all five shipped (2026-07-15/16)**
 
