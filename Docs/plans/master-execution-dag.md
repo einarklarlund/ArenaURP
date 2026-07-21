@@ -7,6 +7,7 @@ Points into (detail lives there):
 - ~~[parnas-modularity-plan.md](parnas-modularity-plan.md) — W1–W5~~ **all five shipped 2026-07-15/16** (see Track A). **Plan file deleted 2026-07-20 (this pass).**
 - [spike-features-to-real-content.md](spike-features-to-real-content.md) — Sessions 1–4, OQ1–2
 - [feature-ledger.md](feature-ledger.md) — the 13-feature batch: per-feature disposition + the original effect×dispatch analysis
+- [passive-loadout-refactor.md](passive-loadout-refactor.md) — **PR** (the passive-ownership refactor: shared registry + applicator passives + player-held refs). In flight — storage core landed **inert** on main (`09e9c68d`/`33ff569a`); ADR pending. Re-scoped 2026-07-20 (H1 discharged its hardest step). See the **PR** section below.
 - [DESIGN.md](../../DESIGN.md) — open design questions (the "why / deferred decision" for every gate below)
 
 **The two idioms govern every hit-adjacent edge below** (from H1's plan; ADR 0005 on ship). Stated once here because they *change the sequencing*, not to restate the plan:
@@ -54,10 +55,13 @@ graph LR
     P1["P1 combo fire-rate<br/>(unblocked — W2 shipped)"]
     P5["P5 hitstun passive"]
   end
+  PR["PR — passive-loadout refactor<br/>(shared registry + ref-move steal)<br/>· in flight, ADR pending"]
   H1 -->|"deletes HitResolver;<br/>2nd hit source EXTRACTS"| S1
   H1 -->|"dealer registries +<br/>the per-target multiplier"| S3
   H1 -->|"retypes PawnWeapon.hitstun<br/>→ HitstunController"| P5
-  H1 -. "soft: migrates<br/>PassiveStealOnHit" .- S2
+  H1 -. "soft: migrates<br/>PassiveStealController" .- S2
+  PR -. "soft: steal rides the<br/>ref-move loadout" .- S2
+  PR -. "soft: movement-steal +<br/>persistAcrossDeath" .- ITEM4
 ```
 
 `*` OQ2's *deeper* question is unsettled — see Restored items. Track A is archived below; Track C is its own section.
@@ -79,6 +83,26 @@ Detail lives in [hit-pipeline-layered-messages-plan.md](hit-pipeline-layered-mes
 
 **The one honest wart, recorded not hidden:** `HitMessage.Dispatch` is inline at **N=1 hit source**. That is the rule-of-two honesty condition working as intended (a decision must be *seen* to vary before a seam hides it), and the plan names the extraction trigger rather than pre-building a home. The cost lands at Session 1 — see check 5.
 
+### PR — passive-loadout refactor (in flight; the loadout/grant/steal trunk)
+
+> **Status 2026-07-20:** storage-core scaffolding **landed inert on main** (`09e9c68d`/`33ff569a`) — the new shapes compile and `NetworkPlayer.PassiveLoadout` is wired, but **nothing grants into them and `PassiveRegistry` does not exist yet**; the old per-player-`NetworkObject` passive system is still the live one. **ADR pending** (registry + applicator model), owed before "done". Detail — the reconciled work-list — lives in [passive-loadout-refactor.md](passive-loadout-refactor.md).
+
+**What it is:** retires the per-passive-per-player `NetworkObject` model (derive-from-children membership + corpse-window hacks; no foreign read). A passive KIND is authored once as a child of a shared `PassiveRegistry`; every owner holds a **reference** to it (`PlayerPassiveLoadout.Owned`, a `SyncList<NetworkObject>` on `NetworkPlayer`). Grant = add a ref; **steal = MOVE a ref**; `persistAcrossDeath` is the single per-life/per-game knob. Ownership on the player (foreign-HUD-readable, per-game persistent); execution on the pawn/projectile.
+
+**Re-scoped by H1 — the hard half is already shipped.** The plan predates H1; its old step 2 (own the projectile-side owner-handler plumbing) is **moot** — H1 (ADR 0005) deleted `HitResolver` / `CollectOwnerHandlers` / `OwnerHitChannelMask` and shipped `IOwnedObjectContribution` + `SpawnContributionReceiver`, which self-clone owner handlers onto the spawned projectile (reached thereafter by ordinary `IHitMessageHandler` presence dispatch). `PassiveStealController` already ships in that shape. So PR's remaining work is a **grant-path cutover + delete-old**, not a build-the-hit-side job — H1 *refunds* PR its hardest step rather than costing it one.
+
+**Why it sequences where it does — a small trunk for loadout/grant/steal work.** PR is largely **disjoint from H1** (H1 actually removed PR's hardest step) and can proceed now. Three items build on the model PR lands:
+
+| Hands downstream | To | Edge kind |
+|---|---|---|
+| `PlayerPassiveLoadout` ref-move (`Remove`+`Grant`, no spawn) | **Session 2 / A1** (passive-steal active) — an active-cast steal moves a loadout ref; build it on the old spawn/despawn model and it is rewritten | soft — migration churn |
+| The same ref-move + `persistAcrossDeath` | **Item 4** (movement-steal, LAST in Track B) — steals a movement buff via the loadout | soft — migration churn |
+| The grant path (`AbilityPickup` → `Grant(registryChild)`) + `persistAcrossDeath` | **Q1** (acquisition source) and **Q2** (per-life vs per-game persistence) — PR is the **implementation home** for both; the knob exists, the decision picks its value | uses — soft |
+
+**Part-count honesty (Lehman / Elegance):** PR is **not** net-negative in types — it deletes ~4 old shapes (`PassiveAbility`, `PawnPassiveAbilities`, the `PassiveAbilityType` SO, `AbilityGrant`'s passive path) and adds more (`Passive`, `PassiveInfo`, `PlayerPassiveLoadout`, `PawnPassiveLoadout`, the buff/steal applicators, `PassiveRegistry`). That is a *model change* (per-player spawn → shared registry + refs, buying foreign-read + clean persistence), not a consolidation — the trade is the **pending ADR's** to justify through the canon interview, not something this fold ratifies. Flagged so the net-up is seen, not smuggled.
+
+**Replan verdict (2026-07-20):** **no existing DAG edge breaks and no feature is re-architected.** The changes are additive — PR gains a node here, a soft edge to Session 2 and Item 4, and the "implementation home" pointer for Q1/Q2. The one substantive move is **striking PR's own step 2** (H1 did it). OQ2's *"should the steal BE a hit"* is now partly answered by shipped reality — on-hit steal already IS a hit (`PassiveStealController : IHitMessageHandler`); OQ2's live remainder is the *active-cast* steal (Session 2), unchanged. **Watch (Lehman):** the two passive systems now COEXIST inert-vs-live on main — the risk the [[passives-convoluted-refactor-later]] note names is exactly this cutover stalling half-done. PR's value is realized only when the old shapes are deleted.
+
 ### Track A — modularity · **ARCHIVED, all five shipped (2026-07-15/16)**
 
 | Item | Shipped as | ADR |
@@ -99,15 +123,15 @@ Design-laden work; **not** fanned out (per the ratified understanding: subagents
 
 0. **H1 — the hit-pipeline slice.** Lands first (above). The only feature item that need not wait on it is **P1**.
 1. **Wave 0 — ratify tunables:** OQ1 double-dip → **no** (feeds Session 1). OQ2 → **plain cast** for the *mechanics*, but its deeper question (*should the steal BE a hit?*) is **not** foreclosed — see Restored items. Decision work; runs alongside H1's code.
-2. **Session 1** (proximity explosion) ∥ **Session 2 / A1** (passive-steal active) — genuinely disjoint seams (own component + prefab-copy vs. own `IUseHandler` use-site). Still the one real parallel pair in Track B; **both now sit after H1**, and the pair's disjointness is unaffected by it.
+2. **Session 1** (proximity explosion) ∥ **Session 2 / A1** (passive-steal active) — genuinely disjoint seams (own component + prefab-copy vs. own `IUseHandler` use-site). Still the one real parallel pair in Track B; **both now sit after H1**, and the pair's disjointness is unaffected by it. **Session 2 also rides PR** (soft edge): the active-cast steal moves a `PlayerPassiveLoadout` ref, so it builds on PR's ref-move model or is rewritten — see the PR thread.
 3. **P1 is free; P5 waits on H1.** W2 shipped, discharging both its edges. P1 (combo fire-rate, `ComboProcessor`) can start now on the reworked `PawnWeapon.Update`. P5 (hitstun passive) re-blocks on H1, which retypes `PawnWeapon.hitstun` → `HitstunController`. P5 *ships* gated on the hitstun-feel playtest.
 4. **Session 1 → Session 3 / Q1** — the damage-buff channel design session (named by **title**, not number — it takes the next free ADR when written; 0005 went to H1). Runs after Session 1, which gives the per-target multiplier a live consumer (falloff) = its real *Evidence*. **P2 is NOT its evidence** (P2 is shipped content, not a throwaway spike). **New scope from H1:** the per-target `damageMultiplier` parameter died with `HitResolver` — damage is inlined in `DamageController.OnHit` and `HitMessage` carries no multiplier field. Session 3 must therefore *re-establish* the per-target seam (a field on the message vs. the dealer computing it at layer 2), not merely fill a waiting slot. This is a deletion of speculative capability, which is correct — DESIGN.md's citation of that slot as evidence has been corrected (H1 landed).
 5. **Session 3 → P2** — P2's self-resist is the channel's **first real consumer** (owner-passive-scaled multiplier onto a damage value), so it follows the ADR. P2 also **re-opens Session 1's self-exclusion** (rocket-jump wants self-knockback) — not a clean `SpawnModifier` +2-fields extension. Falsifiable check below.
-6. **Session 3 → Item 4** (movement-steal) — LAST; forces the timed-modifier lifetime (Q4) + wire-payload (Q5), both resolved by the ADR.
+6. **Session 3 → Item 4** (movement-steal) — LAST; forces the timed-modifier lifetime (Q4) + wire-payload (Q5), both resolved by the ADR. **Also rides PR** (soft edge): the steal moves a movement-buff loadout ref + honours `persistAcrossDeath`.
 
 ### Parallel decision track (one-mind, alongside code — blocks *shipping/tuning*, not building)
-- **Q1** acquisition source (pickup vs XP) — interview + ADR; grant path is abstract, blocks no wave.
-- **Q2** persistence (per-life vs per-game) — interview + ADR + playtest; interacts with respawn.
+- **Q1** acquisition source (pickup vs XP) — interview + ADR; grant path is abstract, blocks no wave. **PR is its implementation home** (the `AbilityPickup` → `Grant(registryChild)` cutover).
+- **Q2** persistence (per-life vs per-game) — interview + ADR + playtest; interacts with respawn. **PR lands the `persistAcrossDeath` knob this decides** — the decision picks the value, PR built the switch.
 - **Hitstun feel** — playtest gate; blocks *shipping* P5, adjacent to P1.
 - **P4** (extra air-jumps) — **re-pitch around an enemy-facing interaction or cut**; do **not** schedule the additive-`MovementModifier` fold.
 
@@ -185,6 +209,13 @@ Post-correction the genuinely-new mechanism is **~1** (generalize a shipped comp
 2. **Serialization (new, and the real cost of H1):** H1 is now upstream of Session 1, Session 3, P5, P6 and A3-blind. Everything except P1 waits on one slice. That is *sequencing*, not coupling — no downstream item changes when H1 changes, they just can't start — but it concentrates schedule risk in a single migration touching two spawnable prefabs and FishNet's NB layout. **Mitigation: P1 is deliberately kept free of H1 as the parallel-track escape valve** (it needs no hit-pipeline seam), and H1's own plan is staged compile-green with a red window contained to its Phase 2. If H1 slips, P1 absorbs the time.
 
 ## Corrections ledger (what the adversarial passes changed)
+
+### 2026-07-20 — passive-loadout refactor (PR) folded in
+- **PR added as a thread** (was: absent — an untracked standing plan floating unreferenced, exactly the drift check #4 warns about). It now has a node, a hands-downstream table, and a Points-into entry.
+- **PR's own step 2 struck as MOOT** (verified against code, not the plan): H1 (ADR 0005) already deleted `HitResolver` / `CollectOwnerHandlers` / `OwnerHitChannelMask` and shipped `IOwnedObjectContribution` / `SpawnContributionReceiver`. The projectile-side owner-handler plumbing PR set out to build is the current shipped reality. The stale plan identifiers (`SpawnBuffReceiver`→`SpawnContributionReceiver`, `PassiveStealOnHit`→`PassiveStealController`) were reconciled in the detail plan.
+- **Replan check: no existing edge broke, no feature re-architected.** PR gains a soft edge to Session 2 and Item 4 (both steal via its ref-move loadout) and is named the implementation home for Q1 (grant path) and Q2 (`persistAcrossDeath`). Additive only.
+- **OQ2 partial answer recorded:** on-hit steal already IS a hit (`PassiveStealController : IHitMessageHandler`, shipped); OQ2's live remainder is the active-cast steal (Session 2).
+- **Honesty flag:** PR is net-**up** in type count (a per-player-spawn → shared-registry model change, not a consolidation). The trade is the pending ADR's to justify via the canon interview; this fold ratifies nothing about PR's design.
 
 ### 2026-07-16 — hit-pipeline consolidation
 - **Track A archived; its two edges discharged.** All five W-items shipped. `W2 → P1` and `W2 → P5` are gone; **P1 is unblocked**, P5's blocker transfers to H1.
