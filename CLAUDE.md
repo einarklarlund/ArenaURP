@@ -4,7 +4,7 @@ Guidance for Claude Code in this repository.
 
 **This file is an INDEX, not a manual.** It holds only what is non-obvious and always relevant. The detail lives in `.claude/skills/`, which load on demand — keep it that way. Start with the `arena-systems-map` skill whenever a task spans more than one system, and `ai-workflow` whenever the *process* feels repetitive or error-prone.
 
-**Before design work or a new feature, read `DESIGN.md`** (open questions + ADR index + the two north stars) and the **roadmap/sequencing in `docs/plans/master-execution-dag.md`** — several decisions are deliberately deferred in DESIGN.md and must not be improvised. Before any plan is *finalized*, grill it (questioning technique: the `grilling` skill) against the `engineering-canon` skill's seven design lenses (Parnas/Brooks/Lehman/Conway/Dijkstra/Constantine/Martin) — agreement is reached, not assumed, and settled positions live in its shared-understandings register.
+**Before design work or a new feature, read `DESIGN.md`** (open questions + ADR index + the two north stars) and the **grill-ready backlog in `docs/plans/features.md`** (open features + the deferred design decisions each rides, in `docs/plans/decisions/`) — several decisions are deliberately deferred in DESIGN.md and must not be improvised. Before any plan is *finalized*, grill it (questioning technique: the `grilling` skill) against the `engineering-canon` skill's seven design lenses (Parnas/Brooks/Lehman/Conway/Dijkstra/Constantine/Martin) — agreement is reached, not assumed, and settled positions live in its shared-understandings register.
 
 ## Project
 

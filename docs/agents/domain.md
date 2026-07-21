@@ -6,7 +6,7 @@ How the engineering skills should consume this repo's design documentation. **Si
 
 - **`DESIGN.md`** at the repo root — the design log: the two north stars (Essence + Elegance), the open-questions register (decisions deliberately deferred — do not improvise them), and the ADR index. Read this at the start of any design task or new feature.
 - **`docs/adr/`** — the ADRs (`NNNN-kebab-title.md`). Read the ones that touch the area you're about to work in. This is the location the mattpocock skills expect by default, so they find ADRs here without an override.
-- **`docs/plans/master-execution-dag.md`** — the roadmap / build-sequencing hub (what's next, in what order).
+- **`docs/plans/features.md`** — the grill-ready backlog (open features + the deferred design decisions in `docs/plans/decisions/` each rides). What's next, and what must be settled before it.
 
 There is **no `CONTEXT.md` glossary yet.** DESIGN.md is a design log and ADR index, *not* a glossary — don't treat it as one. If a domain term genuinely needs pinning, `domain-modeling` creates `CONTEXT.md` at the repo root lazily, at the moment the first term is resolved. Until then, proceed without one — don't flag its absence.
 
