@@ -267,6 +267,42 @@ public static class CombatTestRig
         Loadout(pawnGo).Grant(PassiveRegistry.Resolve(enabled ? "TestSteal" : "TestStealSilent"));
     }
 
+    /// <summary>Spawn a FRESH combatant pawn and wire it to an EXISTING player (a respawn) — its
+    /// <see cref="PawnPassiveLoadout"/> applies that player's persistent loadout at spawn. Returns the pawn.</summary>
+    public static GameObject SpawnPawnFor(GameObject playerGo, Vector3 position)
+    {
+        var nm = InstanceFinder.NetworkManager;
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CombatantPrefabPath);
+        var pawnGo = Object.Instantiate(prefab, position, Quaternion.identity);
+        nm.ServerManager.Spawn(pawnGo);
+        var pawn = pawnGo.GetComponent<Pawn>();
+        var np = playerGo.GetComponent<NetworkPlayer>();
+        pawn.ControllingPlayer.Value = np;
+        np.ControlledPawn.Value = pawn;
+        _owners[pawn] = np;
+        return pawnGo;
+    }
+
+    /// <summary>Despawn a pawn (models death), leaving its owner NetworkPlayer — and its loadout — alive.</summary>
+    public static void DespawnPawn(GameObject pawnGo)
+    {
+        var nob = pawnGo.GetComponent<FishNet.Object.NetworkObject>();
+        if (nob != null && nob.IsSpawned)
+            InstanceFinder.NetworkManager.ServerManager.Despawn(nob);
+    }
+
+    /// <summary>Foreign-HUD read: resolve the FIRST passive KIND reference in a player's loadout to its
+    /// <see cref="PassiveInfo"/> display name — the path an enemy-loadout HUD walks. Null if no loadout / no kinds /
+    /// the reference does not resolve. Reads a player OTHER code owns, so it exercises the foreign-read resolution.</summary>
+    public static string ForeignReadPassiveName(GameObject playerGo)
+    {
+        var loadout = playerGo.GetComponent<NetworkPlayer>().PassiveLoadout;
+        if (loadout == null || loadout.Owned.Count == 0) return null;
+        var kind = loadout.Owned[0];
+        var info = kind != null ? kind.GetComponent<PassiveInfo>() : null;
+        return info != null ? info.DisplayName : null;
+    }
+
     static T LoadAbility<T>(string path) where T : AbilityType
     {
         var a = AssetDatabase.LoadAssetAtPath<AbilityType>(path) as T;

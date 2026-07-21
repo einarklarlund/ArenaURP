@@ -18,6 +18,8 @@ namespace Arena.PlayTests
     {
         const string SwiftPickupPath = "Assets/Prefabs/Pickups/Swift Pickup.prefab";
         const string PawnPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestTargetPawn.prefab";
+        const string PlayerPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestPlayer.prefab";
+        const string RegistryPrefabPath = "Assets/Prefabs/Abilities/PassiveRegistry.prefab"; // carries the "Swift" KIND
 
         protected override string ScenePath => "Assets/Tests/PlayMode/Scenes/TestProjectileDamage.unity";
 
@@ -26,6 +28,15 @@ namespace Arena.PlayTests
         {
 #if UNITY_EDITOR
             var pawnGo = SpawnServerPrefab(PawnPrefabPath, new Vector3(0, 1, 0));
+            // A passive pickup grants into the pawn OWNER's PlayerPassiveLoadout (ownership on the player), resolving
+            // the KIND by name against the spawned registry — so the pawn needs an owner and the "Swift" KIND must be
+            // spawned before the pickup's server tick fires.
+            var playerGo = SpawnServerPrefab(PlayerPrefabPath, new Vector3(30, 0, 0));
+            SpawnServerPrefab(RegistryPrefabPath, Vector3.zero);
+            for (int i = 0; i < 3; i++) yield return null;
+            Ability("WireOwner", pawnGo, playerGo);
+            for (int i = 0; i < 2; i++) yield return null;
+
             var pickupGo = SpawnServerPrefab(SwiftPickupPath, new Vector3(0, 1, 0));
             var pickupNob = pickupGo.GetComponent<NetworkObject>();
             // No "starts at 0 passives" precondition: the pickup's server tick can grant within the very

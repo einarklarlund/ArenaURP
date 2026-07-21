@@ -51,6 +51,13 @@ namespace Arena.PlayTests
 
         protected GameObject PlayerObject(GameObject pawn) => (GameObject)Invoke("PlayerObject", pawn);
 
+        /// <summary>Spawn a fresh combatant pawn wired to an EXISTING player (a respawn).</summary>
+        protected GameObject SpawnPawnFor(GameObject player, Vector3 position) => (GameObject)Invoke("SpawnPawnFor", player, position);
+        /// <summary>Despawn a pawn (models death); its owner player and loadout survive.</summary>
+        protected void DespawnPawn(GameObject pawn) => Invoke("DespawnPawn", pawn);
+        /// <summary>Resolve a player's first owned passive KIND to its PassiveInfo display name (foreign-HUD read).</summary>
+        protected string ForeignReadPassiveName(GameObject player) => (string)Invoke("ForeignReadPassiveName", player);
+
         // ---- commands ----------------------------------------------------------------------
 
         protected void AimAt(GameObject pawn, Vector3 worldPos) => Invoke("AimAt", pawn, worldPos);

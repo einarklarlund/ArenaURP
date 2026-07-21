@@ -19,7 +19,10 @@ public class MatchMediator : NetworkBehaviour
         base.OnStartServer();
 
         // Spawn the one shared passive registry for this match before any grant path can reference its kinds.
-        if (passiveRegistryPrefab != null)
+        // Idempotent: a scene may carry more than one mediator (e.g. a Debug variant), and only one registry is
+        // wanted — the server runs OnStartServer callbacks sequentially, so the first spawn sets Instance and the
+        // rest no-op here.
+        if (passiveRegistryPrefab != null && PassiveRegistry.Instance == null)
         {
             PassiveRegistry registry = Instantiate(passiveRegistryPrefab);
             ServerManager.Spawn(registry.NetworkObject);
