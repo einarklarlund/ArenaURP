@@ -51,7 +51,7 @@ Plus the two authoring guidelines (generic-via-config; flat hierarchy).
   - Description/trigger rewritten: *"how we build components — components primary, generic-via-config, flat hierarchy, and when to extract a pure core."*
 
 ### 2. ADR 0008 (load-bearing + contested → earns an ADR)
-- `Docs/design/0008-components-primary-pure-core-exception.md`, following the DESIGN.md ADR shape:
+- `docs/adr/0008-components-primary-pure-core-exception.md`, following the DESIGN.md ADR shape:
   - **Context / Decision / Alternatives rejected** (full FCIS mandate; full demolition) / **Evidence** (the scout baseline: 1-caller-each ⇒ no reuse; ~16/28 HIGH-yield tests; DET cluster desync risk; guard cores) / **Consequences** / one-line north-star rationale.
 - Add the row to the **DESIGN.md ADR index** and, if the "one architectural rule" is referenced as doctrine anywhere in DESIGN.md, point it at the ADR.
 

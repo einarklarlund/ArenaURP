@@ -4,7 +4,7 @@ Guidance for Claude Code in this repository.
 
 **This file is an INDEX, not a manual.** It holds only what is non-obvious and always relevant. The detail lives in `.claude/skills/`, which load on demand — keep it that way. Start with the `arena-systems-map` skill whenever a task spans more than one system, and `ai-workflow` whenever the *process* feels repetitive or error-prone.
 
-**Before design work or a new feature, read `DESIGN.md`** (open questions + ADR index + the two north stars) and the **roadmap/sequencing in `Docs/plans/master-execution-dag.md`** — several decisions are deliberately deferred in DESIGN.md and must not be improvised. Before any plan is *finalized*, grill it (questioning technique: the `grilling` skill) against the `engineering-canon` skill's seven design lenses (Parnas/Brooks/Lehman/Conway/Dijkstra/Constantine/Martin) — agreement is reached, not assumed, and settled positions live in its shared-understandings register.
+**Before design work or a new feature, read `DESIGN.md`** (open questions + ADR index + the two north stars) and the **roadmap/sequencing in `docs/plans/master-execution-dag.md`** — several decisions are deliberately deferred in DESIGN.md and must not be improvised. Before any plan is *finalized*, grill it (questioning technique: the `grilling` skill) against the `engineering-canon` skill's seven design lenses (Parnas/Brooks/Lehman/Conway/Dijkstra/Constantine/Martin) — agreement is reached, not assumed, and settled positions live in its shared-understandings register.
 
 ## Project
 
@@ -61,3 +61,19 @@ Systems never call each other. They contribute to collections the producer folds
 A project-aware Unity MCP server is connected (`mcp__unity__*`, schemas via `ToolSearch`). **Text search over `.prefab`/`.unity`/`.asset`/`.meta` is wrong** — that YAML stores GUIDs, not names — and a `PreToolUse` hook blocks it. Anything crossing a GUID boundary, or any write to serialized state, goes through the MCP. → `unity-mcp-vs-shell` skill (decision table + gotchas: the stale domain, the silently-reverting prefab save, scene SceneId baking).
 
 Delegate wide investigation to the **`unity-scout`** subagent and test runs to **`unity-validator`**; main-thread context is for the design. → `ai-workflow` skill.
+
+## Agent skills
+
+Config the `mattpocock-skills` engineering skills read (issue tracking, domain docs). Full detail in `docs/agents/`.
+
+### Issue tracker
+
+Issues/PRDs live in **GitHub Issues** (`einarklarlund/ArenaURP`), via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) — read by the `/mattpocock-skills:triage` command. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context. The design log + ADR index is **`DESIGN.md`**; ADRs live in **`docs/adr/`** (the skills' default location — no glossary yet, created lazily by `domain-modeling`). See `docs/agents/domain.md`.
