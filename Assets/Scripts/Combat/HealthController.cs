@@ -94,6 +94,10 @@ public class HealthController : NetworkBehaviour, IDamageable
             SeedFromMax();
     }
 
+    /// <summary>The current per-spawn max-health multiplier (identity 1). Lets an on-spawn buff COMPOSE onto it so
+    /// several owned buff passives multiply rather than overwrite; the setter stays last-write-wins.</summary>
+    public float MaxHealthMultiplier => _maxMultiplier;
+
     public override void ResetState(bool asServer)
     {
         base.ResetState(asServer);

@@ -199,6 +199,11 @@ public sealed class NetworkedMotion : NetworkBehaviour
             _state = _state.WithOriginSpeed(InitialSpeed * _speedMultiplier);
     }
 
+    /// <summary>The current per-spawn speed multiplier (identity 1). Lets an on-spawn buff COMPOSE onto it
+    /// (<c>SetSpeedMultiplier(SpeedMultiplier * buff)</c>) so several owned buff passives multiply rather than
+    /// overwrite; the setter itself stays last-write-wins.</summary>
+    public float SpeedMultiplier => _speedMultiplier;
+
     /// <summary>
     /// Server: begin a new trajectory segment (ricochet/deflect) at the current age and publish it so every
     /// peer re-derives the bent path. Effects call this through the owner's NetworkedMotion.

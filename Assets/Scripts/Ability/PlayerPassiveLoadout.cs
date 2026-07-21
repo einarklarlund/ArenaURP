@@ -67,12 +67,16 @@ public sealed class PlayerPassiveLoadout : NetworkBehaviour
 
     // ---- server: acquisition / removal / respawn policy ----
 
-    /// <summary>Server: grant a passive KIND (a registry child). A no-op if already owned (shared refs don't stack).</summary>
+    /// <summary>Server: grant a passive KIND (a registry child). Returns true if it was added, false if the kind was
+    /// null or already owned (shared refs don't stack) — a pickup uses that to leave itself in place when the pawn
+    /// already holds the kind, the same way a full active inventory leaves its box.</summary>
     [Server]
-    public void Grant(NetworkObject passiveKind)
+    public bool Grant(NetworkObject passiveKind)
     {
-        if (passiveKind != null && !Owned.Contains(passiveKind))
-            Owned.Add(passiveKind);
+        if (passiveKind == null || Owned.Contains(passiveKind))
+            return false;
+        Owned.Add(passiveKind);
+        return true;
     }
 
     /// <summary>Server: remove one owned kind. Returns false if it was not owned (a hit resolving twice must not

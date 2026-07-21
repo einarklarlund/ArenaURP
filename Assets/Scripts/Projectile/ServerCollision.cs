@@ -118,6 +118,10 @@ public sealed class ServerCollision : NetworkBehaviour
     /// </summary>
     public void SetRadiusMultiplier(float multiplier) => _radiusMultiplier = multiplier;
 
+    /// <summary>The current per-spawn radius multiplier (identity 1). Lets an on-spawn buff COMPOSE onto it so
+    /// several owned buff passives multiply rather than overwrite; the setter stays last-write-wins.</summary>
+    public float RadiusMultiplier => _radiusMultiplier;
+
     public override void ResetState(bool asServer)
     {
         base.ResetState(asServer);

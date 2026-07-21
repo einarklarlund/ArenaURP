@@ -10,9 +10,20 @@ public class MatchMediator : NetworkBehaviour
     [SerializeField] protected MatchFlowManager matchFlowManager;
     [SerializeField] protected DeathmatchManager deathmatchManager;
 
+    [Tooltip("The shared passive-kind catalogue, spawned once per match. Its children are the passive KINDs every " +
+             "player's loadout references. Leave null to run without passives.")]
+    [SerializeField] protected PassiveRegistry passiveRegistryPrefab;
+
     public override void OnStartServer()
     {
         base.OnStartServer();
+
+        // Spawn the one shared passive registry for this match before any grant path can reference its kinds.
+        if (passiveRegistryPrefab != null)
+        {
+            PassiveRegistry registry = Instantiate(passiveRegistryPrefab);
+            ServerManager.Spawn(registry.NetworkObject);
+        }
 
         // Subscribe to and kick-off NetworkPlayer registration
         networkPlayerManager.OnPlayerRegistered += ServerHandlePlayerRegistered;
