@@ -5,16 +5,12 @@ using UnityEngine;
 
 /// <summary>
 /// Editor/test-only helper for the ability-inventory PlayMode tests. Lives in Assembly-CSharp so it can
-/// touch <see cref="PawnActiveAbilities"/> / <see cref="PawnPassiveAbilities"/> / <see cref="AbilityType"/>
+/// touch <see cref="PawnActiveAbilities"/> / <see cref="PlayerPassiveLoadout"/> / <see cref="PassiveRegistry"/> / <see cref="AbilityType"/>
 /// directly — the Arena.PlayTests asmdef can't reference Assembly-CSharp, so the tests call these by
 /// reflection (one contained seam, per the integration-testing skill). Gated by UNITY_EDITOR so it never ships.
 /// </summary>
 public static class AbilityTestRig
 {
-    /// <summary>Prefab-backed test passive whose PassiveAbility contributes an InstantiateGameObjects reaction
-    /// (a TestHitMarker at the hit point) on player hits — the observable for the owner-lookup pin.</summary>
-    const string TestProjectilePassivePath = "Assets/Tests/PlayMode/Prefabs/TestBonusDamagePassive.asset";
-
     static readonly List<ActiveAbility> ActivesBuf = new();
 
     public static AbilityType LoadAbility(string path) => AssetDatabase.LoadAssetAtPath<AbilityType>(path);
@@ -22,14 +18,29 @@ public static class AbilityTestRig
     public static void AddActive(GameObject pawn, string abilityPath)
         => pawn.GetComponent<PawnActiveAbilities>().AddActive(LoadAbility(abilityPath) as ActiveAbilityType);
 
-    public static void AddPassive(GameObject pawn, string abilityPath)
-        => pawn.GetComponent<PawnPassiveAbilities>().AddPassive(LoadAbility(abilityPath) as PassiveAbilityType);
+    /// <summary>Bidirectionally link a spawned pawn and NetworkPlayer (as the match flow does) so the pawn's owner —
+    /// and its <see cref="PlayerPassiveLoadout"/> — resolves. Needed before granting a passive to a bare pawn.</summary>
+    public static void WireOwner(GameObject pawn, GameObject player)
+    {
+        var p = pawn.GetComponentInChildren<Pawn>(true);
+        var np = player.GetComponent<NetworkPlayer>();
+        p.ControllingPlayer.Value = np;
+        np.ControlledPawn.Value = p;
+    }
 
     /// <summary>Invoke the real server-side use path (same method the F-key ServerRpc calls).</summary>
     public static void Use(GameObject pawn) => pawn.GetComponent<PawnActiveAbilities>().ServerUse();
 
     public static int ActivesCount(GameObject pawn) => pawn.GetComponent<PawnActiveAbilities>().ActivesCount;
-    public static int PassivesCount(GameObject pawn) => pawn.GetComponent<PawnPassiveAbilities>().PassivesCount;
+
+    /// <summary>Count of passive KINDs the pawn's owner holds in its <see cref="PlayerPassiveLoadout"/> (the new
+    /// shared-registry model), or -1 if the owner/loadout is not resolved.</summary>
+    public static int PassivesCount(GameObject pawn)
+    {
+        var owner = OwnerPlayer(pawn);
+        return owner != null && owner.PassiveLoadout != null ? owner.PassiveLoadout.Owned.Count : -1;
+    }
+
     public static int SelectedIndex(GameObject pawn) => pawn.GetComponent<PawnActiveAbilities>().SelectedIndex.Value;
 
     public static int Uses(GameObject pawn, int index)
@@ -39,20 +50,13 @@ public static class AbilityTestRig
     }
 
     /// <summary>
-    /// Grant the prefab-backed test passive that contributes an on-player-hit reaction (instantiate a
-    /// TestHitMarker at the hit point) to the owner's projectiles. Exercises the owner-lookup path
-    /// (projectile finds owner's effects server-side, no payload) with an inert, directly observable effect.
-    /// The old shape — an extra DealDamage stacking the exchange — died with the couriers (ADR 0002); owner
-    /// damage bonuses are the deferred damage-buff channel's job.
+    /// Grant the "TestBonusDamage" KIND — a passive whose InstantiationController contributes an on-player-hit
+    /// reaction (instantiate a TestHitMarker at the hit point) to the owner's projectiles. Exercises the
+    /// owner-contribution path (the projectile self-clones the owner's KIND handlers at spawn, no payload) with an
+    /// inert, directly observable effect. Owner damage bonuses are the deferred damage-buff channel's job.
     /// </summary>
     public static void GrantProjectilePassive(GameObject pawn)
-        => AddPassive(pawn, TestProjectilePassivePath);
-
-    /// <summary>Passive whose PassiveAbility.SpawnBuff multiplies spawned projectiles' speed ×2 (on every peer, at spawn).</summary>
-    const string TestSpeedBuffPassivePath = "Assets/Tests/PlayMode/Prefabs/TestSpeedBuffPassive.asset";
-
-    /// <summary>Passive whose PassiveAbility.SpawnBuff multiplies spawned projectiles' scale ×2 (on every peer, at spawn).</summary>
-    const string TestScaleBuffPassivePath = "Assets/Tests/PlayMode/Prefabs/TestScaleBuffPassive.asset";
+        => GrantPassive(pawn, "TestBonusDamage");
 
     /// <summary>Grant the on-spawn speed passive KIND — exercises the every-peer on-spawn buff path (SpeedPassive → NetworkedMotion).</summary>
     public static void GrantSpeedBuffPassive(GameObject pawn) => GrantPassive(pawn, "TestSpeed");

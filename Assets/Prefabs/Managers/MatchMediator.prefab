@@ -87,6 +87,7 @@ MonoBehaviour:
   pawnManager: {fileID: 3284845304059948786}
   matchFlowManager: {fileID: 5383833535196604922}
   deathmatchManager: {fileID: 6147040646903795047}
+  passiveRegistryPrefab: {fileID: 1855579629338009127, guid: bfa743c5336f44a8998ef391de7d7df8, type: 3}
 --- !u!114 &8126624165769236608
 MonoBehaviour:
   m_ObjectHideFlags: 0

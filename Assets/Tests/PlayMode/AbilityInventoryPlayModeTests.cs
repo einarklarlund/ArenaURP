@@ -21,9 +21,9 @@ namespace Arena.PlayTests
     public sealed class AbilityInventoryPlayModeTests : NetworkedPlayModeTestFixture
     {
         const string ShooterPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestShooter.prefab";
-        const string SwiftPath = "Assets/Data/Abilities/Swift.asset";
+        const string PlayerPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestPlayer.prefab";
+        const string RegistryPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestPassiveRegistry.prefab";
         const string BurstPath = "Assets/Data/Abilities/ScatterBurst.asset";
-        const string FireRateBuffPath = "Assets/Tests/PlayMode/Prefabs/TestFireRateBuffPassive.asset";
         const int ScatterCount = 12; // the caster pawn's SpawnableObjects.Count (ScatterBurst's SpawnNetworkObjects reads it off the pawn)
 
         protected override string ScenePath => "Assets/Tests/PlayMode/Scenes/TestProjectile.unity";
@@ -33,10 +33,6 @@ namespace Arena.PlayTests
         {
             var pawn = SpawnServerPrefab(ShooterPrefabPath, new Vector3(0f, 50f, 0f));
             for (int i = 0; i < 3; i++) yield return null; // let the spawn settle
-
-            // Passive grant -> a PassiveAbility instance spawned + parented under the pawn.
-            AbRig("AddPassive", pawn, SwiftPath);
-            Assert.AreEqual(1, (int)AbRig("PassivesCount", pawn), "passive ability instance under the pawn");
 
             // Active grant -> 1 slot (an ActiveAbility instance), uses initialised from the prefab (3).
             AbRig("AddActive", pawn, BurstPath);
@@ -65,17 +61,22 @@ namespace Arena.PlayTests
         public IEnumerator Granting_a_stat_buff_passive_folds_its_modifier_into_the_pawn()
         {
             var pawn = SpawnServerPrefab(ShooterPrefabPath, new Vector3(0f, 50f, 0f));
+            var player = SpawnServerPrefab(PlayerPrefabPath, new Vector3(30f, 0f, 0f));
+            SpawnServerPrefab(RegistryPrefabPath, Vector3.zero); // its nested KIND children spawn with it
             for (int i = 0; i < 3; i++) yield return null;
+
+            AbRig("WireOwner", pawn, player); // the pawn's owner (and its PlayerPassiveLoadout) must resolve
+            for (int i = 0; i < 2; i++) yield return null;
 
             Assert.AreEqual(1f, (float)AbRig("FireRateProduct", pawn), 1e-4f,
                 "precondition: no weapon modifiers before any passive");
 
-            AbRig("AddPassive", pawn, FireRateBuffPath);
+            AbRig("GrantPassive", pawn, "TestFireRate"); // WeaponPassive(FireRateMultiplier=0.5)
             for (int i = 0; i < 3; i++) yield return null;
 
-            Assert.AreEqual(1, (int)AbRig("PassivesCount", pawn), "passive ability instance under the pawn");
+            Assert.AreEqual(1, (int)AbRig("PassivesCount", pawn), "the granted KIND is in the owner's loadout");
             Assert.AreEqual(0.5f, (float)AbRig("FireRateProduct", pawn), 1e-4f,
-                "WeaponBuff.FireRateMultiplier=0.5 authored on the passive must fold into PawnWeapon.Modifiers on the re-derive");
+                "WeaponPassive FireRateMultiplier=0.5 must fold into PawnWeapon.Modifiers when the loadout applies the grant");
 
             yield return null;
         }

@@ -96,8 +96,14 @@ namespace Arena.PlayTests
             setTargetPawn(targetPawnGo);
 
             if (grantScaleBuff)
+            {
+                // Spawn the shared passive registry (its nested KIND children spawn with it) so the grant resolves
+                // "TestScale" and the projectile's SpawnContributionReceiver resolves the owned KIND ref at spawn.
+                SpawnServerPrefab("Assets/Tests/PlayMode/Prefabs/TestPassiveRegistry.prefab", Vector3.zero);
+                for (int i = 0; i < 2; i++) yield return null;
                 Ability("GrantScaleBuffPassive", ownerPawnGo);
-            for (int i = 0; i < 2; i++) yield return null; // let the passive instance replicate/enumerate
+            }
+            for (int i = 0; i < 2; i++) yield return null; // let the loadout replicate
         }
 
         static readonly Type DmgRigType = Type.GetType("ProjectileDamageTestRig, Assembly-CSharp");

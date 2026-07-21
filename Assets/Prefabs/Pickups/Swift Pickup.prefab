@@ -186,5 +186,6 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 3604058959269424395}
   _networkObjectCache: {fileID: 0}
-  ability: {fileID: 11400000, guid: 6fe204f05d93c4817aa78cb83248989d, type: 2}
+  passiveKindName: Swift
+  ability: {fileID: 0}
   detectionRadius: 1.5

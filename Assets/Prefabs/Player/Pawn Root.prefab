@@ -504,10 +504,10 @@ GameObject:
   - component: {fileID: 1819017640497088891}
   - component: {fileID: 3229108476807971348}
   - component: {fileID: 1159318610755632454}
-  - component: {fileID: 4500148841451139641}
   - component: {fileID: 496888658077780900}
   - component: {fileID: 2425589451528480005}
   - component: {fileID: 2659153805544261344}
+  - component: {fileID: 5182372486090787576}
   m_Layer: 7
   m_Name: Pawn Root
   m_TagString: Untagged
@@ -753,23 +753,6 @@ MonoBehaviour:
   pawn: {fileID: 3390302888177528954}
   input: {fileID: 0}
   aimSource: {fileID: 0}
---- !u!114 &4500148841451139641
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4613304413970483175}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9ba711ba7f0064d3894fb17361fa7c5f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnPassiveAbilities
-  _componentIndexCache: 255
-  _addedNetworkObject: {fileID: 8049762553664656302}
-  _networkObjectCache: {fileID: 0}
-  movement: {fileID: 1975820720333990052}
-  weapon: {fileID: 1555019613777059898}
 --- !u!114 &496888658077780900
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -830,6 +813,21 @@ MonoBehaviour:
   config:
     Seconds: 0.35
   weapon: {fileID: 1555019613777059898}
+--- !u!114 &5182372486090787576
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4613304413970483175}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8929b22686bf454693272ab92e5e46e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnPassiveLoadout
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 8049762553664656302}
+  _networkObjectCache: {fileID: 0}
 --- !u!1 &4680480237612131196
 GameObject:
   m_ObjectHideFlags: 0

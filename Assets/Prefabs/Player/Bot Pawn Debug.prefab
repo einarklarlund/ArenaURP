@@ -92,9 +92,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3727824876307670096, guid: 1e080908070fd4c2f88339d02ea9b049, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3760826093944532018}
-    - targetCorrespondingSourceObject: {fileID: 3727824876307670096, guid: 1e080908070fd4c2f88339d02ea9b049, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 6857480545667907315}
   m_SourcePrefab: {fileID: 100100000, guid: 1e080908070fd4c2f88339d02ea9b049, type: 3}
 --- !u!1 &293965696665439319 stripped
 GameObject:
@@ -135,23 +132,6 @@ MonoBehaviour:
   pawn: {fileID: 7718353176031296458}
   input: {fileID: 740764310081786304}
   aimSource: {fileID: 0}
---- !u!114 &6857480545667907315
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 293965696665439319}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9ba711ba7f0064d3894fb17361fa7c5f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnPassiveAbilities
-  _componentIndexCache: 255
-  _addedNetworkObject: {fileID: 3145588104056494110}
-  _networkObjectCache: {fileID: 0}
-  movement: {fileID: 6879909959954998036}
-  weapon: {fileID: 5874195623089367946}
 --- !u!114 &740764310081786304 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4460883532456950215, guid: 1e080908070fd4c2f88339d02ea9b049, type: 3}
@@ -174,28 +154,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26b716c41e9b56b4baafaf13a523ba2e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &5874195623089367946 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7361926394180223885, guid: 1e080908070fd4c2f88339d02ea9b049, type: 3}
-  m_PrefabInstance: {fileID: 4012571784263641095}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1242a14260c094d628c79bf04291369f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnWeapon
---- !u!114 &6879909959954998036 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7554187420892138259, guid: 1e080908070fd4c2f88339d02ea9b049, type: 3}
-  m_PrefabInstance: {fileID: 4012571784263641095}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f237c03b561d243c0be8d830ba9f6946, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnMovementController
 --- !u!114 &7718353176031296458 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6679574468413641677, guid: 1e080908070fd4c2f88339d02ea9b049, type: 3}

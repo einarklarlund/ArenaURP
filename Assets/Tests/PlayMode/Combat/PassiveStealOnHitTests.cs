@@ -6,52 +6,48 @@ using UnityEngine.TestTools;
 namespace Arena.PlayTests
 {
     /// <summary>
-    /// Steal-a-passive-ON-HIT, owner-contributed (the layered model, ADR 0005). A passive's steal reaction is a
-    /// <c>PassiveStealController</c> (<c>IHitMessageHandler</c>); as an <c>IOwnedObjectContribution</c> it
-    /// SELF-CLONES onto the projectiles the owner spawns (via SpawnContributionReceiver), so by hit time it is an
-    /// ordinary handler on the source and <c>HitMessage.Dispatch</c> never resolves the ability system. Exercises
-    /// the two things the shape must prove — the SPAWN-TIME CONTRIBUTION path (the handler rides the owner's
-    /// projectile with no serialized hit-site list) and the CHANNEL FILTER (EnabledHitChannels ∩ current channel).
-    /// Networked change → PlayMode test.
+    /// Steal-a-passive-ON-HIT in the shared-registry model (ADR 0009). The attacker owns a STEAL KIND whose
+    /// <c>PassiveStealController</c> (<c>IHitMessageHandler</c>) self-clones onto the projectiles it spawns (via
+    /// SpawnContributionReceiver), so by hit time it is an ordinary handler on the source and <c>HitMessage.Dispatch</c>
+    /// never resolves the ability system. On a player hit it MOVES one passive KIND reference from the victim's
+    /// <c>PlayerPassiveLoadout</c> to the attacker's — a pure SyncList transfer, no despawn/spawn. Exercises the two
+    /// things the shape must prove: the SPAWN-TIME CONTRIBUTION path (the handler rides the owner's projectile with no
+    /// serialized hit-site list) and the CHANNEL FILTER (EnabledHitChannels ∩ current channel). Networked change → PlayMode test.
     /// </summary>
     public class PassiveStealOnHitTests : CombatPlayModeTestFixture
     {
-        private const string CarrierPassive = "Assets/Tests/PlayMode/Prefabs/TestScaleBuffPassive.asset";
-        private const string LootPassive = "Assets/Tests/PlayMode/Prefabs/TestFireRateBuffPassive.asset";
-
         [UnityTest]
-        public IEnumerator Player_hit_steals_a_passive_kind_from_the_victim()
+        public IEnumerator Player_hit_moves_a_passive_kind_reference_from_the_victim_to_the_attacker()
         {
             var pair = SpawnFacingPair(6f, health: 100);
             var attacker = pair[0];
             var victim = pair[1];
             yield return WaitFrames(2);
 
-            GivePassive(attacker, CarrierPassive); // hosts the steal handler
-            GivePassive(victim, LootPassive);      // the loot: its 0.5 fire-rate row identifies it in the fold
+            AttachStealHandler(attacker);          // attacker owns the steal KIND (its bullets steal on hit)
+            GivePassive(victim, "TestFireRate");   // the loot: its 0.5 fire-rate row identifies the moved kind
             yield return WaitUntil(() => PassivesCount(attacker) == 1 && PassivesCount(victim) == 1);
-            Assert.AreEqual(1, PassivesCount(attacker), "arrange: attacker holds the carrier passive");
-            Assert.AreEqual(1, PassivesCount(victim), "arrange: victim holds the loot passive");
-            // Assert on the loot's IDENTIFIABLE row, never the raw count — other systems (temperature reacting
-            // to the hits) contribute their own rows to the same fold.
-            Assert.AreEqual(1, CountWeaponModifiersWithFireRate(victim, 0.5f), "arrange: the loot's fire-rate buff is folded on the victim");
-            AttachStealHandler(attacker);
+            Assert.AreEqual(1, PassivesCount(attacker), "arrange: attacker holds the steal KIND");
+            Assert.AreEqual(1, PassivesCount(victim), "arrange: victim holds the loot KIND");
+            // Assert on the loot's IDENTIFIABLE row, never the raw count — other systems contribute their own rows.
+            Assert.AreEqual(1, CountWeaponModifiersWithFireRate(victim, 0.5f), "arrange: the loot's fire-rate buff folded on the victim");
 
             AimAt(attacker, Position(victim));
             SetFiring(attacker, true);
             yield return WaitUntil(() => PassivesCount(attacker) == 2, 5f);
             SetFiring(attacker, false);
 
-            Assert.AreEqual(2, PassivesCount(attacker), "the stolen KIND was granted to the attacker");
-            // The victim's instance despawns asynchronously with the grant — poll it too.
+            // The authoritative steal is the loadout REFERENCE move: the kind leaves the victim and joins the attacker.
+            Assert.AreEqual(2, PassivesCount(attacker), "the stolen KIND ref was moved into the attacker's loadout");
             yield return WaitUntil(() => PassivesCount(victim) == 0, 2f);
-            Assert.AreEqual(0, PassivesCount(victim), "the victim's passive instance was removed");
+            Assert.AreEqual(0, PassivesCount(victim), "the stolen KIND ref left the victim's loadout");
 
-            // The kind moved, and its standing buff moved with it: the fold row swaps sides.
-            yield return WaitUntil(() => CountWeaponModifiersWithFireRate(attacker, 0.5f) == 1
-                                      && CountWeaponModifiersWithFireRate(victim, 0.5f) == 0, 2f);
-            Assert.AreEqual(1, CountWeaponModifiersWithFireRate(attacker, 0.5f), "the stolen kind's weapon buff now folds on the attacker");
-            Assert.AreEqual(0, CountWeaponModifiersWithFireRate(victim, 0.5f), "the victim's re-derive dropped the stolen kind's buff");
+            // The moved kind's standing weapon buff reaches the attacker's pawn (the loadout's mid-life grant applies it).
+            yield return WaitUntil(() => CountWeaponModifiersWithFireRate(attacker, 0.5f) == 1, 2f);
+            Assert.AreEqual(1, CountWeaponModifiersWithFireRate(attacker, 0.5f),
+                "the stolen kind's weapon buff now folds on the attacker's pawn");
+            // NOTE: the victim's already-folded buff LINGERS until it respawns — removal/teardown cleanup is deferred
+            // (ADR 0009), so this test does NOT assert the victim's fold drops; the ref move above IS the steal.
         }
 
         [UnityTest]
@@ -62,10 +58,9 @@ namespace Arena.PlayTests
             var victim = pair[1];
             yield return WaitFrames(2);
 
-            GivePassive(attacker, CarrierPassive);
-            GivePassive(victim, LootPassive);
+            AttachStealHandler(attacker, enabled: false); // grants the "TestStealSilent" KIND: channel mask None
+            GivePassive(victim, "TestFireRate");
             yield return WaitUntil(() => PassivesCount(attacker) == 1 && PassivesCount(victim) == 1);
-            AttachStealHandler(attacker, enabled: false); // authored mask None: dispatch must filter it out
 
             BeginCapture(victim);
             AimAt(attacker, Position(victim));

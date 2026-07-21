@@ -186,5 +186,6 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 5219024296013189052}
   _networkObjectCache: {fileID: 0}
-  ability: {fileID: 11400000, guid: 104e1e67e0f5646b28ea36de109d7064, type: 2}
+  passiveKindName: Big Bullets
+  ability: {fileID: 0}
   detectionRadius: 1.5

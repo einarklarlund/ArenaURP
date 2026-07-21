@@ -11,7 +11,7 @@ using UnityEngine;
 ///
 /// Why it exists: the <c>Arena.PlayTests</c> asmdef can't reference Assembly-CSharp, where the
 /// gameplay types live (<see cref="Pawn"/>, <see cref="PawnMovement"/>, <see cref="PawnWeapon"/>,
-/// <see cref="PawnColor"/>, <see cref="PawnActiveAbilities"/>, <see cref="PawnPassiveAbilities"/>,
+/// <see cref="PawnColor"/>, <see cref="PawnActiveAbilities"/>, <see cref="PlayerPassiveLoadout"/>,
 /// <see cref="NetworkPlayer"/>, <see cref="NetworkPlayerManager"/>). Tests reach this class by reflection
 /// (<c>Type.GetType("CombatTestRig, Assembly-CSharp")</c>) and call its static methods ??? the same
 /// pattern as <see cref="MatchTestRig"/> / <c>AbilityTestRig</c> / <c>ProjectileSpawnTestRig</c>.
@@ -49,7 +49,6 @@ public static class CombatTestRig
     static PawnWeapon Weapon(GameObject go) => go.GetComponentInChildren<PawnWeapon>(true);
     static PawnColor Color_(GameObject go) => go.GetComponentInChildren<PawnColor>(true);
     static PawnActiveAbilities ActiveAbilities(GameObject go) => go.GetComponentInChildren<PawnActiveAbilities>(true);
-    static PawnPassiveAbilities PassiveAbilities(GameObject go) => go.GetComponentInChildren<PawnPassiveAbilities>(true);
     static KnockbackController Knockback(GameObject go) => go.GetComponentInChildren<KnockbackController>(true);
     static HitstunController Hitstun(GameObject go) => go.GetComponentInChildren<HitstunController>(true);
 
@@ -216,8 +215,33 @@ public static class CombatTestRig
 
     // ---- abilities (server-authoritative paths) --------------------------------------------
 
-    public static void GivePassive(GameObject pawnGo, string abilityPath)
-        => PassiveAbilities(pawnGo).AddPassive(LoadAbility<PassiveAbilityType>(abilityPath));
+    public const string RegistryPrefabPath = "Assets/Tests/PlayMode/Prefabs/TestPassiveRegistry.prefab";
+
+    /// <summary>Server: spawn the shared passive registry ONCE (idempotent on <see cref="PassiveRegistry.Instance"/>)
+    /// so KINDs can be resolved by name before a grant.</summary>
+    static void EnsureRegistry()
+    {
+        if (PassiveRegistry.Instance != null) return;
+        var nm = InstanceFinder.NetworkManager;
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(RegistryPrefabPath);
+        if (prefab == null) throw new System.Exception($"CombatTestRig: missing {RegistryPrefabPath}");
+        nm.ServerManager.Spawn(Object.Instantiate(prefab));
+    }
+
+    static PlayerPassiveLoadout Loadout(GameObject pawnGo)
+    {
+        var pawn = pawnGo.GetComponentInChildren<Pawn>(true);
+        var owner = pawn != null ? pawn.ControllingPlayer.Value : null;
+        return owner != null ? owner.PassiveLoadout : null;
+    }
+
+    /// <summary>Grant a passive KIND (a child of the spawned registry) into the pawn owner's
+    /// <see cref="PlayerPassiveLoadout"/> — the new-model server grant (a reference add).</summary>
+    public static void GivePassive(GameObject pawnGo, string kindName)
+    {
+        EnsureRegistry();
+        Loadout(pawnGo).Grant(PassiveRegistry.Resolve(kindName));
+    }
 
     public static void GiveActive(GameObject pawnGo, string abilityPath)
         => ActiveAbilities(pawnGo).AddActive(LoadAbility<ActiveAbilityType>(abilityPath));
@@ -231,23 +255,16 @@ public static class CombatTestRig
             .Invoke(ActiveAbilities(pawnGo), new object[] { dir });
 
     /// <summary>
-    /// Attach a <see cref="PassiveStealController"/> to the FIRST passive instance under this pawn — the stand-in
-    /// for authoring the component on a passive instance prefab (same serialized surface; runtime attachment only
-    /// because the headless run has no editor to author a prefab with). As an <see cref="IOwnedObjectContribution"/>
-    /// it self-clones onto the owner's projectiles at spawn, so any bullet fired after this call steals on hit.
-    /// With <paramref name="enabled"/> false the authored channel mask is set to None, so dispatch filters the
-    /// handler out on every channel.
+    /// Grant a STEAL KIND to this pawn's owner so its fired projectiles steal a passive on hit. The KIND carries a
+    /// <see cref="PassiveStealController"/> which <see cref="SpawnContributionReceiver"/> self-clones onto the
+    /// owner's projectiles at spawn, so by hit time it is an ordinary handler on the source. With
+    /// <paramref name="enabled"/> false the "TestStealSilent" KIND (authored channel mask None) is granted instead,
+    /// so dispatch filters the handler out on every channel — the off switch.
     /// </summary>
     public static void AttachStealHandler(GameObject pawnGo, bool enabled = true)
     {
-        var passives = new List<PassiveAbility>();
-        PassiveAbilities(pawnGo).GetPassives(passives);
-        if (passives.Count == 0)
-            throw new System.Exception("CombatTestRig: pawn has no passive instance to host the steal handler");
-        var handler = passives[0].gameObject.AddComponent<PassiveStealController>();
-        if (!enabled)
-            typeof(PassiveStealController).GetField("enabledChannels", BindingFlags.NonPublic | BindingFlags.Instance)
-                .SetValue(handler, HitChannels.None);
+        EnsureRegistry();
+        Loadout(pawnGo).Grant(PassiveRegistry.Resolve(enabled ? "TestSteal" : "TestStealSilent"));
     }
 
     static T LoadAbility<T>(string path) where T : AbilityType
@@ -260,7 +277,11 @@ public static class CombatTestRig
     static readonly List<ActiveAbility> _activesBuf = new();
 
     public static int ActivesCount(GameObject pawnGo) => ActiveAbilities(pawnGo).ActivesCount;
-    public static int PassivesCount(GameObject pawnGo) => PassiveAbilities(pawnGo).PassivesCount;
+    public static int PassivesCount(GameObject pawnGo)
+    {
+        var lo = Loadout(pawnGo);
+        return lo != null ? lo.Owned.Count : -1;
+    }
     public static int SelectedIndex(GameObject pawnGo) => ActiveAbilities(pawnGo).SelectedIndex.Value;
 
     public static int AbilityUses(GameObject pawnGo, int index)

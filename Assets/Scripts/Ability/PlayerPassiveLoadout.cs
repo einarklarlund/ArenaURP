@@ -45,11 +45,16 @@ public sealed class PlayerPassiveLoadout : NetworkBehaviour
 
     private void OnOwnedChanged(SyncListOperation op, int index, NetworkObject oldItem, NetworkObject newItem, bool asServer)
     {
-        // A mid-life grant (genuine Add) applies the new kind to the owner's current pawn on every peer. Initial
+        // A mid-life grant (genuine Add) applies the new kind to the owner's current pawn ONCE per peer. Initial
         // replication arrives as a Complete op, not per-item Adds, so this doesn't double-apply with the pawn's
         // own spawn-time apply. A removed (stolen) kind's effect is NOT torn down here — it lingers until the
         // pawn respawns and re-derives (pooling/removal cleanup is deferred).
-        if (op == SyncListOperation.Add && newItem != null)
+        //
+        // clientHost fires OnChange for BOTH the server and client callbacks over the SAME pawn object, so gate to
+        // a single application (the server callback when a server is running here, the client callback on a pure
+        // client) — otherwise the modifier folds twice on a listen-server/host.
+        bool applyHere = asServer ? IsServerInitialized : !IsServerInitialized;
+        if (applyHere && op == SyncListOperation.Add && newItem != null)
         {
             GameObject pawn = OwnerPawn();
             if (pawn != null)

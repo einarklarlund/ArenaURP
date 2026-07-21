@@ -14,8 +14,8 @@ GameObject:
   - component: {fileID: 2891595811883332153}
   - component: {fileID: 3687710493089903596}
   - component: {fileID: 8001326026167082820}
-  - component: {fileID: 6373383262556819811}
   - component: {fileID: 4381368817798077477}
+  - component: {fileID: 2044503501872167568}
   m_Layer: 0
   m_Name: TestShooter
   m_TagString: Untagged
@@ -159,7 +159,6 @@ MonoBehaviour:
   spawnPositionOffset: {x: 0, y: 0, z: 0}
   input: {fileID: 2891595811883332153}
   pawnCollider: {fileID: 0}
-  hitstun: {fileID: 0}
 --- !u!114 &8001326026167082820
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -178,23 +177,6 @@ MonoBehaviour:
   pawn: {fileID: 6102058889812717513}
   input: {fileID: 2891595811883332153}
   aimSource: {fileID: 0}
---- !u!114 &6373383262556819811
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 396719437415316231}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9ba711ba7f0064d3894fb17361fa7c5f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnPassiveAbilities
-  _componentIndexCache: 255
-  _addedNetworkObject: {fileID: 4030238958585574595}
-  _networkObjectCache: {fileID: 0}
-  movement: {fileID: 0}
-  weapon: {fileID: 3687710493089903596}
 --- !u!114 &4381368817798077477
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -218,6 +200,21 @@ MonoBehaviour:
   onServerDeath:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &2044503501872167568
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 396719437415316231}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8929b22686bf454693272ab92e5e46e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PawnPassiveLoadout
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4030238958585574595}
+  _networkObjectCache: {fileID: 0}
 --- !u!1 &1694214989659911869
 GameObject:
   m_ObjectHideFlags: 0

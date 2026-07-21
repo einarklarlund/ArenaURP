@@ -211,6 +211,7 @@ MonoBehaviour:
   pawnManager: {fileID: 4586693265834254295}
   matchFlowManager: {fileID: 6086394704126292500}
   deathmatchManager: {fileID: 2040856623843302717}
+  passiveRegistryPrefab: {fileID: 1855579629338009127, guid: bfa743c5336f44a8998ef391de7d7df8, type: 3}
 --- !u!1 &3849547752077164299
 GameObject:
   m_ObjectHideFlags: 0
@@ -742,8 +743,9 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 72104867908995955}
   _networkObjectCache: {fileID: 6919604355210352237}
   RespawnDelay: 3
-  matchDuration: 6000
-  maxKills: 100
+  timerConfig:
+    MatchDurationSeconds: 600
+    KillsToWin: 5
 --- !u!114 &6919604355210352237
 MonoBehaviour:
   m_ObjectHideFlags: 0

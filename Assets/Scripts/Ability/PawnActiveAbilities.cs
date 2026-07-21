@@ -20,7 +20,8 @@ using UnityEngine;
 ///
 /// This component owns the pawn-side concerns: input edges, the selection SyncVar, the server-side use path
 /// (cooldown gate, resolving the caster's aim origin/direction, despawning exhausted instances), and the
-/// <see cref="InventoryChanged"/> HUD hook. Passive abilities live on the sibling <see cref="PawnPassiveAbilities"/>.
+/// <see cref="InventoryChanged"/> HUD hook. Passive abilities are the shared-registry model (a
+/// <see cref="PlayerPassiveLoadout"/> of KIND references), not a sibling pawn component; see ADR 0009.
 /// </summary>
 public sealed class PawnActiveAbilities : NetworkBehaviour
 {
