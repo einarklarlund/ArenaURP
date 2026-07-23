@@ -2,9 +2,11 @@
 
 Guidance for Claude Code in this repository.
 
-**This file is an INDEX, not a manual.** It holds only what is non-obvious and always relevant. The detail lives in `.claude/skills/`, which load on demand — keep it that way. Start with the `arena-systems-map` skill whenever a task spans more than one system, and `ai-workflow` whenever the *process* feels repetitive or error-prone.
+**This file is an INDEX, not a manual.** It holds only what is non-obvious and always relevant. The detail lives in `.claude/skills/`, which load on demand — keep it that way. Start with the `arena-systems-map` skill whenever a task spans more than one system; `delegation` for who does the noisy work and how much process a change earns; `workflow-artifacts` whenever the tooling layer itself needs a change.
 
-**Before design work or a new feature, read `DESIGN.md`** (open questions + ADR index + the two north stars) and the **grill-ready backlog in `docs/plans/features.md`** (open features + the deferred design decisions each rides, in `docs/plans/decisions/`) — several decisions are deliberately deferred in DESIGN.md and must not be improvised. Before any plan is *finalized*, grill it (questioning technique: the `grilling` skill) against the `engineering-canon` skill's seven design lenses (Parnas/Brooks/Lehman/Conway/Dijkstra/Constantine/Martin) — agreement is reached, not assumed, and settled positions live in its shared-understandings register.
+**The design/build process is the mattpocock flow:** `/grill-with-docs` → `/to-spec` → `/to-tickets` → `/implement` → `/code-review` (plus `/diagnosing-bugs`, `/prototype`, `/research`, `/wayfinder`); `/ask-matt` routes when unsure. Run the full flow for coupled/networked/core work; fast-path leaf code (see `delegation`).
+
+**Before design work or a new feature, read `CONTEXT.md`** (the game's essence + the domain glossary), the **ADR index `docs/adr/README.md`** (what's decided and why — never contradict one silently), and the **grill-ready backlog `docs/plans/features.md`** (open features + the deferred decisions each rides, in `docs/plans/decisions/`) — those decisions are deliberately deferred and must not be improvised. Before any plan is *finalized*, grill it (technique: the `grilling` skill) against the `engineering-canon` skill's seven design lenses (Parnas/Brooks/Lehman/Conway/Dijkstra/Constantine/Martin) and the `design-elegance` value — agreement is reached, not assumed, and settled positions live in the canon's shared-understandings register.
 
 ## Project
 
@@ -60,7 +62,7 @@ Systems never call each other. They contribute to collections the producer folds
 
 A project-aware Unity MCP server is connected (`mcp__unity__*`, schemas via `ToolSearch`). **Text search over `.prefab`/`.unity`/`.asset`/`.meta` is wrong** — that YAML stores GUIDs, not names — and a `PreToolUse` hook blocks it. Anything crossing a GUID boundary, or any write to serialized state, goes through the MCP. → `unity-mcp-vs-shell` skill (decision table + gotchas: the stale domain, the silently-reverting prefab save, scene SceneId baking).
 
-Delegate wide investigation to the **`unity-scout`** subagent and test runs to **`unity-validator`**; main-thread context is for the design. → `ai-workflow` skill.
+Delegate wide investigation to the **`unity-scout`** subagent and test runs to **`unity-validator`**; main-thread context is for the design. → `delegation` skill.
 
 ## Agent skills
 
@@ -76,4 +78,4 @@ Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `
 
 ### Domain docs
 
-Single-context. The design log + ADR index is **`DESIGN.md`**; ADRs live in **`docs/adr/`** (the skills' default location — no glossary yet, created lazily by `domain-modeling`). See `docs/agents/domain.md`.
+Single-context. The glossary + game essence is **`CONTEXT.md`** (repo root); ADRs live in **`docs/adr/`** (the skills' default location), indexed by `docs/adr/README.md`. See `docs/agents/domain.md`.

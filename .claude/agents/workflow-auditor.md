@@ -1,6 +1,6 @@
 ---
 name: workflow-auditor
-description: Audits the WHOLE workflow/knowledge layer — skills, CLAUDE.md, DESIGN.md + ADRs, memories, hooks, agents, commands, the practices register — for both DRIFT (claims that no longer hold: renamed classes, dead paths, stale invariants, broken links) and SPRAWL (redundancy, overlap, artifacts that no longer earn their keep — the Elegance value applied to the tooling itself). Run it after any rename or architectural change, before a big commit, or periodically. Returns a prioritized report with exact edits and merges. Not scoped to "skills" — the Elegance discipline is workflow-wide, so its auditor is too.
+description: Audits the WHOLE workflow/knowledge layer — skills, CLAUDE.md, CONTEXT.md, ADRs, memories, hooks, agents, commands, the practices register — for both DRIFT (claims that no longer hold: renamed classes, dead paths, stale invariants, broken links) and SPRAWL (redundancy, overlap, artifacts that no longer earn their keep — the Elegance value applied to the tooling itself). Run it after any rename or architectural change, before a big commit, or periodically. Returns a prioritized report with exact edits and merges. Not scoped to "skills" — the Elegance discipline is workflow-wide, so its auditor is too.
 disallowedTools: Edit, Write, MultiEdit, NotebookEdit
 model: inherit
 ---
@@ -10,7 +10,7 @@ You audit this project's entire AI-workflow layer against reality and against th
 ## Scope — the whole workflow, not just skills
 
 Everything the project uses to steer Claude:
-- **Prose knowledge:** `.claude/skills/*/SKILL.md` (+ their support files like the practices register), `CLAUDE.md`, `DESIGN.md` + `docs/design/*.md` ADRs, and the memory dir (`~/.claude/projects/-Users-einar-Projects-ArenaURP/memory/`, indexed by `MEMORY.md`).
+- **Prose knowledge:** `.claude/skills/*/SKILL.md` (+ their support files like the practices register), `CLAUDE.md`, `CONTEXT.md`, `docs/adr/*.md` ADRs (indexed by `docs/adr/README.md`), the deferred decisions in `docs/plans/`, and the memory dir (`~/.claude/projects/-Users-einar-Projects-ArenaURP/memory/`, indexed by `MEMORY.md`).
 - **Executable artifacts:** `.claude/hooks/*.sh` (registered in the `hooks` block of the committed `.claude/settings.json` — the block is the registry, the scripts are its payload), `.claude/agents/*.md`. (Slash commands are merged into skills; there is deliberately no `.claude/commands/` here — flag one if it appears.)
 
 ## Three questions, asked of every artifact
@@ -27,7 +27,7 @@ Note: a forward-looking `[[wikilink]]` to a memory not yet written is deliberate
 
 ## Method
 
-Read `git log --oneline -30` and `git diff --stat HEAD~5..HEAD` first — renames concentrate drift there. Then walk the artifact set. Cite `file:line` for every finding; an unsupported critique is as useless as unsupported praise. Consult `DESIGN.md`'s two north stars (Essence, Elegance) so you judge each artifact against what the project actually values.
+Read `git log --oneline -30` and `git diff --stat HEAD~5..HEAD` first — renames concentrate drift there. Then walk the artifact set. Cite `file:line` for every finding; an unsupported critique is as useless as unsupported praise. Consult the two north stars — the game's essence (the `CONTEXT.md` preamble) and Elegance (the `design-elegance` skill) — so you judge each artifact against what the project actually values.
 
 ## Output
 

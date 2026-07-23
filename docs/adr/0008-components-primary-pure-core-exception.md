@@ -29,7 +29,7 @@ Baseline from a `unity-scout` measured pass (2026-07-17):
 - **No reuse dividend:** nearly every processor has exactly **one** shell caller. The FCIS reuse justification is dead.
 - **Real, realized benefit:** a cluster of cores (`MovementProcessor`, `WeaponProcessor`, `ServerCollisionProcessor`, `HitstunProcessor`, all `NetworkedMotion` strategies + `Deflect`/`Ricochet`/`SpawnFanMath`) is re-run on multiple peers; a regression is a **silent peer desync**. An EditMode test on the pure function catches it cheaply — PlayMode host fixtures typically don't.
 - **Test yield:** ~**16 of 28** EditMode tests are HIGH-yield; only ~4 are LOW.
-- **Guards, not ceremony:** two thin-looking cores hide a real decision — `UIStateMapper` enforces `switch` exhaustiveness in an engine-free assembly (Unity's compiler won't fail the build otherwise — the `unity-ignores-editorconfig` scar), and `DamageProcessor` is the deliberately-empty seam for the deferred damage-buff design (open question in DESIGN.md).
+- **Guards, not ceremony:** two thin-looking cores hide a real decision — `UIStateMapper` enforces `switch` exhaustiveness in an engine-free assembly (Unity's compiler won't fail the build otherwise — the `unity-ignores-editorconfig` scar), and `DamageProcessor` is the deliberately-empty seam for the deferred damage-buff design (open question in [docs/plans/decisions/damage-buff-channel.md](../plans/decisions/damage-buff-channel.md)).
 
 ## Consequences
 

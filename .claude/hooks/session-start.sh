@@ -60,10 +60,10 @@ ARENA SESSION ORIENTATION
   Unity editor: $unity
 $verdicts
 
-DELEGATION (see the \`ai-workflow\` skill)
+DELEGATION (see the \`delegation\` skill)
   - >3 files to answer, or any question crossing a prefab/scene/GUID boundary -> spawn \`unity-scout\`.
   - Running or parsing tests, or compile-checking -> spawn \`unity-validator\`. Never poll test XML in this thread.
-  - Open design question -> plan mode BEFORE code.
+  - Open design question -> the mattpocock /grill-with-docs flow BEFORE code.
   Main-thread context is for the design. Skill drift is an attention failure, not a memory failure.
 
 STANDING MANDATES (canonical statement: the ai-workflow-coaching memory — read it before acting on these)

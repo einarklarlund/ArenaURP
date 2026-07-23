@@ -220,7 +220,7 @@ aspirational. **The doc and the code disagree; F reconciles them.**
 **Recommendation:** option 1 (ObserversRpc in `Health`) most directly restores the lost behaviour and
 keeps predictive timing, but it re-introduces the double-fire-on-host hazard that C fixes — do C
 first, then design F on top of it. Do **not** improvise; put it through the canon interview and record
-the outcome as an ADR if it settles a networking pattern (`DESIGN.md` ADR index).
+the outcome as an ADR if it settles a networking pattern (`docs/adr/`, indexed by `docs/adr/README.md`).
 
 **Proof.** PlayMode test with a client peer (if the combat rig supports one): deal a server-side
 lethal hit, assert the client's `pawn.OnDamageTaken` / `OnDeath` (or the VFX spawn) fires. Without a

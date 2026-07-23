@@ -30,19 +30,19 @@ nudges=()
 add() { nudges+=("$1"); }
 
 # ESSENCE check — fires on any design/feature/scope prompt. The overarching design lens: does this serve
-# the game's essence, and does it grow scope past the handful of systems? (Full text: DESIGN.md.)
+# the game's essence, and does it grow scope past the handful of systems? (Full text: CONTEXT.md preamble.)
 if printf '%s' "$lc" | grep -Eq '\b(design|implement|add|build|create|feature|system|ability|abilities|upgrade|pickup|projectile|effect|mechanic|enemy|weapon|mode|redesign|should we)\b'; then
-  # Inline only the STABLE claim; POINT to the volatile system list (it lives in DESIGN.md and changes —
+  # Inline only the STABLE claim; POINT to the volatile system list (it lives in CONTEXT.md and changes —
   # enumerating it here drifted within two turns, which is why this rule exists).
-  add "ESSENCE: the game is character-BUILDING via a handful of INTERACTING systems. Test against it: does this deepen an upgrade-driven interaction, or is it a one-off that composes into nothing? Does it add a system beyond the current list (see DESIGN.md — read it, do not assume)? If either, challenge it before building, and guard the essence's size."
+  add "ESSENCE: the game is character-BUILDING via a handful of INTERACTING systems. Test against it: does this deepen an upgrade-driven interaction, or is it a one-off that composes into nothing? Does it add a system beyond the current list (see CONTEXT.md — read it, do not assume)? If either, challenge it before building, and guard the essence's size."
 fi
 
 # Intent classification — most work-heavy match leads. A prompt can trip several; keep to ~2.
 if printf '%s' "$lc" | grep -Eq '\b(design|architect|approach|options|trade-?offs?|should (we|i)|how should|figure out|decide|redesign)\b'; then
-  add "This reads as DESIGN. Prefer plan mode (/plan or Shift+Tab) BEFORE any code — settle it in prose. Before the plan is FINAL, grill it against the engineering-canon lenses (seven; questioning technique is the grilling skill; check its shared-understandings register before re-asking). If a real decision gets made, it wants an ADR in docs/adr/ (see DESIGN.md)."
+  add "This reads as DESIGN. Settle it in prose BEFORE any code with the mattpocock /grill-with-docs flow. Before the plan is FINAL, grill it against the engineering-canon lenses (seven; the questioning is /grilling; check its shared-understandings register before re-asking). A real decision wants an ADR in docs/adr/ (conventions: docs/agents/domain.md)."
 fi
 if printf '%s' "$lc" | grep -Eq '\b(implement|add|build|create|write|wire|codify|refactor|rewrite|change|introduce|hook up|make (it|a|the))\b'; then
-  add "This reads as BUILD. First: is it leaf/dev-only (tooling, converter, one-off)? Then fast-path it — try+verify, skip the interview (ai-workflow 'two speeds'). If it touches networked/core code (SyncVar/RPC/[Server]/the hit-exchange web), it's the gauntlet: say the AI-effective plan first (what delegates to unity-scout, what wants plan mode), name the test that will PROVE it before writing it, gameplay logic -> Core processor not the MonoBehaviour."
+  add "This reads as BUILD. First: is it leaf/dev-only (tooling, converter, one-off)? Then fast-path it — try+verify, skip the interview (delegation skill's 'two speeds'). If it touches networked/core code (SyncVar/RPC/[Server]/the hit-exchange web), it's the gauntlet: run the mattpocock flow (/grill-with-docs -> /to-spec -> /to-tickets -> /implement -> /code-review), say what delegates to unity-scout first, name the test that will PROVE it before writing it, gameplay logic -> Core processor not the MonoBehaviour."
 fi
 if printf '%s' "$lc" | grep -Eq '\b(refactor|simplify|clean ?up|redesign|rework|restructure|consolidate|tech debt|convoluted|overcomplicated|too many|too complex)\b'; then
   # The passive-refactor miss (2026-07-19): a plan patched from the status quo and preserved its machinery
@@ -71,12 +71,12 @@ fi
 COUNT_FILE=".claude/.habit-count"
 n="$(cat "$COUNT_FILE" 2>/dev/null || echo 0)"; n=$((n + 1)); printf '%s' "$n" > "$COUNT_FILE" 2>/dev/null || true
 if (( n % 20 == 0 )); then
-  add "FRONTIER (every 20 tasks): re-evaluate ONE adopted practice and scan for ONE new one against current best practice. Update .claude/skills/ai-workflow/practices-register.md with the verdict + date."
+  add "FRONTIER (every 20 tasks): re-evaluate ONE adopted practice and scan for ONE new one against current best practice. Update .claude/skills/workflow-artifacts/practices-register.md with the verdict + date."
 fi
 
 [[ ${#nudges[@]} -eq 0 ]] && exit 0
 
-ctx="WORKFLOW HABITS (habit-check hook — nudge, not a gate; see the ai-workflow skill):"
+ctx="WORKFLOW HABITS (habit-check hook — nudge, not a gate; see the delegation + workflow-artifacts skills):"
 for x in "${nudges[@]}"; do ctx+=$'\n  - '"$x"; done
 ctx+=$'\nState the plan and what you will delegate BEFORE acting. If a habit does not apply here, say so in one line and move on.'
 

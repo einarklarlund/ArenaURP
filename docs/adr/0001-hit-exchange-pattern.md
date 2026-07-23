@@ -33,5 +33,5 @@ The receiver owns cross-peer application: `KnockbackReceiver.ApplyImpulse` is `[
 ## Consequences
 
 - **Easy:** a new "deal X on hit" copies the shape; the three exchanges compose freely (shove without damage, stun without shove); balance lives on the prefab.
-- **Hard / deferred:** the *dealing-end* modifier lists exist but have no contributors — the damage-buff channel is still an open question (see DESIGN.md). Adding a receiver now requires deciding which peer simulates it first (documented as `fishnet-conventions` Rule 4b).
+- **Hard / deferred:** the *dealing-end* modifier lists exist but have no contributors — the damage-buff channel is still an open question (see [docs/plans/decisions/damage-buff-channel.md](../plans/decisions/damage-buff-channel.md)). Adding a receiver now requires deciding which peer simulates it first (documented as `fishnet-conventions` Rule 4b).
 - **Doctrine produced:** `effect-commands` skill (the pattern), `fishnet-conventions` Rule 4b (which-peer-simulates), `integration-testing` gate 5 (positive controls — a test asserting *absence* of an effect passed over a prefab with the feature entirely absent).
