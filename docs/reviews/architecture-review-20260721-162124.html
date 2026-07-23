@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — ArenaURP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 5 4; }
+      .shallow { background: repeating-linear-gradient(135deg,#f1f5f9,#f1f5f9 8px,#e2e8f0 8px,#e2e8f0 16px); }
+      .deep { background: linear-gradient(135deg,#0f172a,#1e293b); }
+      .dead { opacity:.35; text-decoration: line-through; }
+      .label { font-size:.65rem; letter-spacing:.08em; text-transform:uppercase; }
+      body { font-feature-settings:"ss01"; }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-14 space-y-14">
+
+      <!-- ================= HEADER ================= -->
+      <header class="space-y-6">
+        <div class="flex items-baseline justify-between flex-wrap gap-3">
+          <h1 class="font-serif text-4xl tracking-tight">Architecture review — <span class="text-emerald-700">ArenaURP</span></h1>
+          <span class="text-sm text-slate-500">2026-07-21 · deepening opportunities</span>
+        </div>
+        <p class="text-slate-600 max-w-3xl leading-relaxed">
+          The verdict first: this codebase is <strong>architecturally healthy</strong>. The pure-core pattern (ADR 0008)
+          produces genuinely <em>deep</em> modules where it lands — <code class="text-sm">NetworkedMotion</code>,
+          the <code class="text-sm">*Processor</code> cores, <code class="text-sm">MatchMediator</code> — and the
+          presence-dispatch, per-datum-controller, and type-object patterns are all working as their ADRs intend. What
+          follows is a <strong>small, targeted</strong> set of friction points, not a rescue. Nothing here re-litigates a
+          settled ADR without saying so.
+        </p>
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
+          <p class="label text-slate-400 mb-2">One theme connects half of these</p>
+          <p class="text-slate-700 leading-relaxed">
+            <strong>The extraction reflex points at the safe complexity.</strong> Trivial arithmetic gets lifted into a
+            testable core (<code class="text-sm">AbilityInventoryLogic</code>, <code class="text-sm">HealthState.Fraction</code>)
+            while the <em>risky</em> logic — network apply-timing, per-spawn buff reseed, death transitions — stays in the
+            <code class="text-sm">NetworkBehaviour</code> shell, reachable only through PlayMode. The core buys confidence
+            disproportionate to the risk it covers. Several candidates below are the same inversion in different clothes.
+          </p>
+        </div>
+        <!-- legend -->
+        <div class="flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-500 border-t border-slate-200 pt-4">
+          <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 border border-slate-400 bg-white"></span> module</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 shallow border border-slate-300"></span> shallow module</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 deep"></span> deep module</span>
+          <span class="flex items-center gap-2"><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" class="seam" stroke="#64748b" stroke-width="2"/></svg> seam</span>
+          <span class="flex items-center gap-2"><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="#dc2626" stroke-width="2"/></svg> leak / redundancy</span>
+        </div>
+      </header>
+
+      <!-- ================= CANDIDATES ================= -->
+      <section id="candidates" class="space-y-12">
+
+        <!-- ---------- CANDIDATE 1 ---------- -->
+        <article id="c1" class="rounded-xl border border-slate-200 bg-white shadow-sm p-7 space-y-5">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <h2 class="font-serif text-2xl">1 · Collapse the scalar-multiplier passives behind one seam</h2>
+            <div class="flex gap-2">
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">Strong</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">local-substitutable</span>
+            </div>
+          </div>
+          <p class="font-mono text-sm text-slate-500">
+            SpeedPassive.cs · ScalePassive.cs · CollisionRadiusPassive.cs · MaxHealthPassive.cs
+            <span class="text-slate-400">→ seams on</span> NetworkedMotion:195 · SpawnScale:32 · ServerCollision:119 · HealthController:90
+          </p>
+
+          <!-- before / after -->
+          <div class="grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-200 p-4">
+              <p class="label text-slate-400 mb-3">Before · four shallow modules</p>
+              <div class="space-y-2">
+                <div class="shallow border border-slate-300 rounded px-3 py-2 text-sm flex justify-between"><span>SpeedPassive</span><span class="text-slate-400 font-mono text-xs">SetSpeedMultiplier</span></div>
+                <div class="shallow border border-slate-300 rounded px-3 py-2 text-sm flex justify-between"><span>ScalePassive</span><span class="text-slate-400 font-mono text-xs">SetScaleMultiplier</span></div>
+                <div class="shallow border border-slate-300 rounded px-3 py-2 text-sm flex justify-between"><span>CollisionRadiusPassive</span><span class="text-slate-400 font-mono text-xs">SetRadiusMultiplier</span></div>
+                <div class="shallow border border-slate-300 rounded px-3 py-2 text-sm flex justify-between"><span>MaxHealthPassive</span><span class="text-slate-400 font-mono text-xs">SetMaxHealthMultiplier</span></div>
+              </div>
+              <p class="text-xs text-slate-500 mt-3 leading-snug">Each ≈26 lines: one <code>float multiplier</code>, "has component?", "compose-multiply". Differ <em>only</em> in the target type and the setter name.</p>
+            </div>
+            <div class="rounded-lg border border-slate-200 p-4">
+              <p class="label text-slate-400 mb-3">After · one deep module + one seam</p>
+              <div class="deep text-white rounded px-3 py-3 text-sm">
+                <div class="font-semibold">ScalarMultiplierPassive</div>
+                <div class="text-slate-300 text-xs mt-1">config: which seam · factor</div>
+              </div>
+              <div class="flex justify-center my-2"><svg width="20" height="26"><line x1="10" y1="0" x2="10" y2="26" class="seam" stroke="#64748b" stroke-width="2"/></svg></div>
+              <div class="border-2 border-slate-700 rounded px-3 py-2 text-sm font-mono">IScalarBuffTarget</div>
+              <div class="grid grid-cols-4 gap-1 mt-2 text-[10px] text-center text-slate-500">
+                <span class="border rounded py-1">Motion</span><span class="border rounded py-1">Scale</span><span class="border rounded py-1">Radius</span><span class="border rounded py-1">Health</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-3 leading-snug">Four concretions of the seam clear rule-of-two. Variation moves into authored config — the project's <em>generic-via-config</em> ideal.</p>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="label text-slate-400">Problem</span><br>Four modules whose interface all but equals their implementation, kept apart only by an absent shared seam.</p>
+            <p><span class="label text-slate-400">Solution</span><br>An <code>IScalarBuffTarget</code> (read <code>Multiplier</code>, <code>ApplyMultiplier</code>) on the four targets; one config-driven passive that selects its seam.</p>
+          </div>
+          <ul class="text-sm text-slate-700 grid sm:grid-cols-2 gap-x-8 gap-y-1 list-disc pl-5">
+            <li>Delete 3 shallow modules</li>
+            <li>Interface shrinks; config absorbs variation</li>
+            <li>Leverage: one passive, N seams</li>
+            <li>Lays the seam the deferred damage-buff channel reuses</li>
+          </ul>
+          <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+            <strong>ADR 0009 nuance —</strong> the ADR blesses "one component <em>instance</em> per seam," not one hand-written <em>class</em> per seam; the four-way class duplication is not ADR-recorded. Honest caveat: one object can host several seams, so the config must name <em>which</em> — that selector is the load-bearing design choice for the grilling loop.
+          </div>
+        </article>
+
+        <!-- ---------- CANDIDATE 2 ---------- -->
+        <article id="c2" class="rounded-xl border border-slate-200 bg-white shadow-sm p-7 space-y-5">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <h2 class="font-serif text-2xl">2 · Fold the twin ownership modules into one</h2>
+            <div class="flex gap-2">
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">Strong</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">in-process</span>
+            </div>
+          </div>
+          <p class="font-mono text-sm text-slate-500">Projectile/NetPlayerOwnership.cs &nbsp;vs&nbsp; Combat/NetworkPlayerOwnership.cs &nbsp;(+ HitBox.cs · PawnManager.cs)</p>
+
+          <div class="rounded-lg border border-slate-200 p-4">
+            <pre class="mermaid">
+flowchart LR
+  subgraph before["Before — one concept, two modules"]
+    direction TB
+    NPO["NetPlayerOwnership&#160;(Projectile)&#10;int SpawnOwnerId · event-free"] --- P1["NetworkedMotion · ServerCollision&#10;SpawnContributionReceiver · PawnWeapon"]
+    NPO2["NetworkPlayerOwnership&#160;(Combat)&#10;NetworkPlayer ref · UnityEvent OnAssignment"] -.dup.- P2["HitBox · PawnManager"]
+  end
+  NPO2 == "same concept, one letter apart" ==> NPO
+  classDef leak stroke:#dc2626,stroke-width:2px,fill:#fef2f2;
+  class NPO2 leak
+            </pre>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="label text-slate-400">Problem</span><br>"Who owns this spawned object" is implemented twice — different wire formats, and the Combat copy broadcasts through an inspector <code>UnityEvent</code> the comms rule says to avoid.</p>
+            <p><span class="label text-slate-400">Solution</span><br>Delete <code>NetworkPlayerOwnership</code>; move <code>HitBox</code>/<code>PawnManager</code> onto the event-free <code>NetPlayerOwnership</code> + <code>NetPlayerResolver</code>.</p>
+          </div>
+          <ul class="text-sm text-slate-700 grid sm:grid-cols-2 gap-x-8 gap-y-1 list-disc pl-5">
+            <li>One ownership module, one wire format</li>
+            <li>Delete an inspector pub/sub channel</li>
+            <li>Kills a live naming-confusion trap</li>
+            <li>Locality: ownership reads resolve one way</li>
+          </ul>
+        </article>
+
+        <!-- ---------- CANDIDATE 3 ---------- -->
+        <article id="c3" class="rounded-xl border border-slate-200 bg-white shadow-sm p-7 space-y-5">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <h2 class="font-serif text-2xl">3 · Shed the dead interface surface</h2>
+            <div class="flex gap-2">
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">Strong</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">subtraction</span>
+            </div>
+          </div>
+          <p class="font-mono text-sm text-slate-500">SpawnModifier.cs · PlayerPassiveLoadout:22,94 · NetworkUIEvents.cs · HitInfo:27-37</p>
+
+          <!-- mass bars: interface vs contract -->
+          <div class="grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-200 p-4">
+              <p class="label text-slate-400 mb-3">Before · interface wider than contract</p>
+              <div class="space-y-2 text-sm">
+                <div class="flex items-center gap-2"><span class="w-40 dead text-slate-500">SpawnModifier struct</span><span class="text-xs text-slate-400">0 references — a rejected draft's leftover data half</span></div>
+                <div class="flex items-center gap-2"><span class="w-40 dead text-slate-500">ResetForRespawn / persistAcrossDeath</span><span class="text-xs text-slate-400">no caller — an inert serialized knob</span></div>
+                <div class="flex items-center gap-2"><span class="w-40 dead text-slate-500">4 NetworkUIEvents</span><span class="text-xs text-slate-400">zero bus subscribers</span></div>
+                <div class="flex items-center gap-2"><span class="w-40 dead text-slate-500">HitInfo.Other* / IncomingVelocity</span><span class="text-xs text-slate-400">computed, then discarded (test-only)</span></div>
+              </div>
+              <p class="text-xs text-slate-500 mt-3">Each is a phantom mechanism a reader must hold in their head to trust the real one.</p>
+            </div>
+            <div class="rounded-lg border border-slate-200 p-4 flex flex-col justify-center items-center text-center">
+              <p class="label text-slate-400 mb-3">After · interface = contract</p>
+              <div class="deep text-white rounded px-6 py-4 text-sm">the surface that is actually used</div>
+              <p class="text-xs text-slate-500 mt-3 max-w-xs">Pure subtraction — nothing depends on the deleted surface. Verified: <code>grep</code> confirms zero external references for the first two.</p>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="label text-slate-400">Problem</span><br>Four interfaces are wider than their contracts — dead struct, unwired seam, subscriber-less events, discarded fields.</p>
+            <p><span class="label text-slate-400">Solution</span><br>Delete them. The zero-risk warm-up before any deepening.</p>
+          </div>
+          <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+            <strong>ADR 0009 wording drift —</strong> the ADR sells <code>persistAcrossDeath</code> as "the single per-life/per-game home," but the per-life branch is unreachable (loadout persistence actually comes free from ownership living on the persistent <code>NetworkPlayer</code>). Worth a one-line ADR correction, not a re-decision.
+          </div>
+        </article>
+
+        <!-- ---------- CANDIDATE 4 ---------- -->
+        <article id="c4" class="rounded-xl border border-slate-200 bg-white shadow-sm p-7 space-y-5">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <h2 class="font-serif text-2xl">4 · Resolve the Health core inversion — deepen it or delete it</h2>
+            <div class="flex gap-2">
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">Worth exploring</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">in-process</span>
+            </div>
+          </div>
+          <p class="font-mono text-sm text-slate-500">Combat/HealthController.cs · Health/HealthState.cs</p>
+
+          <!-- cross-section: where the risk lives vs where the test lives -->
+          <div class="grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-200 p-4">
+              <p class="label text-slate-400 mb-3">Before · the core covers the wrong half</p>
+              <div class="space-y-1.5 text-sm">
+                <div class="deep text-white rounded px-3 py-1.5 flex justify-between"><span>HealthState.Fraction</span><span class="text-emerald-300 text-xs">EditMode ✓</span></div>
+                <div class="text-center text-xs text-slate-400 py-1">— shell, PlayMode-only —</div>
+                <div class="shallow border border-red-300 rounded px-3 py-1.5 text-slate-700">SeedFromMax · per-spawn buff multiply</div>
+                <div class="shallow border border-red-300 rounded px-3 py-1.5 text-slate-700">ApplyLoss clamp · death transition</div>
+                <div class="shallow border border-red-300 rounded px-3 py-1.5 text-slate-700">SetMaxHealthMultiplier compose + reseed</div>
+              </div>
+              <p class="text-xs text-slate-500 mt-3">The tested core is a one-line divide-by-zero guard. The bug-prone reseed/clamp/death logic sits in red — untested.</p>
+            </div>
+            <div class="rounded-lg border border-slate-200 p-4">
+              <p class="label text-slate-400 mb-3">After · two honest paths</p>
+              <div class="space-y-3 text-sm">
+                <div class="border-2 border-emerald-600 rounded p-3">
+                  <p class="font-semibold text-emerald-800">a · deepen</p>
+                  <p class="text-xs text-slate-600 mt-1">Core owns <code>Seed/Loss/Heal/BuffMax</code> as pure transitions returning new state; shell only applies + syncs → EditMode reaches the risk.</p>
+                </div>
+                <div class="border-2 border-slate-400 rounded p-3">
+                  <p class="font-semibold text-slate-700">b · delete</p>
+                  <p class="text-xs text-slate-600 mt-1">If it's "just a clamp," inline <code>HealthState</code> — ADR 0008's own rule: <em>a clamp is not worth a pure core.</em></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="label text-slate-400">Problem</span><br>The pure core holds a one-line guard while the seed/buff/death logic — the actual failure surface — lives untested in the shell.</p>
+            <p><span class="label text-slate-400">Solution</span><br>Decide (a) vs (b) against ADR 0008's own criterion. The decision <em>is</em> the work — grilling territory.</p>
+          </div>
+          <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+            <strong>ADR 0008 arbitrates its own rule —</strong> "extract a pure core only when determinism-critical or heavily branchy." A max-health buff that reseeds SyncVars across pooled reuse is at least arguable on both counts; a clamp is neither. This isn't re-litigating 0008 — it's applying it to a module that drifted from it.
+          </div>
+        </article>
+
+        <!-- ---------- CANDIDATE 5 ---------- -->
+        <article id="c5" class="rounded-xl border border-slate-200 bg-white shadow-sm p-7 space-y-5">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <h2 class="font-serif text-2xl">5 · Collapse the screen-selection translation in UIManager</h2>
+            <div class="flex gap-2">
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">Worth exploring</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">in-process</span>
+            </div>
+          </div>
+          <p class="font-mono text-sm text-slate-500">Managers/UIManager.cs:102-125,134-141,177-184 · UI/Core/UIStateMapper.cs</p>
+
+          <div class="rounded-lg border border-slate-200 p-4">
+            <pre class="mermaid">
+flowchart LR
+  MS[MatchState] --> UMS[UIMatchState] --> VK[ViewKind] --> SW["Show&lt;T&gt;()"]
+  VT[View Type] --> VK2[ViewKind] --> CAM[menu-camera bool]
+  classDef red stroke:#dc2626,stroke-width:2px,fill:#fef2f2;
+  class UMS,VK,VK2 red
+            </pre>
+            <p class="text-xs text-slate-500 mt-2 px-1">One 5-screen concept, four representations, three translation tables. <code>UIStateMapper</code> owns only 3 of ~12 visibility decisions; the rest is flat wiring here.</p>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="label text-slate-400">Problem</span><br>The machinery exceeds the depth it delivers — to answer "why is screen X up?" you consult the mapper <em>and</em> 14 hardcoded wires <em>and</em> the raising view.</p>
+            <p><span class="label text-slate-400">Solution</span><br>Let one table own state→view; collapse the redundant <code>ViewKind</code>/<code>Type</code> hops.</p>
+          </div>
+          <ul class="text-sm text-slate-700 grid sm:grid-cols-2 gap-x-8 gap-y-1 list-disc pl-5">
+            <li>Fewer representations of one concept</li>
+            <li>Locality: visibility authority concentrates</li>
+            <li>Interface shrinks toward its real depth</li>
+          </ul>
+          <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+            <strong>Structural floor —</strong> the Core-assembly split forces the <code>MatchState↔UIMatchState</code> mirror (a Core enum can't see the engine enum). That one hop stays; the other two are the collapsible redundancy.
+          </div>
+        </article>
+
+        <!-- ---------- CANDIDATE 6 ---------- -->
+        <article id="c6" class="rounded-xl border border-slate-200 bg-white shadow-sm p-7 space-y-5">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <h2 class="font-serif text-2xl">6 · Give the View base the subscription lifecycle its 18 views hand-roll</h2>
+            <div class="flex gap-2">
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">Worth exploring</span>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">in-process</span>
+            </div>
+          </div>
+          <p class="font-mono text-sm text-slate-500">UI/View.cs · ~14 *View.cs (Main · Pause · Lobby · Settings · Death · Countdown · …)</p>
+
+          <div class="grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-200 p-4">
+              <p class="label text-slate-400 mb-3">Before · empty base, three idioms</p>
+              <div class="shallow border border-slate-300 rounded px-3 py-2 text-sm text-center mb-3">View — SetActive + cursor only</div>
+              <div class="space-y-1.5 text-xs">
+                <div class="border rounded px-2 py-1.5 flex justify-between"><span>Main · Pause · Lobby …</span><span class="font-mono text-slate-400">Show()/Hide()</span></div>
+                <div class="border rounded px-2 py-1.5 flex justify-between"><span>Countdown · Death · Loading …</span><span class="font-mono text-slate-400">OnEnable/OnDisable</span></div>
+                <div class="border rounded px-2 py-1.5 flex justify-between"><span>MainMenu · RoomBrowser</span><span class="font-mono text-slate-400">Start/OnDestroy</span></div>
+                <div class="border border-red-300 bg-red-50 rounded px-2 py-1.5 text-red-800">MainView: damage-while-hidden dropped (self-noted bug)</div>
+              </div>
+            </div>
+            <div class="rounded-lg border border-slate-200 p-4 flex flex-col justify-center">
+              <p class="label text-slate-400 mb-3">After · base owns the timing</p>
+              <div class="deep text-white rounded px-3 py-4 text-sm">
+                <div class="font-semibold">View</div>
+                <div class="text-slate-300 text-xs mt-1">declares subscriptions · owns subscribe/unsubscribe timing</div>
+              </div>
+              <div class="grid grid-cols-3 gap-1 mt-3 text-[10px] text-center text-slate-500">
+                <span class="border rounded py-1">wiring only</span><span class="border rounded py-1">wiring only</span><span class="border rounded py-1">wiring only</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-3">One idiom; the base absorbs the boilerplate and the dropped-event bug disappears with it. A test seam appears.</p>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <p><span class="label text-slate-400">Problem</span><br>The base is a shell; each view reimplements bus wiring in one of three inconsistent lifecycle idioms, and one silently drops events.</p>
+            <p><span class="label text-slate-400">Solution</span><br>Deepen <code>View</code> to own a declared subscription lifecycle; views declare, base times.</p>
+          </div>
+          <ul class="text-sm text-slate-700 grid sm:grid-cols-2 gap-x-8 gap-y-1 list-disc pl-5">
+            <li>One idiom, base absorbs the boilerplate</li>
+            <li>Fixes the latent dropped-event bug</li>
+            <li>A test seam below the bus finally exists</li>
+          </ul>
+        </article>
+
+      </section>
+
+      <!-- ================= TOP RECOMMENDATION ================= -->
+      <section id="top-recommendation">
+        <div class="rounded-xl border-2 border-emerald-600 bg-emerald-50 p-7 space-y-3">
+          <p class="label text-emerald-700">Tackle first</p>
+          <h2 class="font-serif text-2xl text-emerald-900"><a href="#c1" class="hover:underline">1 · Collapse the scalar-multiplier passives</a></h2>
+          <p class="text-emerald-900 leading-relaxed max-w-3xl">
+            It is the truest <em>deepening</em> on the list and the best-aligned with the project's own north star:
+            four shallow modules become one config-driven module behind an earned seam — the <strong>generic-via-config</strong>
+            ideal, with the rule-of-two decisively cleared (four concretions). It deletes code, shrinks the interface,
+            and lays exactly the seam the deferred damage-buff channel in <code>DESIGN.md</code> will reuse. Warm up with
+            <a href="#c3" class="underline">candidate 3</a> (zero-risk subtraction) the same session, then bring
+            candidate 1 into a grilling loop — the one real decision is how config names <em>which</em> seam a passive targets.
+          </p>
+        </div>
+        <p class="text-center text-sm text-slate-400 mt-8">
+          Explored via three parallel read-only walks (Ability · UI · Projectile), calibrated against ADRs 0002/0003/0005/0008/0009.
+          Deletion claims in candidate 3 verified by grep.
+        </p>
+      </section>
+
+    </main>
+  </body>
+</html>
