@@ -24,7 +24,7 @@ A rule you must *remember* is a hope, not a rule. Encode it where the harness en
 
 ## The inventory IS the directory
 
-Keep no separate list of what exists — a copy drifts, and the auditor would then be detecting rot this structure prevents. Each artifact self-indexes: the `.claude/settings.json` `hooks` block is the hook registry, and a script without an entry there is dead code (all five hooks once died silently for two days when their registration lived only in the un-committed `settings.local.json` — it goes in the *committed* file); subagents appear in the session's agent list; skills self-index via their frontmatter descriptions; `MEMORY.md` indexes memories. `@agent-workflow-auditor` audits the whole layer for drift and sprawl.
+Keep no separate list of what exists — a copy drifts, and the auditor would then be detecting rot this structure prevents. Each artifact self-indexes: the `.claude/settings.json` `hooks` block is the hook registry, and a script without an entry there is dead code (all five hooks once died silently for two days when their registration lived only in the un-committed `settings.local.json` — it goes in the *committed* file); subagents appear in the session's agent list; skills self-index via their frontmatter descriptions; `MEMORY.md` indexes memories. `@agent-doc-auditor` audits the whole layer against the mattpocock corpus and renders its findings as an HTML report.
 
 A subagent added, or a `settings.json` change made, mid-session is picked up only next session.
 
@@ -33,4 +33,4 @@ A subagent added, or a `settings.json` change made, mid-session is picked up onl
 - **Earn each artifact with a real failure or repetition**, and write that failure into it as its example — a rule with a scar is remembered. An artifact added "in case it's useful" is the [[no-speculative-interfaces]] rule wearing a workflow hat.
 - **Improve both ways.** *Failure-patching* codifies what just went wrong; *frontier-scanning* adopts practices you don't yet feel the pain of missing — invisible to failure-patching, so you adopt them deliberately or never. Both feed the practices register ([practices-register.md](practices-register.md)), the dated Adopted / Watching / Rejected ledger; its ~20-prompt re-evaluation is nudged by `habit-check`.
 - **A guardrail that repeatedly blocks correct work is evidence the doctrine is wrong** — feed the collision into a design review rather than softening the hook. (The one-concretion nudge killing the `effect-commands` route in two independent spikes decided ADR 0002.)
-- **Repairing a violated guardrail is part of the fix** ([[proactive-skill-maintenance]]). After any rename or architectural change, run `@agent-workflow-auditor` before trusting the docs.
+- **Repairing a violated guardrail is part of the fix** ([[proactive-skill-maintenance]]). After any rename or architectural change, run `@agent-doc-auditor` before trusting the docs.
