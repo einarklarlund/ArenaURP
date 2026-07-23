@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ArenaURP — How a prompt is processed</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #2a2f3a;
+    --ink: #e6e9ef;
+    --muted: #9aa4b2;
+    --accent: #7aa2f7;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  header { padding: 28px 32px 8px; max-width: 1200px; margin: 0 auto; }
+  h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: -0.02em; }
+  header p { margin: 0; color: var(--muted); max-width: 780px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 16px 32px 4px; max-width: 1200px; margin: 0 auto; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; }
+  .swatch { width: 15px; height: 15px; border-radius: 4px; border: 1px solid rgba(255,255,255,.15); }
+  .diagram-wrap { max-width: 1200px; margin: 8px auto 40px; padding: 0 16px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    padding: 8px; overflow-x: auto; }
+  .mermaid { text-align: center; }
+  footer { max-width: 1200px; margin: 0 auto 60px; padding: 0 32px; color: var(--muted); font-size: 13px; }
+  footer code { background: #22262f; padding: 1px 6px; border-radius: 5px; color: var(--ink); }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>How a prompt gets processed in ArenaURP</h1>
+  <p>From the moment you type a prompt to the artifacts it leaves behind. The whole thing hangs on
+  one branch point: <strong>is this leaf/dev-only work (fast-path) or does it touch networked/core
+  code (the gauntlet)?</strong> Hooks classify on the way in; subagents do the noisy work; the
+  mattpocock flow governs anything coupled.</p>
+</header>
+
+<div class="legend">
+  <span><span class="swatch" style="background:#2d4a2e"></span>Your input</span>
+  <span><span class="swatch" style="background:#3a3350"></span>Automatic gate / hook</span>
+  <span><span class="swatch" style="background:#1f3a52"></span>mattpocock command (/…)</span>
+  <span><span class="swatch" style="background:#4a3a1f"></span>Delegated subagent</span>
+  <span><span class="swatch" style="background:#4a2331"></span>Artifact / change produced</span>
+</div>
+
+<div class="diagram-wrap">
+  <div class="card">
+<pre class="mermaid">
+flowchart TD
+  P([You type a prompt]):::input
+
+  %% ---- intake ----
+  P --> HOOKS[/UserPromptSubmit hooks fire:<br>habit-check.sh + skill-nudge.sh<br>classify BUILD? · essence check · nudge a skill/]:::gate
+  HOOKS --> KIND{What kind of prompt?}:::gate
+
+  %% ---- question path ----
+  KIND -->|Question / how does X work| SCOUT[unity-scout subagent<br>read-only investigation<br>&gt;3 files or GUID boundary]:::agent
+  SCOUT --> ANS[Answer in chat<br>file:line pointers, no code change]:::artifact
+
+  %% ---- bug path ----
+  KIND -->|Something broken / slow| DIAG[/diagnosing-bugs<br>reproduce → isolate → fix/]:::cmd
+  DIAG --> SPEED
+
+  %% ---- design / open question ----
+  KIND -->|Open design question| GRILLQ[/grill-me · /grilling<br>stress-test the idea<br>vs engineering-canon 7 lenses/]:::cmd
+  GRILLQ --> CRITIC[design-critic subagent<br>steelman the case AGAINST<br>when you're invested]:::agent
+  CRITIC --> SPEED
+
+  %% ---- build path ----
+  KIND -->|Build a feature / change| SPEED{Two speeds<br>delegation skill}:::gate
+
+  %% ---- fast path ----
+  SPEED -->|Leaf / dev-only<br>tooling · converter · one-off| FAST[/implement fast-path<br>try + verify, skip the interview/]:::cmd
+
+  %% ---- the gauntlet ----
+  SPEED -->|Networked / core<br>SyncVar · RPC · Server · hit-web| READ[/Read the canon first:<br>CONTEXT.md · docs/adr/README.md<br>docs/plans/features.md/]:::gate
+  READ --> GWD[/grill-with-docs<br>grill plan vs 7 lenses + design-elegance<br>no improvising deferred decisions/]:::cmd
+  GWD --> SPEC[/to-spec/]:::cmd
+  SPEC --> SPECDOC[Spec doc]:::artifact
+  SPEC --> TICK[/to-tickets/]:::cmd
+  TICK --> ISSUES[GitHub Issues<br>einarklarlund/ArenaURP<br>via gh CLI]:::artifact
+  ISSUES --> IMPL[/implement/]:::cmd
+
+  FAST --> WORK
+  IMPL --> WORK
+
+  %% ---- implementation guards ----
+  subgraph GUARDS[During implementation — always-on guards]
+    direction TB
+    WT[EnterWorktree<br>isolate from main]:::gate
+    MCP[Unity MCP for .prefab/.scene/.asset<br>guard-unity-yaml.sh blocks grep/hand-edit]:::gate
+    CORE[Gameplay logic → Arena.X.Core processor<br>only if determinism-critical or branchy]:::gate
+    COMPILE[cs-compile-gate.sh<br>compile check]:::gate
+    WT --> MCP --> CORE --> COMPILE
+  end
+  WORK[Write code] --> GUARDS
+  GUARDS --> VAL[unity-validator subagent<br>EditMode + PlayMode<br>every networked change gets a PlayMode test]:::agent
+
+  VAL -->|fails| WORK
+  VAL -->|passes| REVIEW[/code-review<br>Standards axis + Spec axis<br>parallel sub-agents/]:::cmd
+  REVIEW -->|issues| WORK
+  REVIEW -->|clean| SHIP
+
+  %% ---- outputs ----
+  SHIP[Commit on branch<br>no Claude co-author · push/PR is yours]:::artifact
+  SHIP --> ADR[ADR in docs/adr/<br>when a decision is settled]:::artifact
+  SHIP --> PLANS[docs/plans/ features + decisions<br>updated]:::artifact
+  SHIP --> TESTS[EditMode / PlayMode tests<br>added or updated]:::artifact
+
+  %% ---- workflow-layer meta path ----
+  KIND -->|Tooling / a guardrail is missing| WFA[/workflow-artifacts:<br>hook · skill · subagent · memory?/]:::gate
+  WFA --> WFAUD[workflow-auditor subagent<br>check for drift + sprawl]:::agent
+  WFAUD --> DOTCLAUDE[.claude/ changes<br>skill · hook · agent · command]:::artifact
+
+  %% ---- memory is cross-cutting ----
+  MEM[(Auto-memory<br>~/.claude/.../memory/<br>read each session · written on new facts)]:::artifact
+  ANS -.-> MEM
+  SHIP -.-> MEM
+  DOTCLAUDE -.-> MEM
+
+  classDef input fill:#2d4a2e,stroke:#4a7a4c,color:#eafaea;
+  classDef gate fill:#3a3350,stroke:#6b5aa0,color:#efeaff;
+  classDef cmd fill:#1f3a52,stroke:#3f7aa8,color:#e6f2ff;
+  classDef agent fill:#4a3a1f,stroke:#a8823f,color:#fff3e0;
+  classDef artifact fill:#4a2331,stroke:#a8496b,color:#ffe6ef;
+</pre>
+  </div>
+</div>
+
+<footer>
+  <p><strong>The one rule of thumb:</strong> the habit-check hook and the <code>delegation</code> skill
+  both push you to answer <em>"does this touch <code>SyncVar</code>/<code>RPC</code>/<code>[Server]</code>/the
+  hit-exchange web?"</em> first. If no → fast-path (try + verify). If yes → the full
+  <code>/grill-with-docs → /to-spec → /to-tickets → /implement → /code-review</code> gauntlet, and every
+  networked change earns a PlayMode test.</p>
+  <p>Rendered from <code>docs/prompt-flow.html</code>. Mermaid loads from CDN — open with an internet
+  connection. Reflects CLAUDE.md + the <code>.claude/</code> hooks/skills as of 2026-07-23.</p>
+</footer>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: { fontSize: '14px', fontFamily: '-apple-system, Segoe UI, Roboto, sans-serif' },
+    flowchart: { curve: 'basis', nodeSpacing: 45, rankSpacing: 55, useMaxWidth: true }
+  });
+</script>
+</body>
+</html>
