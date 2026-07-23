@@ -7,7 +7,7 @@ description: Picking the right artifact — hook, skill, subagent, or memory —
 
 The `.claude/` layer is code: versioned, reviewed, improved when it fails, under the same [[design-elegance]] discipline as the game — the fewest parts that cover the cases. Collapse two artifacts into one before adding a third.
 
-The *process* of shipping a feature is the mattpocock flow — `grill-with-docs` → `to-spec` → `to-tickets` → `implement` → `code-review`, plus `diagnosing-bugs`, `prototype`, `research`, `wayfinder`; ask `ask-matt` when unsure which fits. This skill is the project-specific layer beneath that flow. Authoring a skill well — invocation, leading words, progressive disclosure — is the mattpocock `writing-great-skills` reference.
+The *process* of shipping a feature is the mattpocock flow — `grill-with-docs` → `to-spec` → `to-tickets` → `implement` → `code-review`, plus `diagnosing-bugs`, `prototype`, `research`, `wayfinder`; ask `ask-matt` when unsure which fits. This skill is the project-specific layer beneath that flow. Authoring a skill well — invocation, leading words, progressive disclosure — is the mattpocock `writing-great-skills` reference; before landing any new or edited artifact, audit the draft against that reference and its GLOSSARY failure modes (no-op, negation, duplication, sprawl) rather than after (adopted 2026-07-23, when a draft of `doc-auditor` shed four negations and a double term-enumeration under exactly this audit).
 
 ## Pick by what you're encoding
 
