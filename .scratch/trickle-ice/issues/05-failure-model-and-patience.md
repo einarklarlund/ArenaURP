@@ -18,6 +18,19 @@ transport file from two directions.
 
 **Status:** ready-for-agent
 
+**Remaining before this can be marked done**
+
+1. **The Boot-scene serialized value is still 80000.** `Assets/Scenes/Boot.unity:382` holds
+   `signalTimeoutDurationMilliseconds: 80000` on the `CanoeWebRTC` component of the **`Prod
+   NetworkManager`** GameObject (the scene's only serialized copy); it must become `39500`.
+   It crosses the GUID boundary, so it goes through the Unity MCP,
+   not by hand — and the only live Editor is attached to the main checkout, not this worktree.
+2. **The PlayMode leak test has never been run.** `Assets/Tests/PlayMode/WebRtcSignalTimeoutLeakTests.cs`
+   is written but unexecuted (no Editor attached to this worktree). Run it before trusting it.
+
+Note: the C# field default was authored at **8000**, not the 80000 the plan and ADR 0012 assume —
+80000 was only ever the scene value. Both now converge on 39500.
+
 **Notes**
 
 - Do **not** tear down on `disconnected`. Per MDN it is transient and routinely recovers; only
@@ -27,10 +40,14 @@ transport file from two directions.
 - Apply the same teardown-on-failed rule to the jslib side so the two transports stay identical.
 
 - [ ] The signalling timeout is 39.5s in both the field default and the Boot scene
-- [ ] The host's teardown timer is cancelled when the remote connection **starts**, not when the
+      — field default done (`CanoeWebRTC.cs`), Boot scene still 80000 (see above)
+- [x] The host's teardown timer is cancelled when the remote connection **starts**, not when the
       answer is received
 - [ ] A host connection that negotiates but never establishes is torn down at the deadline —
       no leaked wrapper, no leaked peer connection
-- [ ] A peer connection entering `failed` is torn down immediately; `disconnected` is left alone
+      — implemented, but not yet observed running; blocked on the test run below
+- [x] A peer connection entering `failed` is torn down immediately; `disconnected` is left alone
+      (both transports: `Connection.OnConnectionStateChange` and both jslib handlers)
 - [ ] A PlayMode test covers the leak: after a join that never establishes, the host holds no
       connection once the deadline passes
+      — written (`WebRtcSignalTimeoutLeakTests.cs`), never executed

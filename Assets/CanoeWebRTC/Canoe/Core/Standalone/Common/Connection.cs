@@ -199,6 +199,14 @@ namespace FishNet.Transporting.CanoeWebRTC
             {
                 InstanceFinder.NetworkManager.Log($"{debugHeader} Peer Connection State changed to: <b><i><color=#DDA0DD>{state}</color></i></b>");
 
+                //Only `Failed` is terminal, so it tears down at once. `Disconnected` is transient -
+                //ICE routinely recovers from it on its own - so it is deliberately left alone
+                //(ADR 0012). Recovery from `Failed` is a full rejoin; restartIce is not built.
+                if (state == RTCPeerConnectionState.Failed)
+                {
+                    if (!closing)
+                        RemoteChannelsClosed();
+                }
             };
 
 
@@ -425,6 +433,10 @@ namespace FishNet.Transporting.CanoeWebRTC
 
                 if (hasDisposed) { return; }
                 hasDisposed = true;
+
+                //Disposing the peer connection can still fire state callbacks; flagging closing here
+                //keeps them from re-entering the teardown path for a connection already gone.
+                closing = true;
 
                 unreliableSendThread?.Interrupt();
                 reliableSendThread?.Interrupt();

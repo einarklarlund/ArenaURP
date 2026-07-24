@@ -382,9 +382,11 @@ function CreateClientConnection() {
    newConn.peerConnection.onconnectionstatechange = function () {
       const state = newConn.peerConnection.connectionState;
       console.log(`Peer Connection State changed to: ${state}`);
-      
-      if(state == 'disconnected' || state == 'failed' || state == 'closed'){
-         //RemoteChannelsClosed_Client();
+
+      // Only 'failed' is terminal, so it tears down at once. 'disconnected' is transient - ICE
+      // routinely recovers from it on its own - so it is deliberately left alone (ADR 0012).
+      // Matches Connection.OnConnectionStateChange on the standalone transport.
+      if(state == 'failed' || state == 'closed'){
          if(!newConn.closing){
             RemoteChannelsClosed_Client();
          }
@@ -523,8 +525,10 @@ function CreateRemoteConnection(connectionID) {
       const state = newConn.peerConnection.connectionState;
       //console.log(`Peer Connection State changed to: ${state}`);
 
-      if(state == 'disconnected' || state == 'failed' || state == 'closed'){
-         //RemoteChannelsClosed_Server(connectionID);
+      // Only 'failed' is terminal, so it tears down at once. 'disconnected' is transient - ICE
+      // routinely recovers from it on its own - so it is deliberately left alone (ADR 0012).
+      // Matches Connection.OnConnectionStateChange on the standalone transport.
+      if(state == 'failed' || state == 'closed'){
          if(!newConn.closing){
             RemoteChannelsClosed_Server(connectionID);
          }

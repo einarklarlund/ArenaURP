@@ -180,13 +180,13 @@ namespace FishNet.Transporting.CanoeWebRTC
         public override event Action<RemoteConnectionStateArgs> OnRemoteConnectionState;
         public override void HandleRemoteConnectionState(RemoteConnectionStateArgs connectionStateArgs)
         {
-
-            /*
+            //The signal timeout is only cancelled once the remote connection actually *starts*.
+            //Cancelling it earlier (on answer receipt) left a connection that negotiated but never
+            //established alive forever - wrapper and RTCPeerConnection both (ADR 0012).
             if (connectionStateArgs.ConnectionState == RemoteConnectionState.Started)
             {
                 StopSignalTimeout(connectionStateArgs.ConnectionId);
             }
-            */
 
             OnRemoteConnectionState?.Invoke(connectionStateArgs);
 
@@ -255,7 +255,10 @@ namespace FishNet.Transporting.CanoeWebRTC
         internal static int _candidateCollectDurationMilliseconds; //this is the candidate collection duration
 
         //Handling timeout for signalling
-        public int signalTimeoutDurationMilliseconds = 8000; //this is the overall process timeout duration
+        //ADR 0012: 39.5s matches RFC 8863's recommended PAC timer, so the app never declares a join
+        //dead while the ICE agent is still legitimately allowed to be working. Keep the Boot-scene
+        //serialized value in step with this default.
+        public int signalTimeoutDurationMilliseconds = 39500; //this is the overall process timeout duration
         private static int _signalTimeoutDurationMilliseconds; 
 
         public static CancellationTokenSource clientCancellationTokenSource;
@@ -285,19 +288,28 @@ namespace FishNet.Transporting.CanoeWebRTC
             return token;
         }
 
-        //this occurs if it fully connects / finishes -- we consider fully connected from the clients perspective after we have connected but consider fully connected on server after we receive the answer
+        //this occurs once the connection is actually established -- the client cancels when its local
+        //connection starts, the host when the remote connection starts. Idempotent: the timer may
+        //already have been stopped (or never started) by the time the connection reports Started.
         private static void StopSignalTimeout(int connectionID)
         {
             if (connectionID != -1)
             {
-                remoteCancellationTokenSources[connectionID].Cancel();
-                remoteCancellationTokenSources[connectionID].Dispose();
+                if (!remoteCancellationTokenSources.TryGetValue(connectionID, out CancellationTokenSource remoteSource))
+                    return;
+
+                remoteSource.Cancel();
+                remoteSource.Dispose();
                 remoteCancellationTokenSources.Remove(connectionID);
             }
             else
             {
+                if (clientCancellationTokenSource == null)
+                    return;
+
                 clientCancellationTokenSource.Cancel();
                 clientCancellationTokenSource.Dispose();
+                clientCancellationTokenSource = null;
             }
         }
 
@@ -344,14 +356,17 @@ namespace FishNet.Transporting.CanoeWebRTC
         {
             if (connectionID != -1)
             {
-                remoteCancellationTokenSources[connectionID].Dispose();
-                remoteCancellationTokenSources.Remove(connectionID);
+                if (remoteCancellationTokenSources.TryGetValue(connectionID, out CancellationTokenSource remoteSource))
+                {
+                    remoteSource.Dispose();
+                    remoteCancellationTokenSources.Remove(connectionID);
+                }
 
                 _server.CloseConnection(connectionID);
             }
             else
             {
-                clientCancellationTokenSource.Dispose();
+                clientCancellationTokenSource?.Dispose();
                 clientCancellationTokenSource = null;
                 _client.StopClient();
             }
@@ -513,8 +528,10 @@ namespace FishNet.Transporting.CanoeWebRTC
                     return;
                 }
             }
-            
-            StopSignalTimeout(connectionID);
+
+            //The signal timeout deliberately keeps running past the answer: an answer only means the
+            //two peers negotiated, not that they connected. It is cancelled in
+            //HandleRemoteConnectionState once the connection reports Started (ADR 0012).
 
             var timeoutTask = Task.Delay(_operationTimeoutDurationMilliseconds);
 
