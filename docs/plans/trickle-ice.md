@@ -20,7 +20,32 @@ New/changed signal opcodes (`SignalManager.cs` byte constants must match `Signal
 | **0x08** | `trickleToClient` | host→server→client | `sessionToken`, UTF-8 candidate string (empty string = end-of-candidates) |
 | **0x09** | `trickleToHost` | client→server→host | `sessionToken`, UTF-8 candidate string (empty string = end-of-candidates) |
 
-The old `trickleICE` (0x06) constant and its dead cases are **deleted** from both `SignalManager.cs` and `SignalServer.js`. Pick 0x08/0x09 (not reusing 0x06) so a stale peer never half-parses a new message. Session token wire form: agree the exact encoding (length-prefixed UTF-8 vs fixed width) with the ArenaInfra plan before coding — it is one shared struct in two languages.
+The old `trickleICE` (0x06) constant and its dead cases are **deleted** from both `SignalManager.cs` and `SignalServer.js`. Pick 0x08/0x09 (not reusing 0x06) so a stale peer never half-parses a new message.
+
+### Settled cross-repo contract (ArenaInfra ticket 01)
+
+Both decisions that were held open are now closed, and `ArenaInfra/docs/plans/trickle-ice.md` states the identical contract. Neither repo may code a (de)serializer against anything else — both peers ship in lockstep, so a mismatch is a hard failure at handshake time.
+
+**1. Session token wire form — length-prefixed UTF-8.** The token is opaque ASCII, **22 characters** from a 62-char alphabet (`A–Z a–z 0–9`), framed exactly like the room code already is: one `uint8` length byte, then that many UTF-8 bytes. Never fixed-width, never null-terminated. Written `[tok]` below.
+
+**2. Offer-to-session correlation — the host echoes the token on its offer.** The server does **not** correlate by the (host, client) pair. The host already has to hold the token at offer time to address its `trickleToClient` (0x08) messages, so echoing it costs one length-prefixed field and buys an unambiguous direct lookup on the server.
+
+Byte layouts (integers little-endian, as today):
+
+| Message | Direction | Layout |
+|---|---|---|
+| `joinRoomCallback` 0x03 — success | server→client | `0x03` `0x01` `[tok]` |
+| `joinRoomCallback` 0x03 — failure | server→client | `0x03` `0x00` *(unchanged)* |
+| `attemptToJoinRoom` 0x02 — host notify | server→host | `0x02` `int32 clientSignalId` `[tok]` |
+| `receivedOfferFromHost` 0x04 | host→server | `0x04` `int32 targetClientSignalId` `int32 connectionId` `[tok]` `sdp…` |
+| `receivedOfferFromHost` 0x04 | server→client | `0x04` `int32 hostSignalId` `sdp…` *(unchanged)* |
+| `receivedAnswerFromClient` 0x05 | both | *(unchanged)* |
+| `trickleToClient` 0x08 | host→server | `0x08` `[tok]` `candidate…` |
+| `trickleToClient` 0x08 | server→client | `0x08` `int32 connectionId` `candidate…` |
+| `trickleToHost` 0x09 | client→server | `0x09` `[tok]` `candidate…` |
+| `trickleToHost` 0x09 | server→host | `0x09` `int32 connectionId` `candidate…` |
+
+An outbound trickle carries **no target player id** — the token alone selects the route on the server. `candidate…` is the remainder of the buffer read as UTF-8, so **zero remaining bytes is the end-of-candidates marker**. The server stamps `connectionId` on both inbound directions so one parser serves both: the host uses it to pick `_server.connections[connectionId]`, the client ignores it and uses `connectionWithServer`.
 
 **SDP:** offers and answers advertise `a=ice-options:trickle`. `OfferAnswer.candidates[]` is removed from the struct, its serializer, and the WebGL `{sdp, candidates}` JSON. `TrickledICE` (`Supporting.cs:76`) is repurposed as the trickle payload and its `Deserialize` must **stop discarding** `sender`/`receiver` (currently returns `-1, -1`).
 
