@@ -47,7 +47,7 @@ Byte layouts (integers little-endian, as today):
 
 An outbound trickle carries **no target player id** — the token alone selects the route on the server. `candidate…` is the remainder of the buffer read as UTF-8, so **zero remaining bytes is the end-of-candidates marker**. The server stamps `connectionId` on both inbound directions so one parser serves both: the host uses it to pick `_server.connections[connectionId]`, the client ignores it and uses `connectionWithServer`.
 
-**SDP:** offers and answers advertise `a=ice-options:trickle`. `OfferAnswer.candidates[]` is removed from the struct, its serializer, and the WebGL `{sdp, candidates}` JSON. `TrickledICE` (`Supporting.cs:76`) is repurposed as the trickle payload and its `Deserialize` must **stop discarding** `sender`/`receiver` (currently returns `-1, -1`).
+**SDP:** offers and answers advertise `a=ice-options:trickle`. `OfferAnswer.candidates[]` is removed from the struct, its serializer, and the WebGL `{sdp, candidates}` JSON. `TrickledICE` (`Supporting.cs:76`) is repurposed as the trickle payload and its `Deserialize` must **stop discarding** its routing fields (it currently returns `-1, -1`). Note the settled contract supersedes the old field names: no message carries both a sender and a receiver — outbound the **session token** is the entire route, and inbound the server stamps exactly one **connection id** — so the struct carries `candidate` + `sessionToken` + `connectionId`, and it is those that must survive the round trip.
 
 ---
 
