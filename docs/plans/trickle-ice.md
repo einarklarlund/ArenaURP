@@ -96,5 +96,12 @@ An outbound trickle carries **no target player id** — the token alone selects 
 - **Manual gate:** `./deploy_local.sh` then a two-browser join — the only path that exercises the jslib + real browser ICE + mDNS. Note the WebGL-dev/Local `Bootstrap` paths `AddComponent<CanoeWebRTC>` with **zero ICE servers** (host/mDNS candidates only), which is fine for a LAN test but does not exercise STUN.
 
 ## Flags to resolve during build
-- Verify `stun.stunprotocol.org:3478` still resolves — a dead STUN server now delays *gathering-complete* (the end-of-candidates trigger) rather than just wasting a bundle slot.
+- ~~Verify `stun.stunprotocol.org:3478` still resolves~~ — **resolved: it is dead, and must be replaced.** `Boot.unity` configures two ICE servers (`Boot.unity:365`, `:377`). Probed 2026-07-24 with real STUN binding requests:
+
+  | Configured | Result |
+  |---|---|
+  | `stun:stun.l.google.com:19302` | **OK** — binding response from 74.125.250.129 |
+  | `stun:stun.stunprotocol.org:3478` | **DEAD** — no A record, DNS resolution fails outright |
+
+  `stun.cloudflare.com:3478` was also probed and answers correctly, so it is the suggested replacement (a second, independently-operated server is worth keeping for redundancy). This matters more under trickle than it did before: a dead STUN server delays *gathering-complete*, which is the end-of-candidates trigger, rather than merely wasting a bundle slot. The fix is a **Boot-scene serialized value**, so it goes through the Unity MCP, not hand-edited YAML.
 - Authoring that crosses the GUID boundary (Boot-scene serialized values: timeout, deleted collect-duration, join-phase UI wiring) goes through the Unity MCP / worktree editor, not hand-edited YAML.
