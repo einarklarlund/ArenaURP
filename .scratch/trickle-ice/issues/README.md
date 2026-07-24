@@ -1,10 +1,10 @@
 # Trickle ICE — tickets
 
-Slices of the plan in [`docs/plans/trickle-ice.md`](../../plans/trickle-ice.md), which stays the
+Slices of the plan in [`docs/plans/trickle-ice.md`](../../../docs/plans/trickle-ice.md), which stays the
 source of truth for file-level detail (opcode table, per-file work items, flags to resolve).
-Decisions: ADR [0010](../../adr/0010-trickle-ice-sdp-only.md) (full trickle, SDP-only),
-[0011](../../adr/0011-signaling-session-routing.md) (server-owned signaling sessions),
-[0012](../../adr/0012-join-patience-pac-timer.md) (39.5s patience).
+Decisions: ADR [0010](../../../docs/adr/0010-trickle-ice-sdp-only.md) (full trickle, SDP-only),
+[0011](../../../docs/adr/0011-signaling-session-routing.md) (server-owned signaling sessions),
+[0012](../../../docs/adr/0012-join-patience-pac-timer.md) (39.5s patience).
 
 ## Dependency order
 
