@@ -32,6 +32,7 @@ public sealed class UIManager : MonoBehaviour
         // Loading screen events
         LocalUIEvents.OnHostInitiated += Show<LoadingView>;
         LocalUIEvents.OnJoinInitiated += Show<LoadingView>;
+        LocalUIEvents.OnJoinCancelled += Show<MainMenuView>;
 
         // Settings events
         LocalUIEvents.OnSettingsOpened += Show<SettingsView>;
@@ -71,6 +72,7 @@ public sealed class UIManager : MonoBehaviour
         // Loading screen events
         LocalUIEvents.OnHostInitiated -= Show<LoadingView>;
         LocalUIEvents.OnJoinInitiated -= Show<LoadingView>;
+        LocalUIEvents.OnJoinCancelled -= Show<MainMenuView>;
 
         // Settings events
         LocalUIEvents.OnSettingsOpened -= Show<SettingsView>;

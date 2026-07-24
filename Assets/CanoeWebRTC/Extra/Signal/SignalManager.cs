@@ -95,7 +95,8 @@ public class SignalManager : MonoBehaviour
     public void JoinRoom(string roomID)
     {
         Debug.Log($"<color=cyan>[Signal]</color> Attempting to join room <b><i><color=#DDA0DD>{roomID}</color></i></b>.");
-        
+        LocalUIEvents.OnJoinPhaseChanged?.Invoke(JoinPhase.ContactingSignal);
+
         byte[] joinRoomBuffer = new byte[10];
         byte roomIDLength = (byte)roomID.Length;
 
@@ -161,6 +162,9 @@ public class SignalManager : MonoBehaviour
     //Client
 
     //handle offer, generate reponse, send response
+    //Only the client half of the flow publishes JoinPhase: these points describe *this* peer's own
+    //join attempt. The host halves (CreateAndSendOffer / HandleResponse) run once per joining peer
+    //and would otherwise rewrite the local player's phase for somebody else's join.
     public async void ReceivedOfferFromServer(int signalID, OfferAnswer offerAnswer)
     {
         OfferAnswer answerResult = await CanoeWebRTC.CreateAnswerForServer(offerAnswer);
@@ -168,10 +172,13 @@ public class SignalManager : MonoBehaviour
         if (answerResult.error)
         {
             Debug.Log($"<color=cyan>[Signal]</color> Error when handling offer from server: {answerResult.errorMessage}");
+            LocalUIEvents.OnJoinPhaseChanged?.Invoke(JoinPhase.Failed);
         }
         else
         {
             client.Send(sendAnswerSerializer(FilterOutLocalandIPV6Candidates((OfferAnswer)answerResult), signalID));
+            //Offer in, answer out: negotiation is done and ICE now has to establish the connection.
+            LocalUIEvents.OnJoinPhaseChanged?.Invoke(JoinPhase.EstablishingConnection);
         }
 
     }
@@ -329,12 +336,14 @@ public class SignalManager : MonoBehaviour
                     //we did not join
                     Debug.Log("<color=cyan>[Signal]</color> Join Code Invalid.");
                     OnRoomJoined?.Invoke(false);
+                    LocalUIEvents.OnJoinPhaseChanged?.Invoke(JoinPhase.Failed);
                 }
                 else if (confirmation == 0x01)
                 {
                     //we did join
                     OnRoomJoined?.Invoke(true);
                     Debug.Log("<color=cyan>[Signal]</color> Join Code Valid, waiting for offer from host.");
+                    LocalUIEvents.OnJoinPhaseChanged?.Invoke(JoinPhase.Negotiating);
                 }
 
                 break;
