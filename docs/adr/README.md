@@ -13,6 +13,9 @@ Architectural Decision Records — the **why** behind a contested, load-bearing 
 | [0007](0007-weapon-config-on-component.md) | Weapon firing config lives on the PawnWeapon component (serialized WeaponConfig + ProjectileType ref); WeaponData/WeaponDatabase deleted (one type-object authority) | Accepted | 2026-07-15 |
 | [0008](0008-components-primary-pure-core-exception.md) | Components are the primary unit of logic; FCIS mandate retired; pure Arena.*.Core + EditMode test kept only for determinism-critical/branchy logic; generic-via-config + flat-hierarchy guidelines | Accepted | 2026-07-17 |
 | [0009](0009-passive-shared-registry-applicator.md) | Passives = shared-registry KINDs (nested-NObj children of a spawned PassiveRegistry) + component-coupled Passive applicators (one per affected component) + player-held SyncList references (PlayerPassiveLoadout); steal = ref move; PassiveAbility/PawnPassiveAbilities/PassiveAbilityType deleted | Accepted | 2026-07-21 |
+| [0010](0010-trickle-ice-sdp-only.md) | Full trickle ICE: offer/answer carry no candidates, each candidate streams as gathered (RFC 8838), ending with an empty-candidate marker; half-trickle / bundled array rejected | Accepted | 2026-07-24 |
+| [0011](0011-signaling-session-routing.md) | Bidirectional trickle routes through server-owned signaling sessions named by an opaque server-minted token; per-attempt scope, token ID space built now for future reconnect; dumb-relay and long-lived/Redis sessions rejected | Accepted | 2026-07-24 |
+| [0012](0012-join-patience-pac-timer.md) | Join patience = RFC 8863 PAC timer (~39.5s), replacing the authored 80s; adds typed join-phase UI + Cancel and moves host teardown to RemoteConnectionState.Started | Accepted | 2026-07-24 |
 
 ## What is *not* yet decided
 

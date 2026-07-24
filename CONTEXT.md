@@ -76,6 +76,30 @@ _Avoid_: inventory, build, kit
 A pure `Arena.<X>.Core` processor with no engine dependency — a targeted exception to component-first logic, never the default. When one is earned is the `component-design` skill's.
 _Avoid_: service, engine, model, domain layer
 
+### Networking
+
+These name the WebRTC connection dance a WebGL **Peer** performs to reach a **Match**. The signal server (ArenaInfra) shares this vocabulary — keep the two glossaries in step.
+
+**Room**:
+A joinable **Match**, addressed by a short human code. One host **Peer** owns it; the signal server holds `roomCode → host` and mirrors it to Redis (TTL, heartbeated) so the browser can list it. A room is discovery, not a connection — joining one only *begins* the WebRTC handshake.
+_Avoid_: lobby, game, server (the *host* is a peer; the room is the listing)
+
+**Signaling session**:
+The signal server's authoritative record of **one** peer-connection attempt — the (host, client, connectionId) triple it routes offer/answer/**candidate** between, both directions. Scoped to a single attempt: swept once the connection is established or fails. It is *not* the player's identity and does not outlive the attempt — reconnect identity, when it exists, will be a separate host-minted thing.
+_Avoid_: connection (that's the WebRTC peer connection), room, player
+
+**Session token**:
+The opaque, server-minted key naming a **signaling session** on the wire. Minted at join-attempt and handed to both parties in messages already in flight, so neither peer buys a round trip to learn it. The server stamps sender identity by socket, so the token routes but does not authenticate.
+_Avoid_: session id, connection id, room code
+
+**Candidate**:
+One possible network path for a WebRTC connection (host / server-reflexive / relay). Under **trickle**, each is signalled the instant it is gathered rather than bundled into the offer/answer, and ICE promotes to a higher-priority candidate on its own as later ones arrive.
+_Avoid_: ICE server (that's the STUN/TURN config), route, address
+
+**Trickle**:
+Sending SDP with **no** candidates the moment it exists, then streaming each **candidate** as it is gathered until gathering completes — RFC 8838's full-trickle mode. Replaces the fixed pre-send gather stall; the win is a sub-second join. The terminator is an **end-of-candidates** marker (an empty-candidate trickle message).
+_Avoid_: bundling, gathering wait, half-trickle (that's the interop fallback we don't use)
+
 ## Where the rest lives
 
 - **How** each of these is built — the doctrine — is in `.claude/skills/`; start from `arena-systems-map`.
