@@ -30,6 +30,6 @@ One governing idea: **a server-authoritative simulation assembled from component
 
 ## Open design questions (don't improvise these)
 
-- **How runtime buffs reach a projectile's damage** — the hit pipeline reads the dealer's base `DamageController.Amount` only; the controllers' `OutgoingModifiers` registries exist but have no contributors, and the old per-target `damageMultiplier` slot died with `HitResolver` (ADR 0005) — a per-target multiplier must be re-established, not filled. This is the NEXT DESIGN TASK; candidates: a standing `OutgoingModifiers` contribution vs. an on-spawn multiplier vs. a per-target field on `HitMessage`. Design it in a dedicated session, not as a side effect of another feature.
+- **How runtime buffs reach a projectile's damage** — the hit pipeline reads the dealer's base `DamageController.Amount` only; the controllers' `OutgoingModifiers` registries exist but have no contributors. This is the NEXT DESIGN TASK — do not improvise it or fold it into another feature; the candidates, triggers, and consumers live in the brief: [docs/plans/decisions/damage-buff-channel.md](../../../docs/plans/decisions/damage-buff-channel.md).
 - **Debuffs** — there is no debuff system yet (the old `ApplyDebuff` stub was deleted with ADR 0002).
 - **Ammo** — stubbed (`HasAmmo = true`); `AmmoPerFire` config exists but is not consumed.

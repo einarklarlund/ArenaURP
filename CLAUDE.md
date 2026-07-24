@@ -33,9 +33,7 @@ EditMode (`Assets/Tests/EditMode/`, asmdef `Arena.Tests`) targets the **pure `Ar
 
 ## Where component logic goes
 
-**Logic goes in the component (MonoBehaviour composition) by default** — that IS the architecture, engine-native. Two authoring guidelines: **generic-via-config** (a component's presence defines a capability; specifics live in serialized config, never special-case code) and **flat hierarchy** (co-locate communicating components so `GetComponents`/`GetComponentInParent` presence-dispatch resolves locally).
-
-**Exception — extract a pure `Arena.<X>.Core` processor + EditMode test ONLY when the logic is determinism-critical** (re-run on multiple peers / on reconcile — a regression is a silent peer desync a PlayMode host won't catch) **or heavily branchy** (state machines, classification, geometry). Reuse is NOT a reason. When extracted, the shell reads serialized refs, builds an `<X>Input`, calls `<X>Processor.Process`, applies the result; the asmdef boundary keeps those cores pure (no UnityEngine wrappers, FishNet, or other gameplay code) — add a field to a `Config`/`Input` struct rather than a new dependency. Bot AI is a kept core (heavily branchy: `BotBrainLogic`/`BotStateMachine`/`BotInputMath`/`BotVisionMath` ↔ `BotBrain`). → `component-design` skill; rationale in ADR 0008.
+**Logic goes in the component (MonoBehaviour composition) by default** — that IS the architecture, engine-native — shaped by two authoring guidelines, **generic-via-config** and **flat hierarchy**. Extract a pure `Arena.<X>.Core` processor + EditMode test ONLY when the logic is **determinism-critical or heavily branchy**; reuse is NOT a reason. → `component-design` skill (the guidelines, the shell↔core shape, the kept cores); rationale in ADR 0008.
 
 ## Composition & communication
 
@@ -52,9 +50,9 @@ Systems never call each other. They contribute to collections the producer folds
 ## Conventions you must not rediscover
 
 - **Server-authoritative.** Any gameplay mutation runs inside a `[Server]` method or is triggered from one. → `fishnet-conventions` skill (payload avoidance, SyncVar/RPC discipline, cast-based collision, and **which peer simulates**).
-- **A hit is one typed `HitMessage` dispatched to `IHitMessageHandler` components on the source** (`HitMessage.Dispatch`); each datum is a per-datum controller owning both deal + receive halves — no courier effect, no authored row, no dispatch class; each end folds its own modifiers; never mutate an authored baseline (ADR 0002/0005). → `presence-dispatch` skill.
-- **Swappable behaviour is a COMPONENT discovered by presence** — a hit reaction is an `IHitMessageHandler` component filtered by its `EnabledHitChannels`, an ability's spawn is a `SpawnNetworkObjects` component; the site finds them with `GetComponents`, no authored operation list. Varies-in-data (stat buffs, on-spawn buffs) is authored struct data. Engine-native composition, not owned dispatch machinery (ADR 0003/0005). → `presence-dispatch` skill.
-- **A KIND of thing is an identity-only SO + an independent prefab copy** carrying all config; instances self-configure on every peer. Spawning anything a player can own means stamping `NetPlayerOwnership.SpawnOwnerId` *before* `ServerManager.Spawn`. Active abilities are instance prefabs with load-bearing roster ordering (**Spawn before Add, RemoveAt before Despawn**); passives are references in a per-player `SyncList` loadout (`PlayerPassiveLoadout`), not spawned instances (ADR 0009). → `type-object-pattern` skill.
+- **A hit is one typed `HitMessage` dispatched to `IHitMessageHandler` components on the source** — we own no dispatch machinery (ADR 0002/0005). → `presence-dispatch` skill (the atomic dispatch sequence, the per-datum controllers, modifier folding, never mutating an authored baseline).
+- **Swappable behaviour is a COMPONENT discovered by presence** (`GetComponents`); behaviour that varies only in data is an authored struct — engine-native composition, not owned dispatch machinery (ADR 0003/0005). → `presence-dispatch` skill.
+- **A KIND of thing is an identity-only SO + an independent prefab copy** carrying all config; instances self-configure on every peer (ADR 0009 for the passive model). → `type-object-pattern` skill (owned-spawn `SpawnOwnerId` stamping, ability roster ordering, passives-as-references, pooling baseline rules).
 - `Pawn` and `NetworkPlayer` serve **both humans and bots** (`NetworkPlayer.IsBot`). Never assume a client connection on a player.
 - **No interface with one concretion.** A capability interface earns its keep only at a second, genuinely non-tree concretion (rule of two) — and when it does, it lives ON the component that carries the behaviour, discovered by presence (the `IHitMessageHandler` shape).
 

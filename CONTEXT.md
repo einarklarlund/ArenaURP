@@ -15,7 +15,7 @@ One of the interacting mechanisms upgrades target. The current set — **movemen
 _Avoid_: subsystem, module, feature area
 
 **Match**:
-One run of the game loop, whose lifecycle is `MatchFlowManager.State` (`Pregame → PregameCountdown → During → PostgameCountdown → Postgame`). Managers never call each other; `MatchMediator` is the single place they are wired together.
+One run of the game loop, whose lifecycle is `MatchFlowManager.State` (`Pregame → PregameCountdown → During → PostgameCountdown → Postgame`). How its managers talk is the `cross-component-communication` skill's.
 _Avoid_: game, round, session
 
 **Peer**:
@@ -73,7 +73,7 @@ The per-player list of **Ability** references defining what that player currentl
 _Avoid_: inventory, build, kit
 
 **Core**:
-A pure `Arena.<X>.Core` processor with no engine dependency, holding logic that is determinism-critical or heavily branchy, tested in EditMode. A targeted exception to component-first logic, never the default — reuse is not a reason to make one.
+A pure `Arena.<X>.Core` processor with no engine dependency — a targeted exception to component-first logic, never the default. When one is earned is the `component-design` skill's.
 _Avoid_: service, engine, model, domain layer
 
 ## Where the rest lives

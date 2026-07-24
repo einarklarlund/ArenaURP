@@ -8,7 +8,7 @@ A shield that **reflects incoming damage back at the shooter** (reflect-only —
 
 ## Essence gate — why it waits
 
-Passes the scope guard: (a) changes how an attacker plays (punishes attacking a shielded target), (b) interacts with the hit pipeline. **But it writes no upgrade×upgrade fold** — it's a victim-side reaction that doesn't deepen the composition P1's combo or P2's splash do. So it's **legal but shallow → last**.
+Passes the scope guard: (a) changes how an attacker plays (punishes attacking a shielded target), (b) interacts with the hit pipeline. **But it writes no upgrade×upgrade fold** — it's a victim-side reaction that doesn't deepen the composition the way [combo fire-rate](combo-fire-rate.md)'s ramp or [proximity explosion](proximity-explosion.md)'s splash do. So it's **legal but shallow → last**.
 
 Note the honest framing: this is an **essence gate, not a dispatch-cost gate.** Under the current hit model a reflect *is* an `IHitMessageHandler` component; as a lone victim-side responder it costs one direct call at the hit site. There is no "build it cheap as a one-off vs. adopt a whole channel" trade — the one-off and the general version are the same code. So no architectural excuse defers it; it waits purely because it doesn't compose.
 

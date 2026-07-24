@@ -17,7 +17,7 @@ Three requirements pull in different directions, and no single candidate covers 
 ## What exists today
 
 - `DamageController` owns the outgoing `Amount` (mutable at runtime). `KnockbackController` and `HitstunController` each own their dealt magnitude the same way.
-- All three carry an `OutgoingModifiers` registry — structurally present, **zero contributors**. The seam is built; nothing feeds it.
+- `KnockbackController` and `HitstunController` carry an `OutgoingModifiers` registry — structurally present, **zero contributors**. `DamageController` has only the mutable `Amount`; the damage half of the seam is not yet built.
 - On-spawn buffs already have a working shape elsewhere: `SetRadiusMultiplier` / `SetMaxHealthMultiplier` fold a per-spawn scalar. A damage multiplier *could* follow that shape.
 - A prior `[SerializeReference] DamageModifier`-fold attempt was built and **reverted** — evidence the obvious answer has a trap. Understand why it failed before re-proposing it.
 

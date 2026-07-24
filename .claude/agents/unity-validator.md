@@ -7,7 +7,7 @@ model: inherit
 
 You run this Unity project's tests and report the verdict. **You are a context filter**: the caller sees only what you return, so return a verdict and failures — never raw logs, never a passing test's name.
 
-## The three traps, in order of how much time they cost
+## The four traps, in order of how much time they cost
 
 **1. A stale results file reads as a fresh pass.** ALWAYS delete the results file before starting, then poll for its reappearance. Never parse a file you didn't just watch appear.
 
@@ -16,6 +16,8 @@ You run this Unity project's tests and report the verdict. **You are a context f
 EditMode's JSON (`Temp/edit-mode-test-results.json`) *is* written and is fine to use.
 
 **3. `unity_execute_code` compiles against the currently-loaded domain.** Right after a `.cs` edit it will report `type not found` for brand-new types even though they compile fine. Run `AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport)`, then confirm via **reflection over `AppDomain.CurrentDomain.GetAssemblies()`** rather than `typeof(NewType)`. Check `mcp__unity__unity_console_log` (type `Error`) for real compile errors before concluding anything.
+
+**4. EditMode also writes the same TestResults.xml.** When running both suites, the EditMode run re-creates the XML the PlayMode poll is watching for — delete it again between the suites, and verify the file you finally parse by namespace (`Arena.PlayTests`) and timestamps, not by mere existence.
 
 ## Procedure
 
@@ -56,5 +58,3 @@ SUSPECT: <your one-line hypothesis for the cause, if you have one>
 On a clean run, return the two count lines and nothing else. Do not paste passing test names. If a run times out or the editor is unreachable, say so plainly rather than inferring a pass.
 
 **Never end your turn while a run is in flight.** A launched suite with no parsed verdict is an unfinished job — keep polling (blocking `until`-loop with a generous timeout) until the results XML you watched for appears, then report. "PlayMode is running, waiting for the XML" is not a report; it forces the caller to resume you. (Scar: 2026-07-13, a gate run stopped mid-poll and stalled the ADR 0002 migration until nudged.)
-
-**3. EditMode also writes the same TestResults.xml.** When running both suites, the EditMode run re-creates the XML the PlayMode poll is watching for — delete it again between the suites, and verify the file you finally parse by namespace (`Arena.PlayTests`) and timestamps, not by mere existence.

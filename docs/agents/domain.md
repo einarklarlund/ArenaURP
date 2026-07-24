@@ -28,9 +28,3 @@ If your output contradicts an existing ADR, surface it explicitly rather than si
 ## Use the project's vocabulary
 
 When your output names a domain concept (issue title, refactor proposal, hypothesis, test name), use the term as `CONTEXT.md` defines it — not a synonym it lists under `_Avoid_`. The `arena-systems-map` skill narrates those nouns (pawn, projectile, match, ability) in motion and points at each governing skill.
-
-## Flag ADR conflicts
-
-If your output contradicts an existing ADR, surface it rather than silently overriding:
-
-> _Contradicts ADR-0005 (hit-pipeline layered messages) — but worth reopening because…_

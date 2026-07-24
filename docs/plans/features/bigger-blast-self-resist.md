@@ -18,7 +18,7 @@ The **bigger radius** half is *not* blocked — it folds like the existing on-sp
 
 ## Re-opens
 
-Self-resist makes the rocket-jump fantasy real — which **re-opens [proximity explosion](proximity-explosion.md)'s self-exclusion** (v1 excludes the instigator's own pawn). Wanting self-knockback here means the blast must include the instigator when this passive is present. That is **not** a clean `SpawnModifier` +2-fields extension — count the Session-1 blast lines that must change to include the instigator's own root; if >0, it's a reshape, not an additive fold. Flag during the grill.
+Self-resist makes the rocket-jump fantasy real — which **re-opens [proximity explosion](proximity-explosion.md)'s self-exclusion** (v1 excludes the instigator's own pawn). Wanting self-knockback here means the blast must include the instigator when this passive is present. That is **not** a clean `SpawnModifier` +2-fields extension — count the blast lines in the proximity-explosion implementation that must change to include the instigator's own root; if >0, it's a reshape, not an additive fold. Flag during the grill.
 
 ## Open questions to grill
 
