@@ -24,8 +24,11 @@ public class SignalManager : MonoBehaviour
     private const byte joinRoomCallback = 0x03; //this is the callback for the client who initiated the attempt
     private const byte receivedOfferFromHost = 0x04; //may contain error details if not allowed!
     private const byte receivedAnswerFromClient = 0x05; //client has received the offer, has started to join, and is sending answer
-    private const byte trickleICE = 0x06; //not implemented
+    //0x06 was `trickleICE`, a scaffold that was never implemented. It is retired, and the byte is
+    //deliberately NOT reused, so a stale peer can never half-parse a new message.
     private const byte ping = 0x07;
+    private const byte trickleToClient = 0x08; //host->client candidate; [tok] outbound, int32 connectionId inbound
+    private const byte trickleToHost = 0x09;   //client->host candidate; [tok] outbound, int32 connectionId inbound
 
     private static SimpleWebClient client;
 
@@ -365,15 +368,6 @@ public class SignalManager : MonoBehaviour
                     .ToArray();
 
                 HandleResponse(connID, OfferAnswer.Deserialize(sendAnswer_remainingData));
-
-                break;
-
-            case trickleICE:
-                // NOT IMPLEMENTED
-
-                int trickleICE_SenderSignalID = BitConverter.ToInt32(data.Array, data.Offset + 1);
-
-                byte[] sendICE_remainingData = data.Array.Skip(data.Offset + 5).Take(data.Count - 5).ToArray();
 
                 break;
 
