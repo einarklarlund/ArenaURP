@@ -3,7 +3,8 @@
   "rootNamespace": "Arena.PlayTests",
   "references": [
     "UnityEngine.TestRunner",
-    "FishNet.Runtime"
+    "FishNet.Runtime",
+    "CanoeWebRTC"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
