@@ -13,7 +13,7 @@ checkboxes are left unticked.
 | # | Asset | Object / component | Change | Ticket |
 |---|---|---|---|---|
 | A1 | `Assets/Scenes/Boot.unity` | `Prod NetworkManager` → `CanoeWebRTC` | `signalTimeoutDurationMilliseconds`: **80000 → 39500** | 05 |
-| A2 | `Assets/Scenes/Boot.unity` | `Prod NetworkManager` → `CanoeWebRTC`, `iceServers` | Replace the dead `stun:stun.stunprotocol.org:3478` (see below) | 03 |
+| A2 | `Assets/Scenes/Boot.unity` | `Prod NetworkManager` → `CanoeWebRTC`, `iceServers` | Replace the dead `stun:stun.stunprotocol.org:3478` (see below). **Now matters more:** under trickle a dead STUN server delays gathering-complete, which is what emits the end-of-candidates marker. | 03 |
 | A3 | `Assets/Prefabs/Managers/UIManager.prefab` | `Loading View` → `LoadingView` | Add a child UI `Button` labelled "Cancel"; assign it to the `cancelButton` field. No inspector `onClick` wiring — the view adds/removes its own listener. | 06 |
 
 **On A2.** `Boot.unity` configures two ICE servers (`:365`, `:377`). Both were probed on
@@ -37,6 +37,8 @@ no-ops rather than throwing, so the scene is not broken in the meantime.
 | T1 | `Arena.Tests` **EditMode** suite in-editor — the payload/token/queue tests. Their logic was verified out-of-editor (23 passed under a standalone NUnit harness), but the new `CanoeWebRTC` reference in `Arena.Tests.asmdef` has never been resolved by Unity itself. | 02 |
 | T2 | `Assets/Tests/PlayMode/WebRtcSignalTimeoutLeakTests.cs` — written, never executed. | 05 |
 | T3 | Manual: a successful join **and** a join that times out, watching the loading view's phase text and the Cancel button. | 06 |
+| T4 | Ticket 01's PlayMode ICE harness against the trickle path, to confirm the join is well under a second. **No join time has been measured** — 01's harness is in a separate, unmerged worktree, so there is neither a run nor a baseline. Ticket 03's code-level claim is only that both fixed gather stalls are gone. | 03 |
+| T5 | Standalone ↔ standalone join in-editor (two ParrelSync instances) against a Node 20 signal server, watching candidates trickle both ways and the end-of-candidates marker land once per side. The wire bytes were verified against `SignalServer.js`'s own parsing expressions out of editor, but no real handshake has been run. | 03 |
 
 ## Not yet reached
 

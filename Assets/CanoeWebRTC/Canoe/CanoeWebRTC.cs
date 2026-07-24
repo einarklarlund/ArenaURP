@@ -3,7 +3,6 @@ using FishNet.Transporting.CanoeWebRTC.Client;
 using FishNet.Transporting.CanoeWebRTC.Server;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 #if !UNITY_WEBGL || UNITY_EDITOR
@@ -236,6 +235,72 @@ namespace FishNet.Transporting.CanoeWebRTC
         }
 
 
+        //Trickled ICE candidates
+        //
+        //The transport gathers and applies; the signalling layer addresses and relays. These three
+        //members are the whole seam between them, and it only runs one way at compile time: the
+        //transport raises an event it does not know who listens to, and exposes two entry points
+        //the signal manager calls. SignalManager lives in Assembly-CSharp, which references this
+        //assembly and cannot be referenced back.
+
+        /// <summary>
+        /// Raised as each local ICE candidate is gathered, and once more with
+        /// <see cref="TrickledICE.EndOfCandidates"/> when gathering completes.
+        /// <c>connectionId</c> is <c>-1</c> for the local client's connection to its host, and the
+        /// server-side connection id otherwise — which is also what selects the trickle direction.
+        /// </summary>
+        public static Action<int, string> OnLocalIceCandidate;
+
+        internal static void RaiseLocalIceCandidate(int connectionId, string candidate)
+        {
+            OnLocalIceCandidate?.Invoke(connectionId, candidate);
+        }
+
+        /// <summary>
+        /// A candidate the host trickled to us. We are the client, so there is exactly one peer
+        /// connection it can belong to and the connection id the server stamped is redundant.
+        /// </summary>
+        public static void AddRemoteCandidateToClient(string candidate)
+        {
+#if !UNITY_WEBGL || UNITY_EDITOR
+            Connection connection = _client.connectionWithServer;
+
+            if (connection == null)
+            {
+                InstanceFinder.NetworkManager.LogWarning($"<color=#77DD77>[Client]</color> Dropped a trickled ICE candidate: no connection to the host.");
+                return;
+            }
+
+            connection.ReceiveRemoteCandidate(candidate);
+#else
+            //The WebGL transport still negotiates with candidates bundled into the SDP and has no
+            //inbound queue to route this into; ticket 04 gives it one.
+            InstanceFinder.NetworkManager.LogWarning($"<color=#77DD77>[Client]</color> Dropped a trickled ICE candidate: the WebGL transport does not handle them yet.");
+#endif
+        }
+
+        /// <summary>
+        /// A candidate a client trickled to us. We are the host, so the connection id the server
+        /// stamped picks which of our peer connections it belongs to.
+        /// </summary>
+        public static void AddRemoteCandidateToServer(int connectionId, string candidate)
+        {
+#if !UNITY_WEBGL || UNITY_EDITOR
+            if (!_server.connections.TryGetValue(connectionId, out Connection connection))
+            {
+                //Routine, not alarming: a candidate can still be in flight when the attempt it
+                //belongs to is torn down.
+                InstanceFinder.NetworkManager.Log($"<color=#FFA500>[Server]</color> Dropped a trickled ICE candidate for unknown connection <b><i><color=#DDA0DD>{connectionId}</color></i></b>.");
+                return;
+            }
+
+            connection.ReceiveRemoteCandidate(candidate);
+#else
+            InstanceFinder.NetworkManager.LogWarning($"<color=#FFA500>[Server]</color> Dropped a trickled ICE candidate: the WebGL transport does not handle them yet.");
+#endif
+        }
+
+
 
         //Handle Signalling
 
@@ -251,6 +316,9 @@ namespace FishNet.Transporting.CanoeWebRTC
         public int operationTimeoutDurationMilliseconds = 2500; //this is the per operation timeout duration
         private static int _operationTimeoutDurationMilliseconds; //this is the per operation timeout duration
 
+        //How long a peer stalls negotiation to collect candidates before bundling them into the
+        //SDP. The standalone transport no longer does this at all - it trickles - so this is read
+        //only by the WebGL sockets, until ticket 04 moves them across and deletes it outright.
         public int candidateCollectDurationMilliseconds = 2000; //this is the candidate collection duration
         internal static int _candidateCollectDurationMilliseconds; //this is the candidate collection duration
 
@@ -372,6 +440,36 @@ namespace FishNet.Transporting.CanoeWebRTC
             }
         }
 
+        //Trickling peers put no candidates in the description they send. The field itself stays on
+        //OfferAnswer only because the WebGL transport still bundles; ticket 04 removes both.
+        private static readonly string[] NoBundledCandidates = new string[0];
+
+        /// <summary>
+        /// Make sure a description advertises that this peer will trickle (RFC 8839 §5.4), so the
+        /// far side treats the candidate-less SDP as the start of gathering rather than the end of
+        /// it. libwebrtc already emits the attribute on both offers and answers — this is a
+        /// belt-and-braces pass that inserts it only if it is somehow absent, and never duplicates.
+        /// </summary>
+        private static string EnsureTrickleIceOption(string sdp)
+        {
+            const string attribute = "a=ice-options:trickle\r\n";
+
+            if (string.IsNullOrEmpty(sdp) || sdp.Contains("ice-options:trickle"))
+                return sdp;
+
+            //Session-level attributes follow the timing line, so insert directly after the first
+            //"t=". If the description is not shaped the way SDP requires, leave it well alone.
+            int timing = sdp.IndexOf("\r\nt=", StringComparison.Ordinal);
+            if (timing < 0)
+                return sdp;
+
+            int endOfTiming = sdp.IndexOf("\r\n", timing + 2, StringComparison.Ordinal);
+            if (endOfTiming < 0)
+                return sdp;
+
+            return sdp.Insert(endOfTiming + 2, attribute);
+        }
+
         //Server
 
         //Create Offer For a client from the server (us)
@@ -475,21 +573,10 @@ namespace FishNet.Transporting.CanoeWebRTC
 
             }
 
-            string sdp = offerOp.Desc.sdp;
-
-            try
-            {
-                await Task.Delay(_candidateCollectDurationMilliseconds, token);
-            }
-            catch (TaskCanceledException)
-            {
-                InstanceFinder.NetworkManager.Log("Delay was cancelled.");
-                return new OfferAnswer("", null, true, "Operation was cancelled");
-            }
-
-            OfferAnswer requestObject = new OfferAnswer(sdp, clientConnection.iceCandidates.Select(s => s.Candidate).ToArray());
-
-            return requestObject;
+            //The offer goes out the instant the local description is set. Gathering has only just
+            //begun and every candidate it produces is trickled separately, so there is nothing left
+            //to wait for here - this is where the join's first multi-second stall used to be.
+            return new OfferAnswer(EnsureTrickleIceOption(offerOp.Desc.sdp), NoBundledCandidates);
 
         }
 
@@ -580,25 +667,30 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (remoteDescOp.IsError)
             {
                 InstanceFinder.NetworkManager.LogError("Failed to set remote description");
-
+                return;
             }
 
-            //Debug.Log("THE FOLLOWING IS WHAT THE Client SENT TO US");
-            //Debug.Log("-------------------------------------------");
+            //The client will already have trickled candidates at us - it starts gathering as soon
+            //as it sets its own local description, which is before we ever see this answer. They
+            //were buffered because there was nothing to attach them to; now there is.
+            remoteConnection.RemoteDescriptionSet();
 
-            foreach (var iceCandidate in answer.candidates)
-            {
-                //Debug.Log(iceCandidate);
-                var candidateInit = new RTCIceCandidateInit
-                {
-                    candidate = iceCandidate,
-                    sdpMid = "0",
-                    sdpMLineIndex = 0
-                };
-                remoteConnection.localConnection.AddIceCandidate(new RTCIceCandidate(candidateInit));
-            }
-            //Debug.Log("-------------------------------------------");
+            //A peer that still bundles (WebGL, until ticket 04) sends its candidates in here.
+            ApplyBundledCandidates(remoteConnection, answer.candidates);
 
+        }
+
+        /// <summary>
+        /// Candidates carried inside an offer or answer by a peer that has not moved to trickle yet.
+        /// A trickling peer sends none, so this is a no-op between two standalone peers.
+        /// </summary>
+        private static void ApplyBundledCandidates(Connection connection, string[] candidates)
+        {
+            if (candidates == null)
+                return;
+
+            foreach (string candidate in candidates)
+                connection.ReceiveRemoteCandidate(candidate);
         }
 
 
@@ -692,6 +784,14 @@ namespace FishNet.Transporting.CanoeWebRTC
                 return new OfferAnswer("", null, true, "Failed to set remote description");
             }
 
+            //The host began gathering the moment it set its own local description, so its first
+            //candidates can beat its offer's arrival here. Release them now that there is a remote
+            //description to attach them to; from here the queue passes everything straight through.
+            connection.RemoteDescriptionSet();
+
+            //A peer that still bundles (WebGL, until ticket 04) sends its candidates in here.
+            ApplyBundledCandidates(connection, offer.candidates);
+
             RTCSessionDescriptionAsyncOperation answerOp = connection.localConnection.CreateAnswer();
 
             await WaitUntilOperationIsDone(answerOp);
@@ -726,38 +826,10 @@ namespace FishNet.Transporting.CanoeWebRTC
                 return new OfferAnswer("", null, true, "Failed to set local description");
             }
 
-            string sdp = answerOp.Desc.sdp;
-
-            try
-            {
-                await Task.Delay(_candidateCollectDurationMilliseconds, token);
-            }
-            catch (TaskCanceledException)
-            {
-                InstanceFinder.NetworkManager.Log("Delay was cancelled.");
-                return new OfferAnswer("", null, true, "Operation was cancelled during delay");
-            }
-
-            OfferAnswer respondObject = new OfferAnswer(sdp, connection.iceCandidates.Select(s => s.Candidate).ToArray());
-
-            if (token.IsCancellationRequested)
-            {
-                InstanceFinder.NetworkManager.Log("Operation was cancelled before adding ICE candidates.");
-                return new OfferAnswer("", null, true, "Operation was cancelled before adding ICE candidates");
-            }
-
-            foreach (var iceCandidate in offer.candidates)
-            {
-                var candidateInit = new RTCIceCandidateInit
-                {
-                    candidate = iceCandidate,
-                    sdpMid = "0",
-                    sdpMLineIndex = 0
-                };
-                connection.localConnection.AddIceCandidate(new RTCIceCandidate(candidateInit));
-            }
-
-            return respondObject;
+            //The answer goes out the instant the local description is set - the second of the two
+            //multi-second stalls the join used to sit through. Our own candidates follow as they
+            //are gathered.
+            return new OfferAnswer(EnsureTrickleIceOption(answerOp.Desc.sdp), NoBundledCandidates);
         }
 
 #endif
