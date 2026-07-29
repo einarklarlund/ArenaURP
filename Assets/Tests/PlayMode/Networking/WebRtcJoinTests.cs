@@ -32,8 +32,8 @@ namespace Arena.PlayTests
     ///
     /// **Channels-open is the assertion; duration is only logged.** Real ICE is asynchronous and a
     /// known flakiness source, so the timeout is deliberately generous and nothing asserts on time.
-    /// The logged baseline exists to be beaten: the pre-trickle path bundles candidates behind two
-    /// serial 4s gather stalls, so expect roughly an 8s floor. Grep the run log for
+    /// The logged baseline exists to be beaten: the bundled-candidate path it was written against
+    /// sat behind two serial 4s gather stalls, giving an ~8.05s floor. Grep the run log for
     /// <c>BASELINE join duration</c>.
     ///
     /// Values on the transport mirror Boot.unity's authored ones, so the baseline measures what
@@ -55,7 +55,6 @@ namespace Arena.PlayTests
         // Boot.unity's authored CanoeWebRTC values.
         const int BootMtu = 2047;
         const int BootOperationTimeoutMs = 25000;
-        const int BootCandidateCollectMs = 4000;
         const int BootSignalTimeoutMs = 80000;
 
         static readonly string[] BootIceServerUrls =
@@ -238,7 +237,6 @@ namespace Arena.PlayTests
             transport.filterLocalConnections = false;
             transport.onlyAllowRelay = false;
             transport.operationTimeoutDurationMilliseconds = BootOperationTimeoutMs;
-            transport.candidateCollectDurationMilliseconds = BootCandidateCollectMs;
             transport.signalTimeoutDurationMilliseconds = BootSignalTimeoutMs;
 
             transport.iceServers = new List<ICEServer>();
