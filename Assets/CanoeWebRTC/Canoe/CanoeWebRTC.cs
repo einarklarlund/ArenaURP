@@ -71,7 +71,6 @@ namespace FishNet.Transporting.CanoeWebRTC
             _onlyAllowRelay = onlyAllowRelay;
 
             _operationTimeoutDurationMilliseconds = operationTimeoutDurationMilliseconds;
-            _candidateCollectDurationMilliseconds = candidateCollectDurationMilliseconds;
             _signalTimeoutDurationMilliseconds = signalTimeoutDurationMilliseconds;
 
             if (server)
@@ -273,9 +272,9 @@ namespace FishNet.Transporting.CanoeWebRTC
 
             connection.ReceiveRemoteCandidate(candidate);
 #else
-            //The WebGL transport still negotiates with candidates bundled into the SDP and has no
-            //inbound queue to route this into; ticket 04 gives it one.
-            InstanceFinder.NetworkManager.LogWarning($"<color=#77DD77>[Client]</color> Dropped a trickled ICE candidate: the WebGL transport does not handle them yet.");
+            //Same shape one language over: the jslib's Connection owns the queue and decides
+            //whether this can be applied yet.
+            WebGLWebRTC._AddRemoteCandidateToClient(candidate ?? TrickledICE.EndOfCandidates);
 #endif
         }
 
@@ -296,7 +295,8 @@ namespace FishNet.Transporting.CanoeWebRTC
 
             connection.ReceiveRemoteCandidate(candidate);
 #else
-            InstanceFinder.NetworkManager.LogWarning($"<color=#FFA500>[Server]</color> Dropped a trickled ICE candidate: the WebGL transport does not handle them yet.");
+            //An unknown connection id is dropped inside the jslib, where the connection table lives.
+            WebGLWebRTC._AddRemoteCandidateToServer(connectionId, candidate ?? TrickledICE.EndOfCandidates);
 #endif
         }
 
@@ -315,12 +315,6 @@ namespace FishNet.Transporting.CanoeWebRTC
 
         public int operationTimeoutDurationMilliseconds = 2500; //this is the per operation timeout duration
         private static int _operationTimeoutDurationMilliseconds; //this is the per operation timeout duration
-
-        //How long a peer stalls negotiation to collect candidates before bundling them into the
-        //SDP. The standalone transport no longer does this at all - it trickles - so this is read
-        //only by the WebGL sockets, until ticket 04 moves them across and deletes it outright.
-        public int candidateCollectDurationMilliseconds = 2000; //this is the candidate collection duration
-        internal static int _candidateCollectDurationMilliseconds; //this is the candidate collection duration
 
         //Handling timeout for signalling
         //ADR 0012: 39.5s matches RFC 8863's recommended PAC timer, so the app never declares a join
@@ -440,10 +434,6 @@ namespace FishNet.Transporting.CanoeWebRTC
             }
         }
 
-        //Trickling peers put no candidates in the description they send. The field itself stays on
-        //OfferAnswer only because the WebGL transport still bundles; ticket 04 removes both.
-        private static readonly string[] NoBundledCandidates = new string[0];
-
         /// <summary>
         /// Make sure a description advertises that this peer will trickle (RFC 8839 §5.4), so the
         /// far side treats the candidate-less SDP as the start of gathering rather than the end of
@@ -478,7 +468,7 @@ namespace FishNet.Transporting.CanoeWebRTC
 
             if (_server.GetLocalConnectionState() != LocalConnectionState.Started)
             {
-                return new OfferAnswer("", null, true, "Server not started");
+                return new OfferAnswer("", true, "Server not started");
             }
 
 
@@ -511,7 +501,7 @@ namespace FishNet.Transporting.CanoeWebRTC
                 if (token.IsCancellationRequested)
                 {
                     HandleSignalTimeout(connectionID);
-                    return new OfferAnswer("", null, true, "Operation was cancelled before starting");
+                    return new OfferAnswer("", true, "Operation was cancelled before starting");
 
                 }
                 return await operationTask;
@@ -520,7 +510,7 @@ namespace FishNet.Transporting.CanoeWebRTC
             {
                 _server.CloseConnection(connectionID);
                 InstanceFinder.NetworkManager.LogError("Timeout occurred while creating offer.");
-                return new OfferAnswer("", null, true, "Timeout occurred while creating offer");
+                return new OfferAnswer("", true, "Timeout occurred while creating offer");
             }
         }
 
@@ -532,7 +522,7 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.Log("Operation was cancelled before starting.");
-                return new OfferAnswer("", null, true, "Operation was cancelled");
+                return new OfferAnswer("", true, "Operation was cancelled");
             }
 
 
@@ -543,13 +533,13 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.Log("Operation was cancelled after creating offer.");
-                return new OfferAnswer("", null, true, "Operation was cancelled");
+                return new OfferAnswer("", true, "Operation was cancelled");
             }
 
             if (offerOp.IsError)
             {
                 InstanceFinder.NetworkManager.LogError("Failed to create offer");
-                return new OfferAnswer("", null, true, "Failed to create offer");
+                return new OfferAnswer("", true, "Failed to create offer");
 
             }
 
@@ -563,20 +553,20 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.Log("Operation was cancelled after setting local description.");
-                return new OfferAnswer("", null, true, "Operation was cancelled");
+                return new OfferAnswer("", true, "Operation was cancelled");
             }
 
             if (localDescOp.IsError)
             {
                 InstanceFinder.NetworkManager.LogError("Failed to set local description");
-                return new OfferAnswer("", null, true, "Failed to set local description");
+                return new OfferAnswer("", true, "Failed to set local description");
 
             }
 
             //The offer goes out the instant the local description is set. Gathering has only just
             //begun and every candidate it produces is trickled separately, so there is nothing left
             //to wait for here - this is where the join's first multi-second stall used to be.
-            return new OfferAnswer(EnsureTrickleIceOption(offerOp.Desc.sdp), NoBundledCandidates);
+            return new OfferAnswer(EnsureTrickleIceOption(offerOp.Desc.sdp));
 
         }
 
@@ -675,22 +665,6 @@ namespace FishNet.Transporting.CanoeWebRTC
             //were buffered because there was nothing to attach them to; now there is.
             remoteConnection.RemoteDescriptionSet();
 
-            //A peer that still bundles (WebGL, until ticket 04) sends its candidates in here.
-            ApplyBundledCandidates(remoteConnection, answer.candidates);
-
-        }
-
-        /// <summary>
-        /// Candidates carried inside an offer or answer by a peer that has not moved to trickle yet.
-        /// A trickling peer sends none, so this is a no-op between two standalone peers.
-        /// </summary>
-        private static void ApplyBundledCandidates(Connection connection, string[] candidates)
-        {
-            if (candidates == null)
-                return;
-
-            foreach (string candidate in candidates)
-                connection.ReceiveRemoteCandidate(candidate);
         }
 
 
@@ -703,7 +677,7 @@ namespace FishNet.Transporting.CanoeWebRTC
 
             if (_client.GetLocalConnectionState() != LocalConnectionState.Starting)
             {
-                return new OfferAnswer("", null, true, "Client not started");
+                return new OfferAnswer("", true, "Client not started");
             }
 
             CancellationToken token = StartSignalTimeout(-1);
@@ -733,7 +707,7 @@ namespace FishNet.Transporting.CanoeWebRTC
                 if (token.IsCancellationRequested)
                 {
                     HandleSignalTimeout(-1);
-                    return new OfferAnswer("", null, true, "Signal timeout error");
+                    return new OfferAnswer("", true, "Signal timeout error");
 
                 }
 
@@ -745,7 +719,7 @@ namespace FishNet.Transporting.CanoeWebRTC
                 // Timeout occurred
                 _client.StopClient();
                 InstanceFinder.NetworkManager.LogError("Timeout occurred while creating answer for server.");
-                return new OfferAnswer("", null, true, "Timeout occurred while creating offer");
+                return new OfferAnswer("", true, "Timeout occurred while creating offer");
 
             }
         }
@@ -757,7 +731,7 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.LogWarning("Operation was cancelled before starting.");
-                return new OfferAnswer("", null, true, "Operation was cancelled before starting");
+                return new OfferAnswer("", true, "Operation was cancelled before starting");
             }
 
             // Debug.Log("Received an Offer");
@@ -775,22 +749,19 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.LogWarning("Operation was cancelled after setting remote description.");
-                return new OfferAnswer("", null, true, "Operation was cancelled after setting remote description");
+                return new OfferAnswer("", true, "Operation was cancelled after setting remote description");
             }
 
             if (remoteDescOp.IsError)
             {
                 InstanceFinder.NetworkManager.LogWarning("Failed to set remote description");
-                return new OfferAnswer("", null, true, "Failed to set remote description");
+                return new OfferAnswer("", true, "Failed to set remote description");
             }
 
             //The host began gathering the moment it set its own local description, so its first
             //candidates can beat its offer's arrival here. Release them now that there is a remote
             //description to attach them to; from here the queue passes everything straight through.
             connection.RemoteDescriptionSet();
-
-            //A peer that still bundles (WebGL, until ticket 04) sends its candidates in here.
-            ApplyBundledCandidates(connection, offer.candidates);
 
             RTCSessionDescriptionAsyncOperation answerOp = connection.localConnection.CreateAnswer();
 
@@ -799,13 +770,13 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.LogWarning("Operation was cancelled after creating answer.");
-                return new OfferAnswer("", null, true, "Operation was cancelled after creating answer");
+                return new OfferAnswer("", true, "Operation was cancelled after creating answer");
             }
 
             if (answerOp.IsError)
             {
                 InstanceFinder.NetworkManager.LogWarning("Failed to create answer");
-                return new OfferAnswer("", null, true, "Failed to create answer");
+                return new OfferAnswer("", true, "Failed to create answer");
             }
 
             RTCSessionDescription descAnswer = answerOp.Desc;
@@ -817,19 +788,19 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.Log("Operation was cancelled after setting local description.");
-                return new OfferAnswer("", null, true, "Operation was cancelled after setting local description");
+                return new OfferAnswer("", true, "Operation was cancelled after setting local description");
             }
 
             if (localDescOp.IsError)
             {
                 InstanceFinder.NetworkManager.LogError("Failed to set local description");
-                return new OfferAnswer("", null, true, "Failed to set local description");
+                return new OfferAnswer("", true, "Failed to set local description");
             }
 
             //The answer goes out the instant the local description is set - the second of the two
             //multi-second stalls the join used to sit through. Our own candidates follow as they
             //are gathered.
-            return new OfferAnswer(EnsureTrickleIceOption(answerOp.Desc.sdp), NoBundledCandidates);
+            return new OfferAnswer(EnsureTrickleIceOption(answerOp.Desc.sdp));
         }
 
 #endif

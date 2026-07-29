@@ -239,18 +239,26 @@ namespace FishNet.Transporting.CanoeWebRTC
         }
     }
 
+    /// <summary>
+    /// One session description on its way between two peers — the <c>sdp…</c> the signal server
+    /// relays without ever parsing it (see the contract table in <c>docs/plans/trickle-ice.md</c>).
+    /// <para>
+    /// It carries <b>no candidates</b>. Both transports trickle, so a description is sent the
+    /// instant the local description is set and every candidate follows separately over
+    /// <c>0x08</c>/<c>0x09</c>. The same shape is mirrored in the WebGL jslib's
+    /// <c>{sdp}</c> JSON — the two forms must be changed together.
+    /// </para>
+    /// </summary>
     public struct OfferAnswer
     {
         public string sdp;
-        public string[] candidates;
 
         public bool error;
         public string errorMessage;
 
-        public OfferAnswer(string sdp, string[] candidates, bool error = false, string errorMessage = null)
+        public OfferAnswer(string sdp, bool error = false, string errorMessage = null)
         {
             this.sdp = sdp;
-            this.candidates = candidates;
             this.error = error;
             this.errorMessage = error ? errorMessage : null;
         }
@@ -258,16 +266,11 @@ namespace FishNet.Transporting.CanoeWebRTC
         public byte[] Serialize()
         {
             int sdpLength = Encoding.UTF8.GetByteCount(sdp);
-            int totalSize = sizeof(int) + sdpLength + sizeof(int) + sizeof(bool); 
-
-            foreach (string candidate in candidates)
-            {
-                totalSize += sizeof(int) + Encoding.UTF8.GetByteCount(candidate);
-            }
+            int totalSize = sizeof(int) + sdpLength + sizeof(bool);
 
             if (error && errorMessage != null)
             {
-                totalSize += sizeof(int) + Encoding.UTF8.GetByteCount(errorMessage); 
+                totalSize += sizeof(int) + Encoding.UTF8.GetByteCount(errorMessage);
             }
 
             byte[] result = CustomByteArrayPool.Retrieve(totalSize);
@@ -277,18 +280,6 @@ namespace FishNet.Transporting.CanoeWebRTC
             offset += sizeof(int);
             Encoding.UTF8.GetBytes(sdp, 0, sdp.Length, result, offset);
             offset += sdpLength;
-
-            BitConverter.GetBytes(candidates.Length).CopyTo(result, offset);
-            offset += sizeof(int);
-
-            foreach (string candidate in candidates)
-            {
-                int candidateLength = Encoding.UTF8.GetByteCount(candidate);
-                BitConverter.GetBytes(candidateLength).CopyTo(result, offset);
-                offset += sizeof(int);
-                Encoding.UTF8.GetBytes(candidate, 0, candidate.Length, result, offset);
-                offset += candidateLength;
-            }
 
             BitConverter.GetBytes(error).CopyTo(result, offset);
             offset += sizeof(bool);
@@ -314,18 +305,6 @@ namespace FishNet.Transporting.CanoeWebRTC
             string sdp = Encoding.UTF8.GetString(data.Array, data.Offset + offset, sdpLength);
             offset += sdpLength;
 
-            int candidateCount = BitConverter.ToInt32(data.Array, data.Offset + offset);
-            offset += sizeof(int);
-            string[] candidates = new string[candidateCount];
-
-            for (int i = 0; i < candidateCount; i++)
-            {
-                int candidateLength = BitConverter.ToInt32(data.Array, data.Offset + offset);
-                offset += sizeof(int);
-                candidates[i] = Encoding.UTF8.GetString(data.Array, data.Offset + offset, candidateLength);
-                offset += candidateLength;
-            }
-
             bool error = BitConverter.ToBoolean(data.Array, data.Offset + offset);
             offset += sizeof(bool);
 
@@ -338,7 +317,7 @@ namespace FishNet.Transporting.CanoeWebRTC
                 offset += errorMessageLength;
             }
 
-            return new OfferAnswer(sdp, candidates, error, errorMessage);
+            return new OfferAnswer(sdp, error, errorMessage);
         }
     }
 
