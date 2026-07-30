@@ -80,6 +80,27 @@ depends on all teardown staying on the main thread. F3 is the change most likely
 Not analyzed: `Assets/CanoeWebRTC/Canoe/Core/WebGL/Server/WebGLServerSocket.cs:353` has its own
 `SendToAll`. WebGL is single-threaded so it is very unlikely to differ, but nobody has checked.
 
+## F7 — Code-shape findings in `SignalServer.js` left unactioned, deliberately
+
+Raised by the code review over this feature. All are judgement calls on the **security-critical
+relay path**, which had just gone green across 34 tests; reshaping it at the end of a large feature
+buys legibility at the cost of the one thing that path had going for it. Recorded rather than
+actioned, so the next person to open that file inherits the reasoning and not just the code.
+
+- **`relayCandidate` branches on `direction` four separate times** — sender, recipient, log label,
+  and which `doneGathering` flag to set. A single role table keyed by opcode
+  (`{senderKey, recipientKey, doneKey, label}`) collapses all four and makes the sender/recipient
+  pairing auditable at a glance. This is the most attractive of the three: it is the function that
+  *is* the anti-spoof check, so "can a reader confirm it pairs correctly?" has real value.
+- **Length-prefixed framing is hand-inlined four times** (two writes in the join hunk, two reads in
+  the offer and in `relayCandidate`) with hand-computed offsets. The test harness already extracted
+  `lengthPrefixed` / `readLengthPrefixed`; the server it tests did not. Hand-computed offsets on a
+  wire contract are exactly where that extraction pays — and this feature already shipped one
+  offset bug (the pooled-buffer slack on the Unity side).
+- **`findBoundSession(clientSignalId, hostSignalId)` takes two bare int32s in adjacent positions.**
+  Transposing them is silent in JS and mis-routes an answer. Ties into F1, which would delete the
+  scan entirely by putting a token on `0x05` — fixing F1 makes this one moot, so do that first.
+
 ## F6 — The end-of-candidates marker is applied on WebGL and dropped on standalone
 
 **Where:** `Assets/CanoeWebRTC/Canoe/Core/Standalone/Common/Connection.cs:315-324` versus
