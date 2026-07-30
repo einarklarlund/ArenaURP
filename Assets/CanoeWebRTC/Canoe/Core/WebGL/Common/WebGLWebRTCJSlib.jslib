@@ -13,7 +13,178 @@ class Connection {
       this.local_reliableDataChannel = null;
       this.remote_unreliableDataChannel = null;
       this.remote_reliableDataChannel = null;
-      this.iceCandidates = [];
+
+      // Trickle ICE state. Mirrors the standalone transport's Connection +
+      // InboundCandidateQueue: candidates go out as they are gathered, inbound ones wait
+      // here until this connection has a remote description to attach them to.
+      this.inboundCandidates = [];
+      this.endOfCandidatesBuffered = false;
+      this.remoteDescriptionSet = false;
+      this.endOfCandidatesEmitted = false;
+    }
+
+
+    // Candidates - outbound
+
+    /**
+     * The single emit/drop predicate for locally gathered candidates on this transport, and the
+     * twin of Connection.ShouldTrickle on the standalone side. It reads the candidate's typed
+     * fields rather than splitting the SDP line, which is what the old bundled-array scrub did.
+     * FilterLocalConnections is an off-by-default diagnostic for forcing traffic off the LAN: it
+     * drops host candidates and anything whose address is not a literal IP (an mDNS .local name).
+     */
+    static shouldTrickle(candidate) {
+       // TCP candidates were never signalled by this transport and still are not.
+       if (candidate.protocol !== "udp") return false;
+
+       if (FilterLocalConnections !== 1) return true;
+
+       if (candidate.type === "host") return false;
+
+       return Connection.isIPv4(candidate.address) || Connection.isIPv6(candidate.address);
+    }
+
+    /**
+     * Tell the far side gathering is done so it can stop waiting on candidates that are never
+     * coming. Emitted exactly once per connection: a browser announces completion both by an
+     * onicecandidate event with a null/empty candidate and by onicegatheringstatechange reaching
+     * "complete", either of which may fire (or fire more than once), and the wire form of the
+     * marker - an empty candidate - carries no way to tell duplicates apart.
+     */
+    emitEndOfCandidates() {
+       if (this.endOfCandidatesEmitted) return;
+       this.endOfCandidatesEmitted = true;
+
+       console.log(`ICE gathering complete on connection ${this.connectionID}; sending end-of-candidates.`);
+
+       this.emitLocalCandidate("");
+    }
+
+    /** Hand one candidate to the signalling layer. connectionID -1 is our connection to the host. */
+    emitLocalCandidate(candidate) {
+       if (this.connectionID === -1) {
+          if (typeof LocalIceCandidate_Client !== "function") return;
+          LocalIceCandidate_Client(candidate);
+       } else {
+          if (typeof LocalIceCandidate_Server !== "function") return;
+          LocalIceCandidate_Server(this.connectionID, candidate);
+       }
+    }
+
+
+    // Candidates - inbound
+
+    /** An empty (or absent) candidate is the end-of-candidates marker. */
+    static isEndOfCandidates(candidate) {
+       return candidate === null || candidate === undefined || candidate === "";
+    }
+
+    /**
+     * A candidate the remote peer trickled to us. Applied at once if this connection already has a
+     * remote description, otherwise buffered until it does (ADR 0011).
+     */
+    receiveRemoteCandidate(candidate) {
+       if (this.closing || this.peerConnection === null) return;
+
+       if (!this.remoteDescriptionSet) {
+          if (Connection.isEndOfCandidates(candidate)) {
+             this.endOfCandidatesBuffered = true;
+          } else {
+             this.inboundCandidates.push(candidate);
+          }
+          return;
+       }
+
+       this.applyRemoteCandidate(candidate);
+    }
+
+    /**
+     * This connection's remote description is now set: apply everything that arrived early, in
+     * arrival order, then let later candidates through untouched. The end-of-candidates marker is
+     * always released last - telling ICE gathering is complete before applying the candidates it
+     * completes would throw away paths. Idempotent.
+     */
+    markRemoteDescriptionSet() {
+       this.remoteDescriptionSet = true;
+
+       const buffered = this.inboundCandidates;
+       this.inboundCandidates = [];
+
+       for (let i = 0; i < buffered.length; i++) {
+          this.applyRemoteCandidate(buffered[i]);
+       }
+
+       if (this.endOfCandidatesBuffered) {
+          this.endOfCandidatesBuffered = false;
+          this.applyRemoteCandidate("");
+       }
+    }
+
+    /** Hand one already-releasable candidate to the ICE agent. */
+    applyRemoteCandidate(candidate) {
+       if (this.closing || this.peerConnection === null) return;
+
+       // addIceCandidate with an empty candidate string is the end-of-candidates indication for
+       // the named m-line. Unlike Unity.WebRTC the browser accepts it, so the marker is a real
+       // signal here rather than something to log and drop.
+       const init = Connection.isEndOfCandidates(candidate)
+          ? { candidate: "", sdpMid: "0", sdpMLineIndex: 0 }
+          : { candidate: candidate, sdpMid: "0", sdpMLineIndex: 0 };
+
+       this.peerConnection.addIceCandidate(init).catch(function (error) {
+          // A candidate we cannot apply costs us one path, not the connection.
+          console.warn("Discarded an unusable remote ICE candidate:", error);
+       });
+    }
+
+
+    // Address shape, for the filterLocalConnections diagnostic only.
+
+    static isIPv4(address) {
+       if (!address) return false;
+
+       const octets = address.split(".");
+       return octets.length === 4 && octets.every(function (octet) {
+          return /^\d{1,3}$/.test(octet) && Number(octet) <= 255;
+       });
+    }
+
+    static isIPv6(address) {
+       if (!address || address.indexOf(".") !== -1) return false;
+
+       const doubleColonCount = address.split("::").length - 1;
+       if (doubleColonCount > 1) return false;
+
+       const parts = address.split(":").filter(function (part) {
+          return part.length > 0;
+       });
+
+       if (parts.length > 8) return false;
+       if (doubleColonCount === 0 && parts.length !== 8) return false;
+
+       return true;
+    }
+
+
+    /**
+     * Make sure a description advertises that this peer will trickle (RFC 8839 section 5.4), so
+     * the far side treats the candidate-less SDP as the start of gathering rather than the end of
+     * it. Browsers already emit the attribute on both offers and answers - this is the same
+     * belt-and-braces pass CanoeWebRTC.EnsureTrickleIceOption makes on the standalone side,
+     * inserting it only if it is somehow absent and never duplicating.
+     */
+    static ensureTrickleIceOption(sdp) {
+       if (!sdp || sdp.indexOf("ice-options:trickle") !== -1) return sdp;
+
+       // Session-level attributes follow the timing line, so insert directly after the first "t=".
+       // If the description is not shaped the way SDP requires, leave it well alone.
+       const timing = sdp.indexOf("\r\nt=");
+       if (timing < 0) return sdp;
+
+       const endOfTiming = sdp.indexOf("\r\n", timing + 2);
+       if (endOfTiming < 0) return sdp;
+
+       return sdp.slice(0, endOfTiming + 2) + "a=ice-options:trickle\r\n" + sdp.slice(endOfTiming + 2);
     }
  }
 
@@ -102,13 +273,16 @@ class Connection {
 
 
 
+//This parameter list is the same declaration as WebGLWebRTC.RegisterClientCallbacks in C#.
+//Change one without the other and the WebGL build silently mis-marshals.
 function RegisterClientCallbacks(
     remoteChannelClosedCallback_Client,
     remoteChannelOpenedCallback_Client,
     reliableMessageReceivedCallback_Client,
     unreliableMessageReceivedCallback_Client,
     respondToOfferCallback,
-    candidateCollectDuration,
+    localIceCandidateCallback_Client,
+    filterLocalConnections,
     onlyAllowRelay
  ) {
     var unity_remoteChannelClosedCallback_Client = {{{ makeDynCall('v', 'remoteChannelClosedCallback_Client') }}};
@@ -139,7 +313,14 @@ function RegisterClientCallbacks(
     RespondToOfferCallback = function (jsonString) {
        unity_respondToOfferCallback(jsonString);
     };
- 
+
+    var unity_localIceCandidateCallback_Client = {{{ makeDynCall('vi', 'localIceCandidateCallback_Client') }}};
+    LocalIceCandidate_Client = function (candidate) {
+       let ptr = stringToNewUTF8(candidate);
+       unity_localIceCandidateCallback_Client(ptr);
+       _free(ptr);
+    };
+
     function handleReceivedMessage_Client(event, unityCallback) {       
          if (event.data instanceof ArrayBuffer) {
             let array = new Uint8Array(event.data);
@@ -166,18 +347,21 @@ function RegisterClientCallbacks(
          }
     }
 
-    CandidateCollectDuration = candidateCollectDuration;
+    FilterLocalConnections = filterLocalConnections;
     OnlyAllowRelay = onlyAllowRelay;
 
  }
- 
+
+//This parameter list is the same declaration as WebGLWebRTC.RegisterServerCallbacks in C#.
+//Change one without the other and the WebGL build silently mis-marshals.
 function RegisterServerCallbacks(
     remoteChannelClosedCallback_Server,
     remoteChannelOpenedCallback_Server,
     reliableMessageReceivedCallback_Server,
     unreliableMessageReceivedCallback_Server,
     createOfferCallback,
-    candidateCollectDuration,
+    localIceCandidateCallback_Server,
+    filterLocalConnections,
     onlyAllowRelay
  ) {
     var unity_remoteChannelClosedCallback_Server = {{{ makeDynCall('vi', 'remoteChannelClosedCallback_Server') }}};
@@ -208,6 +392,13 @@ function RegisterServerCallbacks(
        unity_createOfferCallback(connectionID, jsonString);
     };
 
+    var unity_localIceCandidateCallback_Server = {{{ makeDynCall('vii', 'localIceCandidateCallback_Server') }}};
+    LocalIceCandidate_Server = function (connectionID, candidate) {
+       let ptr = stringToNewUTF8(candidate);
+       unity_localIceCandidateCallback_Server(connectionID, ptr);
+       _free(ptr);
+    };
+
     function handleReceivedMessage_Server(event, connectionID, unityCallback) {
        
  
@@ -236,7 +427,7 @@ function RegisterServerCallbacks(
          }
     }
 
-    CandidateCollectDuration = candidateCollectDuration;
+    FilterLocalConnections = filterLocalConnections;
     OnlyAllowRelay = onlyAllowRelay;
  }
 
@@ -355,18 +546,24 @@ function CreateClientConnection() {
       }
    };
 
+   // Each candidate is signalled the moment it appears rather than collected into the answer,
+   // which is what makes the join fast: negotiation no longer waits on gathering.
    newConn.peerConnection.onicecandidate = function (event) {
-      if (event.candidate) {
-         const candidate = event.candidate;
-
-         if (candidate.protocol === "udp") {
-            console.log(`New local ICE candidate: ${candidate.candidate}`);
-            newConn.iceCandidates.push(candidate);
-         }
-         else {
-            console.log(`Ignored local ICE candidate: ${candidate.candidate}`);
-         }
+      // The browser's other way of saying gathering is over.
+      if (!event.candidate || !event.candidate.candidate) {
+         newConn.emitEndOfCandidates();
+         return;
       }
+
+      const candidate = event.candidate;
+
+      if (!Connection.shouldTrickle(candidate)) {
+         console.log(`Ignored local ICE candidate: ${candidate.candidate}`);
+         return;
+      }
+
+      console.log(`New local ICE candidate: ${candidate.candidate}`);
+      newConn.emitLocalCandidate(candidate.candidate);
    };
 
    newConn.peerConnection.oniceconnectionstatechange = function () {
@@ -377,14 +574,20 @@ function CreateClientConnection() {
    newConn.peerConnection.onicegatheringstatechange = function () {
       const state = newConn.peerConnection.iceGatheringState;
       console.log(`CLIENT -- ICE Gathering State changed to: ${state}`);
+
+      if (state === "complete") {
+         newConn.emitEndOfCandidates();
+      }
    };
 
    newConn.peerConnection.onconnectionstatechange = function () {
       const state = newConn.peerConnection.connectionState;
       console.log(`Peer Connection State changed to: ${state}`);
-      
-      if(state == 'disconnected' || state == 'failed' || state == 'closed'){
-         //RemoteChannelsClosed_Client();
+
+      // Only 'failed' is terminal, so it tears down at once. 'disconnected' is transient - ICE
+      // routinely recovers from it on its own - so it is deliberately left alone (ADR 0012).
+      // Matches Connection.OnConnectionStateChange on the standalone transport.
+      if(state == 'failed' || state == 'closed'){
          if(!newConn.closing){
             RemoteChannelsClosed_Client();
          }
@@ -499,18 +702,24 @@ function CreateRemoteConnection(connectionID) {
       }
    };
 
+   // Each candidate is signalled the moment it appears rather than collected into the offer,
+   // which is what makes the join fast: negotiation no longer waits on gathering.
    newConn.peerConnection.onicecandidate = function (event) {
-      if (event.candidate) {
-         const candidate = event.candidate;
-
-         if (candidate.protocol === "udp") {
-            console.log(`ON SERVER -- New ICE candidate for remote connection: ${candidate.candidate}`);
-            newConn.iceCandidates.push(candidate);
-         } 
-         else {
-            console.log(`ON SERVER -- Ignored ICE candidate for remote connection: ${candidate.candidate}`);
-         }
+      // The browser's other way of saying gathering is over.
+      if (!event.candidate || !event.candidate.candidate) {
+         newConn.emitEndOfCandidates();
+         return;
       }
+
+      const candidate = event.candidate;
+
+      if (!Connection.shouldTrickle(candidate)) {
+         console.log(`ON SERVER -- Ignored ICE candidate for remote connection: ${candidate.candidate}`);
+         return;
+      }
+
+      console.log(`ON SERVER -- New ICE candidate for remote connection: ${candidate.candidate}`);
+      newConn.emitLocalCandidate(candidate.candidate);
    };
 
    newConn.peerConnection.oniceconnectionstatechange = function () {
@@ -519,12 +728,23 @@ function CreateRemoteConnection(connectionID) {
       //wont do anything here since below should handle
    };
 
+   newConn.peerConnection.onicegatheringstatechange = function () {
+      const state = newConn.peerConnection.iceGatheringState;
+      console.log(`SERVER -- ICE Gathering State changed to: ${state}`);
+
+      if (state === "complete") {
+         newConn.emitEndOfCandidates();
+      }
+   };
+
    newConn.peerConnection.onconnectionstatechange = function () {
       const state = newConn.peerConnection.connectionState;
       //console.log(`Peer Connection State changed to: ${state}`);
 
-      if(state == 'disconnected' || state == 'failed' || state == 'closed'){
-         //RemoteChannelsClosed_Server(connectionID);
+      // Only 'failed' is terminal, so it tears down at once. 'disconnected' is transient - ICE
+      // routinely recovers from it on its own - so it is deliberately left alone (ADR 0012).
+      // Matches Connection.OnConnectionStateChange on the standalone transport.
+      if(state == 'failed' || state == 'closed'){
          if(!newConn.closing){
             RemoteChannelsClosed_Server(connectionID);
          }
@@ -700,43 +920,36 @@ function SendReliable_ToAllClients(dataPtr, dataSize) {
 function CreateOffer(connectionID) {
    //console.log("Create Offer Called");
 
-   RemoteConnections[connectionID].iceCandidates = [];
+   const conn = RemoteConnections[connectionID];
 
-   RemoteConnections[connectionID].peerConnection.createOffer().then(function (offer) {
-      return RemoteConnections[connectionID].peerConnection.setLocalDescription(offer);
+   conn.peerConnection.createOffer().then(function (offer) {
+      return conn.peerConnection.setLocalDescription(offer);
    }).then(function () {
 
-         setTimeout(function () {
+         //The offer goes out the instant the local description is set. Gathering has only just
+         //begun and every candidate it produces is trickled separately, so there is nothing left
+         //to wait for here - this is where the join's first multi-second stall used to be.
+         var data = {
+            sdp: Connection.ensureTrickleIceOption(conn.peerConnection.localDescription.sdp)
+         };
 
-               var offerSdp = RemoteConnections[connectionID].peerConnection.localDescription.sdp;
-               var iceCandidatesArray = RemoteConnections[connectionID].iceCandidates.map(candidate => candidate.candidate);
-
-               var data = {
-                  sdp: offerSdp,
-                  candidates: iceCandidatesArray
-               };
-
-               var jsonString = JSON.stringify(data);
-               ////console.log('sending back offer with candidates')
-               ptr = stringToNewUTF8(jsonString);
-               CreateOfferCallback(connectionID, ptr);
-               _free(ptr);
-
-         }, CandidateCollectDuration);
+         var jsonString = JSON.stringify(data);
+         let ptr = stringToNewUTF8(jsonString);
+         CreateOfferCallback(connectionID, ptr);
+         _free(ptr);
 
       }).catch(function (error) {
             console.error('Failed to create offer or set local description:', error);
 
             var erroredData = {
                sdp: "",
-               candidates: [],
                error: true,
                errorMessage: "Failed to create offer or set local description: " + error
             };
 
             var erroredJsonString = JSON.stringify(erroredData);
-            
-            errptr = stringToNewUTF8(erroredJsonString);
+
+            let errptr = stringToNewUTF8(erroredJsonString);
             CreateOfferCallback(connectionID, errptr);
             _free(errptr);
 
@@ -745,40 +958,27 @@ function CreateOffer(connectionID) {
 
 //only done on server when receiving an answer from the client we sent an offer to
 function HandleAnswer(connectionID, answerJSON) {
-   
+
    var answerJSONHandled = UTF8ToString(answerJSON);
    var answerData = JSON.parse(answerJSONHandled);
 
-   var answerSdp = answerData.sdp;
-
-   var iceCandidatesArray = answerData.candidates;
-
-   
+   const conn = RemoteConnections[connectionID];
 
    var answer = new RTCSessionDescription({
        type: 'answer',
-       sdp: answerSdp
+       sdp: answerData.sdp
    });
 
-   RemoteConnections[connectionID].peerConnection.setRemoteDescription(answer).then(function () {
+   conn.peerConnection.setRemoteDescription(answer).then(function () {
 
-         iceCandidatesArray.forEach(function (candidate) {
-
-            //can likely just set to 0 instead of checking
-            var iceCandidate = new RTCIceCandidate({ 
-               candidate: candidate,
-               sdpMid: candidate.sdpMid !== null && candidate.sdpMid !== undefined ? candidate.sdpMid : "0",
-               sdpMLineIndex: candidate.sdpMLineIndex !== null && candidate.sdpMLineIndex !== undefined ? candidate.sdpMLineIndex : 0
-            });
-
-            RemoteConnections[connectionID].peerConnection.addIceCandidate(iceCandidate).catch(function (error) {
-                  console.error('Failed to add ICE candidate:', error);
-            });
-         });
+         //The client will already have trickled candidates at us - it starts gathering as soon as
+         //it sets its own local description, which is before we ever see this answer. They were
+         //buffered because there was nothing to attach them to; now there is.
+         conn.markRemoteDescriptionSet();
 
    }).catch(function (error) {
        console.error('Failed to set remote description:', error);
-       RemoteConnections[connectionID].peerConnection.close(); //will cause callback
+       conn.peerConnection.close(); //will cause callback
    });
 }
 
@@ -790,79 +990,87 @@ function HandleOffer(offerJSON) {
 
    var offerData = JSON.parse(offerJSONHandled);
 
-   var offerSdp = offerData.sdp;
-   var iceCandidatesArray = offerData.candidates;
-
-   //console.log("The following are the candidates we received:");
-   //console.log("----------------------------------------");
-   //iceCandidatesArray.forEach(candidate => console.log(candidate));
-   //console.log("----------------------------------------");
-
-   var peerConnection = ClientConnection.peerConnection;
+   const conn = ClientConnection;
+   var peerConnection = conn.peerConnection;
 
    var offer = new RTCSessionDescription({
        type: 'offer',
-       sdp: offerSdp
+       sdp: offerData.sdp
    });
 
    peerConnection.setRemoteDescription(offer).then(function () {
 
-       iceCandidatesArray.forEach(function (candidate) {
-           var iceCandidate = new RTCIceCandidate({ 
-            candidate: candidate,
-            sdpMid: candidate.sdpMid !== null && candidate.sdpMid !== undefined ? candidate.sdpMid : "0",
-            sdpMLineIndex: candidate.sdpMLineIndex !== null && candidate.sdpMLineIndex !== undefined ? candidate.sdpMLineIndex : 0
-         });
-           peerConnection.addIceCandidate(iceCandidate).catch(function (error) {
-               console.error('Failed to add ICE candidate', error);
-           });
-       });
+       //The host began gathering the moment it set its own local description, so its first
+       //candidates can beat its offer's arrival here. Release them now that there is a remote
+       //description to attach them to; from here the queue passes everything straight through.
+       conn.markRemoteDescriptionSet();
 
        return peerConnection.createAnswer();
    }).then(function (answer) {
        return peerConnection.setLocalDescription(answer);
       }).then(function () {
-         setTimeout(function () {
-            var answerSdp = peerConnection.localDescription.sdp;
-            var gatheredIceCandidates = ClientConnection.iceCandidates.map(candidate => candidate.candidate);
 
-            //console.log("The following is what we generated!");
-            //console.log("----------------------------------------");
-            //gatheredIceCandidates.forEach(candidate => console.log(candidate));
-            //console.log("----------------------------------------");
+         //The answer goes out the instant the local description is set - the second of the two
+         //multi-second stalls the join used to sit through. Our own candidates follow as they are
+         //gathered.
+         var responseData = {
+            sdp: Connection.ensureTrickleIceOption(peerConnection.localDescription.sdp)
+         };
 
-            var responseData = {
-                  sdp: answerSdp,
-                  candidates: gatheredIceCandidates
-            };
+         var jsonResponseString = JSON.stringify(responseData);
 
-            var jsonResponseString = JSON.stringify(responseData);
-            
-            ptr = stringToNewUTF8(jsonResponseString);
-            RespondToOfferCallback(ptr);
-            _free(ptr);
+         let ptr = stringToNewUTF8(jsonResponseString);
+         RespondToOfferCallback(ptr);
+         _free(ptr);
 
-            
-         }, CandidateCollectDuration);
          }).catch(function (error) {
             console.error('Failed to handle server offer', error);
             var erroredData = {
                sdp: "",
-               candidates: [],
                error: true,
                errorMessage: "Failed to handle server offer: " + error
             };
 
       var erroredJsonString = JSON.stringify(erroredData);
 
-      errptr = stringToNewUTF8(erroredJsonString);
+      let errptr = stringToNewUTF8(erroredJsonString);
       RespondToOfferCallback(errptr);
       _free(errptr);
       });
 }
 
+
+//A candidate the host trickled to us. We are the client, so there is exactly one peer connection
+//it can belong to and the connection id the server stamped is redundant. An empty string is the
+//end-of-candidates marker.
+function AddRemoteCandidateToClient(candidate) {
+   const candidateString = UTF8ToString(candidate);
+
+   if (ClientConnection === null) {
+      console.warn("[Client] Dropped a trickled ICE candidate: no connection to the host.");
+      return;
+   }
+
+   ClientConnection.receiveRemoteCandidate(candidateString);
+}
+
+//A candidate a client trickled to us. We are the host, so the connection id the server stamped
+//picks which of our peer connections it belongs to.
+function AddRemoteCandidateToServer(connectionID, candidate) {
+   const candidateString = UTF8ToString(candidate);
+
+   if (!RemoteConnections[connectionID]) {
+      //Routine, not alarming: a candidate can still be in flight when the attempt it belongs to
+      //is torn down.
+      console.log(`[Server] Dropped a trickled ICE candidate for unknown connection ${connectionID}.`);
+      return;
+   }
+
+   RemoteConnections[connectionID].receiveRemoteCandidate(candidateString);
+}
+
 function ClientAcknowledged() {
-   
+
 }
 
 const WebGLWebRTCLib = {
@@ -888,7 +1096,9 @@ const WebGLWebRTCLib = {
    SendReliable_ToAllClients,
    CreateOffer,
    HandleAnswer,
-   HandleOffer
+   HandleOffer,
+   AddRemoteCandidateToClient,
+   AddRemoteCandidateToServer
 };
 
 autoAddDeps(WebGLWebRTCLib, "$Connection");

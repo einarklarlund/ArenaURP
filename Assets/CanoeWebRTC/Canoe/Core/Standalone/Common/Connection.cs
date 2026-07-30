@@ -5,6 +5,7 @@ using FishNet.Transporting.CanoeWebRTC.Server;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Unity.WebRTC;
 using UnityEngine;
@@ -29,7 +30,15 @@ namespace FishNet.Transporting.CanoeWebRTC
         RTCDataChannel REMOTE_unreliableDataChannel;
 
 
-        public List<RTCIceCandidate> iceCandidates = new List<RTCIceCandidate>();
+        /// <summary>
+        /// Candidates the remote peer trickled in, held until this connection has a remote
+        /// description to attach them to. The <b>wrapper owns the queue</b> (ADR 0011) — the
+        /// signalling layer routes candidates here and never inspects negotiation state.
+        /// </summary>
+        public readonly InboundCandidateQueue inboundCandidates = new InboundCandidateQueue();
+
+        /// <summary>Guards the end-of-candidates marker so it is emitted exactly once per connection.</summary>
+        private bool _endOfCandidatesEmitted;
 
         public ClientSocket _clientSocket;
         public ServerSocket _serverSocket;
@@ -176,18 +185,30 @@ namespace FishNet.Transporting.CanoeWebRTC
 
             };
 
-            // handle new ICE candidates generated locally
+            //Handle new ICE candidates generated locally. Each one is signalled the moment it
+            //appears rather than collected into the offer/answer, which is what makes the join
+            //fast: negotiation no longer waits on gathering.
             localConnection.OnIceCandidate = (RTCIceCandidate candidate) =>
             {
-                if (candidate != null)
+                //libwebrtc's other way of saying gathering is over.
+                if (candidate == null)
                 {
-                    if (candidate.Protocol == RTCIceProtocol.Udp)
-                    {
-                        Debug.Log($"{debugHeader} New local ICE candidate: {candidate.Candidate}");
-
-                        iceCandidates.Add(candidate);
-                    }
+                    EmitEndOfCandidates();
+                    return;
                 }
+
+                if (!ShouldTrickle(candidate))
+                    return;
+
+                Debug.Log($"{debugHeader} New local ICE candidate: {candidate.Candidate}");
+
+                CanoeWebRTC.RaiseLocalIceCandidate(ConnectionID, candidate.Candidate);
+            };
+
+            localConnection.OnIceGatheringStateChange = (RTCIceGatheringState state) =>
+            {
+                if (state == RTCIceGatheringState.Complete)
+                    EmitEndOfCandidates();
             };
 
             localConnection.OnIceConnectionChange = (RTCIceConnectionState state) =>
@@ -199,9 +220,157 @@ namespace FishNet.Transporting.CanoeWebRTC
             {
                 InstanceFinder.NetworkManager.Log($"{debugHeader} Peer Connection State changed to: <b><i><color=#DDA0DD>{state}</color></i></b>");
 
+                //Only `Failed` is terminal, so it tears down at once. `Disconnected` is transient -
+                //ICE routinely recovers from it on its own - so it is deliberately left alone
+                //(ADR 0012). Recovery from `Failed` is a full rejoin; restartIce is not built.
+                if (state == RTCPeerConnectionState.Failed)
+                {
+                    if (!closing)
+                        RemoteChannelsClosed();
+                }
             };
 
 
+        }
+
+
+        //ICE candidates - outbound
+
+        /// <summary>
+        /// The single emit/drop predicate for locally gathered candidates on this transport.
+        /// <para>
+        /// It replaces the SDP-string scrub that used to run over the bundled candidate array:
+        /// under trickle there is no array to scrub, so the decision is made once, here, as each
+        /// candidate appears. <c>filterLocalConnections</c> is an off-by-default diagnostic for
+        /// forcing traffic off the LAN — it drops host candidates and anything whose address is
+        /// not a literal IP (an mDNS <c>.local</c> name, say).
+        /// </para>
+        /// </summary>
+        private static bool ShouldTrickle(RTCIceCandidate candidate)
+        {
+            //TCP candidates were never signalled by this transport and still are not.
+            if (candidate.Protocol != RTCIceProtocol.Udp)
+                return false;
+
+            if (!CanoeWebRTC._filterLocalConnections)
+                return true;
+
+            if (candidate.Type == RTCIceCandidateType.Host)
+                return false;
+
+            return IsIPv4(candidate.Address) || IsIPv6(candidate.Address);
+        }
+
+        /// <summary>
+        /// Tell the far side that gathering is done, so it can stop waiting on candidates that are
+        /// never coming. Emitted <b>exactly once per connection</b>: libwebrtc signals completion
+        /// both by a null candidate and by the gathering-state transition, either of which may fire
+        /// (or fire more than once), and the wire form of the marker — an empty candidate — carries
+        /// no way for a receiver to tell duplicates apart.
+        /// </summary>
+        private void EmitEndOfCandidates()
+        {
+            if (_endOfCandidatesEmitted)
+                return;
+
+            _endOfCandidatesEmitted = true;
+
+            Debug.Log($"{debugHeader} ICE gathering complete; sending end-of-candidates.");
+
+            CanoeWebRTC.RaiseLocalIceCandidate(ConnectionID, TrickledICE.EndOfCandidates);
+        }
+
+
+        //ICE candidates - inbound
+
+        /// <summary>
+        /// A candidate the remote peer trickled to us. Applied at once if this connection already
+        /// has a remote description, otherwise buffered until it does (ADR 0011).
+        /// </summary>
+        public void ReceiveRemoteCandidate(string candidate)
+        {
+            if (closing || localConnection == null)
+                return;
+
+            if (inboundCandidates.TryApplyNow(candidate))
+                ApplyRemoteCandidate(candidate);
+        }
+
+        /// <summary>
+        /// This connection's remote description is now set: apply everything that arrived early, in
+        /// arrival order, and let later candidates through untouched. Idempotent.
+        /// </summary>
+        public void RemoteDescriptionSet()
+        {
+            foreach (string candidate in inboundCandidates.Release())
+                ApplyRemoteCandidate(candidate);
+        }
+
+        /// <summary>Hand one already-releasable candidate to the ICE agent.</summary>
+        private void ApplyRemoteCandidate(string candidate)
+        {
+            if (closing || localConnection == null)
+                return;
+
+            if (InboundCandidateQueue.IsEndOfCandidates(candidate))
+            {
+                //Unity.WebRTC documents AddIceCandidate(null) as the end-of-candidates indicator
+                //but dereferences its argument regardless, and RTCIceCandidate refuses to construct
+                //from an empty candidate string - so on this transport there is no way to hand the
+                //marker to the agent. It is purely an optimisation (ICE concludes on its own
+                //either way), so it is logged and dropped rather than faked.
+                InstanceFinder.NetworkManager.Log($"{debugHeader} Remote peer finished gathering.");
+                return;
+            }
+
+            try
+            {
+                localConnection.AddIceCandidate(new RTCIceCandidate(new RTCIceCandidateInit
+                {
+                    candidate = candidate,
+                    sdpMid = "0",
+                    sdpMLineIndex = 0
+                }));
+            }
+            catch (Exception e)
+            {
+                //A candidate we cannot parse costs us one path, not the connection.
+                InstanceFinder.NetworkManager.LogWarning($"{debugHeader} Discarded an unusable remote ICE candidate: {e.Message}");
+            }
+        }
+
+        private static bool IsIPv4(string address)
+        {
+            if (string.IsNullOrEmpty(address))
+                return false;
+
+            var octets = address.Split('.');
+            return octets.Length == 4 && octets.All(octet => byte.TryParse(octet, out _));
+        }
+
+        private static bool IsIPv6(string address)
+        {
+            if (string.IsNullOrEmpty(address) || address.Contains('.'))
+            {
+                return false;
+            }
+
+            var parts = address.Split(':');
+
+            int doubleColonCount = address.Split(new[] { "::" }, StringSplitOptions.None).Length - 1;
+            if (doubleColonCount > 1)
+            {
+                return false;
+            }
+
+            var partsList = parts.Where(part => !string.IsNullOrEmpty(part)).ToList();
+
+            if (partsList.Count > 8 || (doubleColonCount == 0 && partsList.Count != 8))
+            {
+                return false;
+            }
+
+            return true;
         }
 
 
@@ -425,6 +594,10 @@ namespace FishNet.Transporting.CanoeWebRTC
 
                 if (hasDisposed) { return; }
                 hasDisposed = true;
+
+                //Disposing the peer connection can still fire state callbacks; flagging closing here
+                //keeps them from re-entering the teardown path for a connection already gone.
+                closing = true;
 
                 unreliableSendThread?.Interrupt();
                 reliableSendThread?.Interrupt();

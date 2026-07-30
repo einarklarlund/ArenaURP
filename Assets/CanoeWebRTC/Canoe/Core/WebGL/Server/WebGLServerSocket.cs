@@ -66,6 +66,18 @@ namespace FishNet.Transporting.CanoeWebRTC.Server
         }
 
 
+        /// <summary>
+        /// One locally gathered ICE candidate, or the empty end-of-candidates marker, on its way out
+        /// of the jslib. We are the host, so the connection id says which of our peer connections
+        /// gathered it — and that is what <c>SignalManager</c> resolves to a session token.
+        /// </summary>
+        [MonoPInvokeCallback(typeof(Action<int, string>))]
+        private static void OnLocalIceCandidate(int connectionID, string candidate)
+        {
+            CanoeWebRTC.RaiseLocalIceCandidate(connectionID, candidate ?? TrickledICE.EndOfCandidates);
+        }
+
+
         public int nextConnID = 0;
 
         public static WebGLServerSocket Instance;
@@ -102,7 +114,8 @@ namespace FishNet.Transporting.CanoeWebRTC.Server
                 ReliableMessageReceivedCallback_Server,
                 UnreliableMessageReceivedCallback_Server,
                 OnOfferCreated,
-                CanoeWebRTC._candidateCollectDurationMilliseconds,
+                OnLocalIceCandidate,
+                (CanoeWebRTC._filterLocalConnections ? 1 : 0),
                 (CanoeWebRTC._onlyAllowRelay ? 1 : 0)
             );
 

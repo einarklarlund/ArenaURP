@@ -25,9 +25,14 @@ Ticket 03 cannot connect until the signal server ships the session table and the
 routes — **ArenaInfra S1–S5**, in that repo's `docs/plans/trickle-ice.md`. Both peers ship in
 lockstep; there is no backward-compat window to preserve.
 
-## Known green-gap
+## Known green-gap — closed in code by 04, unproven
 
 Between 03 and 04, a **cross-transport** join (editor/standalone host ↔ WebGL browser client)
-does not connect: the standalone side has stopped bundling candidates into the SDP and the jslib
-side has not yet learned to trickle. Same-transport joins stay green throughout — standalone
-↔ standalone via 03, WebGL ↔ WebGL via the untouched bundled path. Land 04 promptly after 03.
+did not connect: the standalone side had stopped bundling candidates into the SDP and the jslib
+side had not yet learned to trickle. Same-transport joins stayed green throughout — standalone
+↔ standalone via 03, WebGL ↔ WebGL via the untouched bundled path.
+
+04 has now moved the jslib across and deleted the bundled path outright, so both transports
+trickle and there is only one negotiation shape left. **But nothing has run the WebGL side** — the
+two manual gates that would (a two-browser join, and a browser client joining an editor host) are
+both outstanding, punch list T6/T7. The gap is closed as written, not as observed.

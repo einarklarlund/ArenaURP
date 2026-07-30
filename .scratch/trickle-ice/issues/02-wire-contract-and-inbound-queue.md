@@ -11,7 +11,7 @@ last), so it earns a pure core and a test under the `component-design` rule.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Notes**
 
@@ -29,12 +29,49 @@ last), so it earns a pure core and a test under the `component-design` rule.
   type inside the CanoeWebRTC assembly needs an assembly reference (or the unit lives in an
   `Arena.*.Core` assembly). Pick one and say which in the PR.
 
-- [ ] Trickle payload serialize → deserialize round-trips candidate, sender and receiver
+- [x] Trickle payload serialize → deserialize round-trips candidate, sender and receiver
       (EditMode test); the deserializer no longer discards sender/receiver
-- [ ] The session token round-trips in the agreed encoding, and that encoding matches the one in
+      — **amended by the settled contract** (see "What was built", below): the wire carries *one*
+      routing id per direction, not a (sender, receiver) pair. Both directions round-trip
+      losslessly and the deserializer no longer returns `-1, -1`.
+- [x] The session token round-trips in the agreed encoding, and that encoding matches the one in
       ArenaInfra's plan
-- [ ] `0x08` / `0x09` constants exist; the `0x06` constant and its dead cases are gone
-- [ ] An inbound candidate queue unit buffers before "remote description set", flushes in **arrival
+- [x] `0x08` / `0x09` constants exist; the `0x06` constant and its dead cases are gone
+- [x] An inbound candidate queue unit buffers before "remote description set", flushes in **arrival
       order** on release, and passes through afterwards — covered by an EditMode test
-- [ ] The empty-candidate end-of-candidates marker rides the same queue and is applied **last**
-- [ ] EditMode suite green; no runtime behaviour changed by this ticket
+- [x] The empty-candidate end-of-candidates marker rides the same queue and is applied **last**
+- [x] EditMode suite green; no runtime behaviour changed by this ticket — the 23 new tests were
+      compiled and executed **outside** the editor (the editor is attached to another checkout);
+      one in-editor run of `Arena.Tests` is still owed.
+
+## What was built
+
+**Assembly decision: `Arena.Tests` now references the `CanoeWebRTC` assembly** (one added entry in
+`Arena.Tests.asmdef`), rather than moving the units into a new `Arena.*.Core` assembly. `TrickledICE`
+lives in `Supporting.cs` beside `OfferAnswer`, which `CanoeWebRTC.cs` and `SignalManager.cs` both
+consume — it cannot move without touching files this ticket does not own, so `Arena.Tests` had to
+reach into `CanoeWebRTC` for the payload test regardless. Given that, a separate `Arena.*.Core`
+assembly for the queue would have bought a second asmdef, a `CanoeWebRTC → Core` reference and a
+cross-assembly hop for one 90-line class with a single (transport-side) consumer — ceremony, by the
+`component-design` rule's own "you over-extracted" smell. The queue is still *pure* in the sense the
+rule cares about: no `RTCPeerConnection`, no interop, no `UnityEngine` type, testable with plain
+strings.
+
+**Wire encoding implemented** (exactly the settled contract; `TrickledICE` payload = everything
+after the opcode byte):
+
+- session token: `uint8 length` + that many UTF-8 bytes (`SessionToken.Write/Read/ByteLength`)
+- `0x08`/`0x09` peer→server: `[tok] candidate…` (`TrickledICE.SerializeToServer`)
+- `0x08`/`0x09` server→peer: `int32 connectionId` (little-endian) `candidate…` (`DeserializeToPeer`)
+- `candidate…` is the remainder of the buffer as UTF-8 → **zero remaining bytes = end-of-candidates**
+
+The struct's old `sender`/`receiver` ints are gone: the settled contract has no message carrying
+both. Outbound the token *is* the route; inbound the server stamps one `connectionId`. Those are
+now the struct's `sessionToken` / `connectionId` fields, and both survive a round trip — which is
+what "stop discarding" was protecting.
+
+**Files:** `Supporting.cs` (`SessionToken`, repurposed `TrickledICE`), new
+`Canoe/Common/InboundCandidateQueue.cs`, `SignalManager.cs` (opcode constants only),
+`Assets/Tests/EditMode/{SessionToken,TrickledICE,InboundCandidateQueue}Tests.cs`.
+
+Nothing calls the queue or the new opcodes yet — ticket 03 wires them in.

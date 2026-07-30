@@ -20,9 +20,34 @@ New/changed signal opcodes (`SignalManager.cs` byte constants must match `Signal
 | **0x08** | `trickleToClient` | host→server→client | `sessionToken`, UTF-8 candidate string (empty string = end-of-candidates) |
 | **0x09** | `trickleToHost` | client→server→host | `sessionToken`, UTF-8 candidate string (empty string = end-of-candidates) |
 
-The old `trickleICE` (0x06) constant and its dead cases are **deleted** from both `SignalManager.cs` and `SignalServer.js`. Pick 0x08/0x09 (not reusing 0x06) so a stale peer never half-parses a new message. Session token wire form: agree the exact encoding (length-prefixed UTF-8 vs fixed width) with the ArenaInfra plan before coding — it is one shared struct in two languages.
+The old `trickleICE` (0x06) constant and its dead cases are **deleted** from both `SignalManager.cs` and `SignalServer.js`. Pick 0x08/0x09 (not reusing 0x06) so a stale peer never half-parses a new message.
 
-**SDP:** offers and answers advertise `a=ice-options:trickle`. `OfferAnswer.candidates[]` is removed from the struct, its serializer, and the WebGL `{sdp, candidates}` JSON. `TrickledICE` (`Supporting.cs:76`) is repurposed as the trickle payload and its `Deserialize` must **stop discarding** `sender`/`receiver` (currently returns `-1, -1`).
+### Settled cross-repo contract (ArenaInfra ticket 01)
+
+Both decisions that were held open are now closed, and `ArenaInfra/docs/plans/trickle-ice.md` states the identical contract. Neither repo may code a (de)serializer against anything else — both peers ship in lockstep, so a mismatch is a hard failure at handshake time.
+
+**1. Session token wire form — length-prefixed UTF-8.** The token is opaque ASCII, **22 characters** from a 62-char alphabet (`A–Z a–z 0–9`), framed exactly like the room code already is: one `uint8` length byte, then that many UTF-8 bytes. Never fixed-width, never null-terminated. Written `[tok]` below.
+
+**2. Offer-to-session correlation — the host echoes the token on its offer.** The server does **not** correlate by the (host, client) pair. The host already has to hold the token at offer time to address its `trickleToClient` (0x08) messages, so echoing it costs one length-prefixed field and buys an unambiguous direct lookup on the server.
+
+Byte layouts (integers little-endian, as today):
+
+| Message | Direction | Layout |
+|---|---|---|
+| `joinRoomCallback` 0x03 — success | server→client | `0x03` `0x01` `[tok]` |
+| `joinRoomCallback` 0x03 — failure | server→client | `0x03` `0x00` *(unchanged)* |
+| `attemptToJoinRoom` 0x02 — host notify | server→host | `0x02` `int32 clientSignalId` `[tok]` |
+| `receivedOfferFromHost` 0x04 | host→server | `0x04` `int32 targetClientSignalId` `int32 connectionId` `[tok]` `sdp…` |
+| `receivedOfferFromHost` 0x04 | server→client | `0x04` `int32 hostSignalId` `sdp…` *(unchanged)* |
+| `receivedAnswerFromClient` 0x05 | both | *(unchanged)* |
+| `trickleToClient` 0x08 | host→server | `0x08` `[tok]` `candidate…` |
+| `trickleToClient` 0x08 | server→client | `0x08` `int32 connectionId` `candidate…` |
+| `trickleToHost` 0x09 | client→server | `0x09` `[tok]` `candidate…` |
+| `trickleToHost` 0x09 | server→host | `0x09` `int32 connectionId` `candidate…` |
+
+An outbound trickle carries **no target player id** — the token alone selects the route on the server. `candidate…` is the remainder of the buffer read as UTF-8, so **zero remaining bytes is the end-of-candidates marker**. The server stamps `connectionId` on both inbound directions so one parser serves both: the host uses it to pick `_server.connections[connectionId]`, the client ignores it and uses `connectionWithServer`.
+
+**SDP:** offers and answers advertise `a=ice-options:trickle`. `OfferAnswer.candidates[]` is removed from the struct, its serializer, and the WebGL `{sdp, candidates}` JSON. `TrickledICE` (`Supporting.cs:76`) is repurposed as the trickle payload and its `Deserialize` must **stop discarding** its routing fields (it currently returns `-1, -1`). Note the settled contract supersedes the old field names: no message carries both a sender and a receiver — outbound the **session token** is the entire route, and inbound the server stamps exactly one **connection id** — so the struct carries `candidate` + `sessionToken` + `connectionId`, and it is those that must survive the round trip.
 
 ---
 
@@ -71,5 +96,12 @@ The old `trickleICE` (0x06) constant and its dead cases are **deleted** from bot
 - **Manual gate:** `./deploy_local.sh` then a two-browser join — the only path that exercises the jslib + real browser ICE + mDNS. Note the WebGL-dev/Local `Bootstrap` paths `AddComponent<CanoeWebRTC>` with **zero ICE servers** (host/mDNS candidates only), which is fine for a LAN test but does not exercise STUN.
 
 ## Flags to resolve during build
-- Verify `stun.stunprotocol.org:3478` still resolves — a dead STUN server now delays *gathering-complete* (the end-of-candidates trigger) rather than just wasting a bundle slot.
+- ~~Verify `stun.stunprotocol.org:3478` still resolves~~ — **resolved: it is dead, and must be replaced.** `Boot.unity` configures five ICE servers (`Boot.unity:365`, `:368`, `:371`, `:374`, `:377`); the two distinct hosts among them were probed 2026-07-24 with real STUN binding requests:
+
+  | Configured | Result |
+  |---|---|
+  | `stun:stun.l.google.com:19302` | **OK** — binding response from 74.125.250.129 |
+  | `stun:stun.stunprotocol.org:3478` | **DEAD** — no A record, DNS resolution fails outright |
+
+  `stun.cloudflare.com:3478` was also probed and answers correctly, so it is the suggested replacement (a second, independently-operated server is worth keeping for redundancy). This matters more under trickle than it did before: a dead STUN server delays *gathering-complete*, which is the end-of-candidates trigger, rather than merely wasting a bundle slot. The fix is a **Boot-scene serialized value**, so it goes through the Unity MCP, not hand-edited YAML.
 - Authoring that crosses the GUID boundary (Boot-scene serialized values: timeout, deleted collect-duration, join-phase UI wiring) goes through the Unity MCP / worktree editor, not hand-edited YAML.

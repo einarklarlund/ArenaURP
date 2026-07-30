@@ -43,6 +43,18 @@ namespace FishNet.Transporting.CanoeWebRTC.Client
 
         }
 
+        /// <summary>
+        /// One locally gathered ICE candidate, or the empty end-of-candidates marker, on its way out
+        /// of the jslib. We are the client, so it belongs to the single connection with the host and
+        /// carries <c>-1</c> — the same id the standalone <c>Connection</c> raises, which is what
+        /// <c>SignalManager</c> uses to pick the trickle direction.
+        /// </summary>
+        [MonoPInvokeCallback(typeof(Action<string>))]
+        private static void OnLocalIceCandidate(string candidate)
+        {
+            CanoeWebRTC.RaiseLocalIceCandidate(-1, candidate ?? TrickledICE.EndOfCandidates);
+        }
+
         [MonoPInvokeCallback(typeof(Action<IntPtr, int>))]
         private static void OnUnreliableMessageReceived(IntPtr dataPtr, int dataSize)
         {
@@ -92,7 +104,8 @@ namespace FishNet.Transporting.CanoeWebRTC.Client
                 OnReliableMessageReceived,
                 OnUnreliableMessageReceived,
                 RespondToOfferCallback,
-                CanoeWebRTC._candidateCollectDurationMilliseconds,
+                OnLocalIceCandidate,
+                (CanoeWebRTC._filterLocalConnections ? 1 : 0),
                 (CanoeWebRTC._onlyAllowRelay ? 1 : 0)
             );
 

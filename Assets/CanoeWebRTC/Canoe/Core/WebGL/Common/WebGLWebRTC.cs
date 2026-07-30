@@ -11,6 +11,15 @@ namespace FishNet.Transporting.CanoeWebRTC
         private static extern void RegisterICEServers(string iceServersJSON);
 
 
+        //The candidate-collect duration is gone from both signatures: nothing stalls to bundle any
+        //more. `localIceCandidateCallback` is what replaced it - the jslib raises it once per
+        //gathered candidate and once more, empty, at gathering-complete. `filterLocalConnections`
+        //moved down here because the gather site is now where that predicate is applied, exactly as
+        //on the standalone transport.
+        //
+        //These signatures and the jslib's own parameter lists are one declaration written twice.
+        //Change them together or the WebGL build silently mis-marshals.
+
         [DllImport("__Internal")]
         private static extern void RegisterClientCallbacks(
             Action remoteChannelClosedCallback_Client,
@@ -18,7 +27,8 @@ namespace FishNet.Transporting.CanoeWebRTC
             Action<IntPtr, int> reliableMessageReceivedCallback_Client,
             Action<IntPtr, int> unreliableMessageReceivedCallback_Client,
             Action<string> respondToOfferCallback,
-            int candidateCollectDuration,
+            Action<string> localIceCandidateCallback_Client,
+            int filterLocalConnections,
             int onlyAllowRelay
         );
 
@@ -29,7 +39,8 @@ namespace FishNet.Transporting.CanoeWebRTC
             Action<int, IntPtr, int> reliableMessageReceivedCallback_Server,
             Action<int, IntPtr, int> unreliableMessageReceivedCallback_Server,
             Action<int, string> createOfferCallback,
-            int candidateCollectDuration,
+            Action<int, string> localIceCandidateCallback_Server,
+            int filterLocalConnections,
             int onlyAllowRelay
         );
 
@@ -79,6 +90,12 @@ namespace FishNet.Transporting.CanoeWebRTC
         [DllImport("__Internal")]
         private static extern void HandleOffer(string offer);
 
+        [DllImport("__Internal")]
+        private static extern void AddRemoteCandidateToClient(string candidate);
+
+        [DllImport("__Internal")]
+        private static extern void AddRemoteCandidateToServer(int connectionID, string candidate);
+
 
         public static void _RegisterICEServers(string iceServersJSON) => RegisterICEServers(iceServersJSON);
 
@@ -88,7 +105,8 @@ namespace FishNet.Transporting.CanoeWebRTC
             Action<IntPtr, int> reliableMessageReceivedCallback_Client,
             Action<IntPtr, int> unreliableMessageReceivedCallback_Client,
             Action<string> respondToOfferCallback,
-            int candidateCollectDuration,
+            Action<string> localIceCandidateCallback_Client,
+            int filterLocalConnections,
             int onlyAllowRelay)
         {
             RegisterClientCallbacks(
@@ -97,7 +115,8 @@ namespace FishNet.Transporting.CanoeWebRTC
                 reliableMessageReceivedCallback_Client,
                 unreliableMessageReceivedCallback_Client,
                 respondToOfferCallback,
-                candidateCollectDuration,
+                localIceCandidateCallback_Client,
+                filterLocalConnections,
                 onlyAllowRelay
             );
         }
@@ -108,7 +127,8 @@ namespace FishNet.Transporting.CanoeWebRTC
         Action<int, IntPtr, int> reliableMessageReceivedCallback_Server,
         Action<int, IntPtr, int> unreliableMessageReceivedCallback_Server,
         Action<int, string> createOfferCallback,
-        int candidateCollectDuration,
+        Action<int, string> localIceCandidateCallback_Server,
+        int filterLocalConnections,
         int onlyAllowRelay)
         {
             RegisterServerCallbacks(
@@ -117,7 +137,8 @@ namespace FishNet.Transporting.CanoeWebRTC
                 reliableMessageReceivedCallback_Server,
                 unreliableMessageReceivedCallback_Server,
                 createOfferCallback,
-                candidateCollectDuration,
+                localIceCandidateCallback_Server,
+                filterLocalConnections,
                 onlyAllowRelay
             );
         }
@@ -152,6 +173,12 @@ namespace FishNet.Transporting.CanoeWebRTC
         public static void _HandleAnswerToOffer(int connectionID, string answer) => HandleAnswer(connectionID, answer);
 
         public static void _HandleOffer(string offer) => HandleOffer(offer);
+
+        /// <summary>A candidate the host trickled to us; an empty string is end-of-candidates.</summary>
+        public static void _AddRemoteCandidateToClient(string candidate) => AddRemoteCandidateToClient(candidate);
+
+        /// <summary>A candidate one of our clients trickled to us; an empty string is end-of-candidates.</summary>
+        public static void _AddRemoteCandidateToServer(int connectionID, string candidate) => AddRemoteCandidateToServer(connectionID, candidate);
     }
 }
 #endif

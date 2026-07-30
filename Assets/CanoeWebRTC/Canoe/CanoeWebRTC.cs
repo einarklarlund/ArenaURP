@@ -3,7 +3,6 @@ using FishNet.Transporting.CanoeWebRTC.Client;
 using FishNet.Transporting.CanoeWebRTC.Server;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 #if !UNITY_WEBGL || UNITY_EDITOR
@@ -72,7 +71,6 @@ namespace FishNet.Transporting.CanoeWebRTC
             _onlyAllowRelay = onlyAllowRelay;
 
             _operationTimeoutDurationMilliseconds = operationTimeoutDurationMilliseconds;
-            _candidateCollectDurationMilliseconds = candidateCollectDurationMilliseconds;
             _signalTimeoutDurationMilliseconds = signalTimeoutDurationMilliseconds;
 
             if (server)
@@ -180,13 +178,13 @@ namespace FishNet.Transporting.CanoeWebRTC
         public override event Action<RemoteConnectionStateArgs> OnRemoteConnectionState;
         public override void HandleRemoteConnectionState(RemoteConnectionStateArgs connectionStateArgs)
         {
-
-            /*
+            //The signal timeout is only cancelled once the remote connection actually *starts*.
+            //Cancelling it earlier (on answer receipt) left a connection that negotiated but never
+            //established alive forever - wrapper and RTCPeerConnection both (ADR 0012).
             if (connectionStateArgs.ConnectionState == RemoteConnectionState.Started)
             {
                 StopSignalTimeout(connectionStateArgs.ConnectionId);
             }
-            */
 
             OnRemoteConnectionState?.Invoke(connectionStateArgs);
 
@@ -236,6 +234,73 @@ namespace FishNet.Transporting.CanoeWebRTC
         }
 
 
+        //Trickled ICE candidates
+        //
+        //The transport gathers and applies; the signalling layer addresses and relays. These three
+        //members are the whole seam between them, and it only runs one way at compile time: the
+        //transport raises an event it does not know who listens to, and exposes two entry points
+        //the signal manager calls. SignalManager lives in Assembly-CSharp, which references this
+        //assembly and cannot be referenced back.
+
+        /// <summary>
+        /// Raised as each local ICE candidate is gathered, and once more with
+        /// <see cref="TrickledICE.EndOfCandidates"/> when gathering completes.
+        /// <c>connectionId</c> is <c>-1</c> for the local client's connection to its host, and the
+        /// server-side connection id otherwise — which is also what selects the trickle direction.
+        /// </summary>
+        public static Action<int, string> OnLocalIceCandidate;
+
+        internal static void RaiseLocalIceCandidate(int connectionId, string candidate)
+        {
+            OnLocalIceCandidate?.Invoke(connectionId, candidate);
+        }
+
+        /// <summary>
+        /// A candidate the host trickled to us. We are the client, so there is exactly one peer
+        /// connection it can belong to and the connection id the server stamped is redundant.
+        /// </summary>
+        public static void AddRemoteCandidateToClient(string candidate)
+        {
+#if !UNITY_WEBGL || UNITY_EDITOR
+            Connection connection = _client.connectionWithServer;
+
+            if (connection == null)
+            {
+                InstanceFinder.NetworkManager.LogWarning($"<color=#77DD77>[Client]</color> Dropped a trickled ICE candidate: no connection to the host.");
+                return;
+            }
+
+            connection.ReceiveRemoteCandidate(candidate);
+#else
+            //Same shape one language over: the jslib's Connection owns the queue and decides
+            //whether this can be applied yet.
+            WebGLWebRTC._AddRemoteCandidateToClient(candidate ?? TrickledICE.EndOfCandidates);
+#endif
+        }
+
+        /// <summary>
+        /// A candidate a client trickled to us. We are the host, so the connection id the server
+        /// stamped picks which of our peer connections it belongs to.
+        /// </summary>
+        public static void AddRemoteCandidateToServer(int connectionId, string candidate)
+        {
+#if !UNITY_WEBGL || UNITY_EDITOR
+            if (!_server.connections.TryGetValue(connectionId, out Connection connection))
+            {
+                //Routine, not alarming: a candidate can still be in flight when the attempt it
+                //belongs to is torn down.
+                InstanceFinder.NetworkManager.Log($"<color=#FFA500>[Server]</color> Dropped a trickled ICE candidate for unknown connection <b><i><color=#DDA0DD>{connectionId}</color></i></b>.");
+                return;
+            }
+
+            connection.ReceiveRemoteCandidate(candidate);
+#else
+            //An unknown connection id is dropped inside the jslib, where the connection table lives.
+            WebGLWebRTC._AddRemoteCandidateToServer(connectionId, candidate ?? TrickledICE.EndOfCandidates);
+#endif
+        }
+
+
 
         //Handle Signalling
 
@@ -251,11 +316,11 @@ namespace FishNet.Transporting.CanoeWebRTC
         public int operationTimeoutDurationMilliseconds = 2500; //this is the per operation timeout duration
         private static int _operationTimeoutDurationMilliseconds; //this is the per operation timeout duration
 
-        public int candidateCollectDurationMilliseconds = 2000; //this is the candidate collection duration
-        internal static int _candidateCollectDurationMilliseconds; //this is the candidate collection duration
-
         //Handling timeout for signalling
-        public int signalTimeoutDurationMilliseconds = 8000; //this is the overall process timeout duration
+        //ADR 0012: 39.5s matches RFC 8863's recommended PAC timer, so the app never declares a join
+        //dead while the ICE agent is still legitimately allowed to be working. Keep the Boot-scene
+        //serialized value in step with this default.
+        public int signalTimeoutDurationMilliseconds = 39500; //this is the overall process timeout duration
         private static int _signalTimeoutDurationMilliseconds; 
 
         public static CancellationTokenSource clientCancellationTokenSource;
@@ -285,19 +350,28 @@ namespace FishNet.Transporting.CanoeWebRTC
             return token;
         }
 
-        //this occurs if it fully connects / finishes -- we consider fully connected from the clients perspective after we have connected but consider fully connected on server after we receive the answer
+        //this occurs once the connection is actually established -- the client cancels when its local
+        //connection starts, the host when the remote connection starts. Idempotent: the timer may
+        //already have been stopped (or never started) by the time the connection reports Started.
         private static void StopSignalTimeout(int connectionID)
         {
             if (connectionID != -1)
             {
-                remoteCancellationTokenSources[connectionID].Cancel();
-                remoteCancellationTokenSources[connectionID].Dispose();
+                if (!remoteCancellationTokenSources.TryGetValue(connectionID, out CancellationTokenSource remoteSource))
+                    return;
+
+                remoteSource.Cancel();
+                remoteSource.Dispose();
                 remoteCancellationTokenSources.Remove(connectionID);
             }
             else
             {
+                if (clientCancellationTokenSource == null)
+                    return;
+
                 clientCancellationTokenSource.Cancel();
                 clientCancellationTokenSource.Dispose();
+                clientCancellationTokenSource = null;
             }
         }
 
@@ -344,17 +418,46 @@ namespace FishNet.Transporting.CanoeWebRTC
         {
             if (connectionID != -1)
             {
-                remoteCancellationTokenSources[connectionID].Dispose();
-                remoteCancellationTokenSources.Remove(connectionID);
+                if (remoteCancellationTokenSources.TryGetValue(connectionID, out CancellationTokenSource remoteSource))
+                {
+                    remoteSource.Dispose();
+                    remoteCancellationTokenSources.Remove(connectionID);
+                }
 
                 _server.CloseConnection(connectionID);
             }
             else
             {
-                clientCancellationTokenSource.Dispose();
+                clientCancellationTokenSource?.Dispose();
                 clientCancellationTokenSource = null;
                 _client.StopClient();
             }
+        }
+
+        /// <summary>
+        /// Make sure a description advertises that this peer will trickle (RFC 8839 §5.4), so the
+        /// far side treats the candidate-less SDP as the start of gathering rather than the end of
+        /// it. libwebrtc already emits the attribute on both offers and answers — this is a
+        /// belt-and-braces pass that inserts it only if it is somehow absent, and never duplicates.
+        /// </summary>
+        private static string EnsureTrickleIceOption(string sdp)
+        {
+            const string attribute = "a=ice-options:trickle\r\n";
+
+            if (string.IsNullOrEmpty(sdp) || sdp.Contains("ice-options:trickle"))
+                return sdp;
+
+            //Session-level attributes follow the timing line, so insert directly after the first
+            //"t=". If the description is not shaped the way SDP requires, leave it well alone.
+            int timing = sdp.IndexOf("\r\nt=", StringComparison.Ordinal);
+            if (timing < 0)
+                return sdp;
+
+            int endOfTiming = sdp.IndexOf("\r\n", timing + 2, StringComparison.Ordinal);
+            if (endOfTiming < 0)
+                return sdp;
+
+            return sdp.Insert(endOfTiming + 2, attribute);
         }
 
         //Server
@@ -365,7 +468,7 @@ namespace FishNet.Transporting.CanoeWebRTC
 
             if (_server.GetLocalConnectionState() != LocalConnectionState.Started)
             {
-                return new OfferAnswer("", null, true, "Server not started");
+                return new OfferAnswer("", true, "Server not started");
             }
 
 
@@ -398,7 +501,7 @@ namespace FishNet.Transporting.CanoeWebRTC
                 if (token.IsCancellationRequested)
                 {
                     HandleSignalTimeout(connectionID);
-                    return new OfferAnswer("", null, true, "Operation was cancelled before starting");
+                    return new OfferAnswer("", true, "Operation was cancelled before starting");
 
                 }
                 return await operationTask;
@@ -407,7 +510,7 @@ namespace FishNet.Transporting.CanoeWebRTC
             {
                 _server.CloseConnection(connectionID);
                 InstanceFinder.NetworkManager.LogError("Timeout occurred while creating offer.");
-                return new OfferAnswer("", null, true, "Timeout occurred while creating offer");
+                return new OfferAnswer("", true, "Timeout occurred while creating offer");
             }
         }
 
@@ -419,7 +522,7 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.Log("Operation was cancelled before starting.");
-                return new OfferAnswer("", null, true, "Operation was cancelled");
+                return new OfferAnswer("", true, "Operation was cancelled");
             }
 
 
@@ -430,13 +533,13 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.Log("Operation was cancelled after creating offer.");
-                return new OfferAnswer("", null, true, "Operation was cancelled");
+                return new OfferAnswer("", true, "Operation was cancelled");
             }
 
             if (offerOp.IsError)
             {
                 InstanceFinder.NetworkManager.LogError("Failed to create offer");
-                return new OfferAnswer("", null, true, "Failed to create offer");
+                return new OfferAnswer("", true, "Failed to create offer");
 
             }
 
@@ -450,31 +553,20 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.Log("Operation was cancelled after setting local description.");
-                return new OfferAnswer("", null, true, "Operation was cancelled");
+                return new OfferAnswer("", true, "Operation was cancelled");
             }
 
             if (localDescOp.IsError)
             {
                 InstanceFinder.NetworkManager.LogError("Failed to set local description");
-                return new OfferAnswer("", null, true, "Failed to set local description");
+                return new OfferAnswer("", true, "Failed to set local description");
 
             }
 
-            string sdp = offerOp.Desc.sdp;
-
-            try
-            {
-                await Task.Delay(_candidateCollectDurationMilliseconds, token);
-            }
-            catch (TaskCanceledException)
-            {
-                InstanceFinder.NetworkManager.Log("Delay was cancelled.");
-                return new OfferAnswer("", null, true, "Operation was cancelled");
-            }
-
-            OfferAnswer requestObject = new OfferAnswer(sdp, clientConnection.iceCandidates.Select(s => s.Candidate).ToArray());
-
-            return requestObject;
+            //The offer goes out the instant the local description is set. Gathering has only just
+            //begun and every candidate it produces is trickled separately, so there is nothing left
+            //to wait for here - this is where the join's first multi-second stall used to be.
+            return new OfferAnswer(EnsureTrickleIceOption(offerOp.Desc.sdp));
 
         }
 
@@ -513,8 +605,10 @@ namespace FishNet.Transporting.CanoeWebRTC
                     return;
                 }
             }
-            
-            StopSignalTimeout(connectionID);
+
+            //The signal timeout deliberately keeps running past the answer: an answer only means the
+            //two peers negotiated, not that they connected. It is cancelled in
+            //HandleRemoteConnectionState once the connection reports Started (ADR 0012).
 
             var timeoutTask = Task.Delay(_operationTimeoutDurationMilliseconds);
 
@@ -563,24 +657,13 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (remoteDescOp.IsError)
             {
                 InstanceFinder.NetworkManager.LogError("Failed to set remote description");
-
+                return;
             }
 
-            //Debug.Log("THE FOLLOWING IS WHAT THE Client SENT TO US");
-            //Debug.Log("-------------------------------------------");
-
-            foreach (var iceCandidate in answer.candidates)
-            {
-                //Debug.Log(iceCandidate);
-                var candidateInit = new RTCIceCandidateInit
-                {
-                    candidate = iceCandidate,
-                    sdpMid = "0",
-                    sdpMLineIndex = 0
-                };
-                remoteConnection.localConnection.AddIceCandidate(new RTCIceCandidate(candidateInit));
-            }
-            //Debug.Log("-------------------------------------------");
+            //The client will already have trickled candidates at us - it starts gathering as soon
+            //as it sets its own local description, which is before we ever see this answer. They
+            //were buffered because there was nothing to attach them to; now there is.
+            remoteConnection.RemoteDescriptionSet();
 
         }
 
@@ -594,7 +677,7 @@ namespace FishNet.Transporting.CanoeWebRTC
 
             if (_client.GetLocalConnectionState() != LocalConnectionState.Starting)
             {
-                return new OfferAnswer("", null, true, "Client not started");
+                return new OfferAnswer("", true, "Client not started");
             }
 
             CancellationToken token = StartSignalTimeout(-1);
@@ -624,7 +707,7 @@ namespace FishNet.Transporting.CanoeWebRTC
                 if (token.IsCancellationRequested)
                 {
                     HandleSignalTimeout(-1);
-                    return new OfferAnswer("", null, true, "Signal timeout error");
+                    return new OfferAnswer("", true, "Signal timeout error");
 
                 }
 
@@ -636,7 +719,7 @@ namespace FishNet.Transporting.CanoeWebRTC
                 // Timeout occurred
                 _client.StopClient();
                 InstanceFinder.NetworkManager.LogError("Timeout occurred while creating answer for server.");
-                return new OfferAnswer("", null, true, "Timeout occurred while creating offer");
+                return new OfferAnswer("", true, "Timeout occurred while creating offer");
 
             }
         }
@@ -648,7 +731,7 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.LogWarning("Operation was cancelled before starting.");
-                return new OfferAnswer("", null, true, "Operation was cancelled before starting");
+                return new OfferAnswer("", true, "Operation was cancelled before starting");
             }
 
             // Debug.Log("Received an Offer");
@@ -666,14 +749,19 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.LogWarning("Operation was cancelled after setting remote description.");
-                return new OfferAnswer("", null, true, "Operation was cancelled after setting remote description");
+                return new OfferAnswer("", true, "Operation was cancelled after setting remote description");
             }
 
             if (remoteDescOp.IsError)
             {
                 InstanceFinder.NetworkManager.LogWarning("Failed to set remote description");
-                return new OfferAnswer("", null, true, "Failed to set remote description");
+                return new OfferAnswer("", true, "Failed to set remote description");
             }
+
+            //The host began gathering the moment it set its own local description, so its first
+            //candidates can beat its offer's arrival here. Release them now that there is a remote
+            //description to attach them to; from here the queue passes everything straight through.
+            connection.RemoteDescriptionSet();
 
             RTCSessionDescriptionAsyncOperation answerOp = connection.localConnection.CreateAnswer();
 
@@ -682,13 +770,13 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.LogWarning("Operation was cancelled after creating answer.");
-                return new OfferAnswer("", null, true, "Operation was cancelled after creating answer");
+                return new OfferAnswer("", true, "Operation was cancelled after creating answer");
             }
 
             if (answerOp.IsError)
             {
                 InstanceFinder.NetworkManager.LogWarning("Failed to create answer");
-                return new OfferAnswer("", null, true, "Failed to create answer");
+                return new OfferAnswer("", true, "Failed to create answer");
             }
 
             RTCSessionDescription descAnswer = answerOp.Desc;
@@ -700,47 +788,19 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (token.IsCancellationRequested)
             {
                 InstanceFinder.NetworkManager.Log("Operation was cancelled after setting local description.");
-                return new OfferAnswer("", null, true, "Operation was cancelled after setting local description");
+                return new OfferAnswer("", true, "Operation was cancelled after setting local description");
             }
 
             if (localDescOp.IsError)
             {
                 InstanceFinder.NetworkManager.LogError("Failed to set local description");
-                return new OfferAnswer("", null, true, "Failed to set local description");
+                return new OfferAnswer("", true, "Failed to set local description");
             }
 
-            string sdp = answerOp.Desc.sdp;
-
-            try
-            {
-                await Task.Delay(_candidateCollectDurationMilliseconds, token);
-            }
-            catch (TaskCanceledException)
-            {
-                InstanceFinder.NetworkManager.Log("Delay was cancelled.");
-                return new OfferAnswer("", null, true, "Operation was cancelled during delay");
-            }
-
-            OfferAnswer respondObject = new OfferAnswer(sdp, connection.iceCandidates.Select(s => s.Candidate).ToArray());
-
-            if (token.IsCancellationRequested)
-            {
-                InstanceFinder.NetworkManager.Log("Operation was cancelled before adding ICE candidates.");
-                return new OfferAnswer("", null, true, "Operation was cancelled before adding ICE candidates");
-            }
-
-            foreach (var iceCandidate in offer.candidates)
-            {
-                var candidateInit = new RTCIceCandidateInit
-                {
-                    candidate = iceCandidate,
-                    sdpMid = "0",
-                    sdpMLineIndex = 0
-                };
-                connection.localConnection.AddIceCandidate(new RTCIceCandidate(candidateInit));
-            }
-
-            return respondObject;
+            //The answer goes out the instant the local description is set - the second of the two
+            //multi-second stalls the join used to sit through. Our own candidates follow as they
+            //are gathered.
+            return new OfferAnswer(EnsureTrickleIceOption(answerOp.Desc.sdp));
         }
 
 #endif
