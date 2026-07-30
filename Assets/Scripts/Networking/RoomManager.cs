@@ -1,5 +1,6 @@
 using FishNet;
 using FishNet.Transporting;
+using JamesFrowen.SimpleWeb;
 using UnityEngine;
 
 public class RoomManager : MonoBehaviour
@@ -30,6 +31,7 @@ public class RoomManager : MonoBehaviour
 
         SignalManager.OnRoomCreated -= HandleRoomCreated;
         SignalManager.OnRoomJoined -= HandleRoomJoined;
+        SignalManager.OnClientStateChanged -= HandleSignalClientState;
     }
 
     public void CreateRoom()
@@ -54,6 +56,12 @@ public class RoomManager : MonoBehaviour
         // transitions: Started == connected, Stopped-while-in-flight == timed out or torn down.
         InstanceFinder.ClientManager.OnClientConnectionState -= HandleClientConnectionState;
         InstanceFinder.ClientManager.OnClientConnectionState += HandleClientConnectionState;
+
+        // A join that never reaches the signal server has nothing else to end it: the 39.5s signal
+        // timeout only starts once an offer arrives (CanoeWebRTC.CreateAnswerForServer), so an
+        // unreachable or dropped signal socket would otherwise spin the loading view forever.
+        SignalManager.OnClientStateChanged -= HandleSignalClientState;
+        SignalManager.OnClientStateChanged += HandleSignalClientState;
 
         SetCurrentRoom(roomCode);
         InstanceFinder.ClientManager.StartConnection();
@@ -107,6 +115,21 @@ public class RoomManager : MonoBehaviour
             joinInFlight = false;
             LocalUIEvents.OnJoinPhaseChanged?.Invoke(JoinPhase.Failed);
         }
+    }
+
+    /// <summary>
+    /// The signal socket dropping mid-join kills the attempt: every remaining step of the handshake
+    /// is relayed through it. Only <see cref="ClientState.NotConnected"/> is a verdict here -
+    /// <c>StartSignalClient</c> announces <c>Connected</c> before it has connected, so that state
+    /// says nothing about whether the server is actually reachable.
+    /// </summary>
+    private void HandleSignalClientState(ClientState state)
+    {
+        if (!joinInFlight || state != ClientState.NotConnected)
+            return;
+
+        joinInFlight = false;
+        LocalUIEvents.OnJoinPhaseChanged?.Invoke(JoinPhase.Failed);
     }
 
     private void HandleServerConnectionState(ServerConnectionStateArgs args)

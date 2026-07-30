@@ -96,7 +96,7 @@ An outbound trickle carries **no target player id** — the token alone selects 
 - **Manual gate:** `./deploy_local.sh` then a two-browser join — the only path that exercises the jslib + real browser ICE + mDNS. Note the WebGL-dev/Local `Bootstrap` paths `AddComponent<CanoeWebRTC>` with **zero ICE servers** (host/mDNS candidates only), which is fine for a LAN test but does not exercise STUN.
 
 ## Flags to resolve during build
-- ~~Verify `stun.stunprotocol.org:3478` still resolves~~ — **resolved: it is dead, and must be replaced.** `Boot.unity` configures two ICE servers (`Boot.unity:365`, `:377`). Probed 2026-07-24 with real STUN binding requests:
+- ~~Verify `stun.stunprotocol.org:3478` still resolves~~ — **resolved: it is dead, and must be replaced.** `Boot.unity` configures five ICE servers (`Boot.unity:365`, `:368`, `:371`, `:374`, `:377`); the two distinct hosts among them were probed 2026-07-24 with real STUN binding requests:
 
   | Configured | Result |
   |---|---|

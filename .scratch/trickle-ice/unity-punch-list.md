@@ -13,11 +13,13 @@ checkboxes are left unticked.
 | # | Asset | Object / component | Change | Ticket |
 |---|---|---|---|---|
 | A1 | `Assets/Scenes/Boot.unity` | `Prod NetworkManager` → `CanoeWebRTC` | `signalTimeoutDurationMilliseconds`: **80000 → 39500** | 05 |
+| — | — | — | *A1 and A2 are already applied in `WebRtcJoinTests`, which configures the transport itself. Until they land in the scene the harness leads Boot rather than mirroring it; landing them makes the two agree again.* | — |
 | A2 | `Assets/Scenes/Boot.unity` | `Prod NetworkManager` → `CanoeWebRTC`, `iceServers` | Replace the dead `stun:stun.stunprotocol.org:3478` (see below). **Now matters more:** under trickle a dead STUN server delays gathering-complete, which is what emits the end-of-candidates marker. | 03 |
 | A3 | `Assets/Prefabs/Managers/UIManager.prefab` | `Loading View` → `LoadingView` | Add a child UI `Button` labelled "Cancel"; assign it to the `cancelButton` field. No inspector `onClick` wiring — the view adds/removes its own listener. | 06 |
 | A4 | `Assets/Scenes/Boot.unity` | `Prod NetworkManager` → `CanoeWebRTC` | Drop the orphaned `candidateCollectDurationMilliseconds: 4000` (`Boot.unity:381`). The C# field is gone, so this key now points at nothing (see below). | 04 |
 
-**On A2.** `Boot.unity` configures two ICE servers (`:365`, `:377`). Both were probed on
+**On A2.** `Boot.unity` configures five ICE servers (`:365`, `:368`, `:371`, `:374`, `:377`) — four
+Google hosts plus stunprotocol. The two distinct hosts were probed on
 2026-07-24 with real STUN binding requests, not just DNS:
 
 - `stun:stun.l.google.com:19302` — **OK**, binding response from 74.125.250.129

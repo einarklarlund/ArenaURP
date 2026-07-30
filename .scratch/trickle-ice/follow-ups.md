@@ -80,6 +80,28 @@ depends on all teardown staying on the main thread. F3 is the change most likely
 Not analyzed: `Assets/CanoeWebRTC/Canoe/Core/WebGL/Server/WebGLServerSocket.cs:353` has its own
 `SendToAll`. WebGL is single-threaded so it is very unlikely to differ, but nobody has checked.
 
+## F6 — The end-of-candidates marker is applied on WebGL and dropped on standalone
+
+**Where:** `Assets/CanoeWebRTC/Canoe/Core/Standalone/Common/Connection.cs:315-324` versus
+`WebGLWebRTCJSlib.jslib`'s `markRemoteDescriptionSet`.
+
+The plan asks the two transports to stay behaviourally identical, and on this one point they are
+not. The browser applies the marker (`addIceCandidate({candidate: ""})`); the standalone transport
+logs it and drops it.
+
+**The divergence is forced, not a shortcut.** Unity.WebRTC documents `AddIceCandidate(null)` as the
+end-of-candidates indicator but dereferences the argument anyway, and `RTCIceCandidate` refuses to
+construct from an empty candidate string — so on that transport there is no way to hand the marker
+to the ICE agent at all. It is purely an optimisation (the agent concludes checking on its own
+either way), so it is dropped rather than faked.
+
+Two smaller asymmetries ride along: the standalone queue collapses repeated markers where the JS
+buffer does not, and the jslib tears down on `failed` *or* `closed` where standalone handles only
+`Failed`. Neither has been observed to matter; both are noted so a future reader does not
+"fix" one side into disagreement with the other.
+
+Worth revisiting only if a Unity.WebRTC release makes the marker representable.
+
 ## F5 — The signal server cannot run on the repo's local Node
 
 `uWebSockets.js` v20.40.0 ships prebuilt binaries only for the Node 16/18/20/21 ABIs; the machine's

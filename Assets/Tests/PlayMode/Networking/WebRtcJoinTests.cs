@@ -36,8 +36,12 @@ namespace Arena.PlayTests
     /// sat behind two serial 4s gather stalls, giving an ~8.05s floor. Grep the run log for
     /// <c>BASELINE join duration</c>.
     ///
-    /// Values on the transport mirror Boot.unity's authored ones, so the baseline measures what
-    /// players actually experience rather than the (much shorter) code defaults.
+    /// The transport is configured the way a joining player's is, so the measurement reflects what
+    /// players experience. Two of those values currently lead Boot.unity rather than mirroring it:
+    /// the signal timeout is ADR 0012's 39500 (Boot still holds the retired 80000), and the dead
+    /// stun.stunprotocol.org is replaced (a STUN server that never answers delays gathering-complete,
+    /// which is precisely the signal this test times). Both are queued as punch-list A1/A2; when they
+    /// land in Boot.unity the two agree again.
     /// </summary>
     public class WebRtcJoinTests
     {
@@ -48,14 +52,14 @@ namespace Arena.PlayTests
         const float SignalSocketTimeoutSeconds = 15f;
         const float ServerStartTimeoutSeconds = 15f;
         const float RoomCreatedTimeoutSeconds = 15f;
-        // Generous on purpose: see the class summary. Below the transport's own 80s signal timeout,
-        // so a stalled handshake surfaces here as a clear assertion rather than as transport teardown.
-        const float JoinTimeoutSeconds = 60f;
+        // Generous on purpose: see the class summary. Below the transport's own signal timeout, so a
+        // stalled handshake surfaces here as a clear assertion rather than as transport teardown.
+        const float JoinTimeoutSeconds = 30f;
 
-        // Boot.unity's authored CanoeWebRTC values.
+        // The CanoeWebRTC values a joining player runs with.
         const int BootMtu = 2047;
         const int BootOperationTimeoutMs = 25000;
-        const int BootSignalTimeoutMs = 80000;
+        const int BootSignalTimeoutMs = 39500;
 
         static readonly string[] BootIceServerUrls =
         {
@@ -63,7 +67,7 @@ namespace Arena.PlayTests
             "stun:stun2.l.google.com:19302",
             "stun:stun3.l.google.com:19302",
             "stun:stun4.l.google.com:19302",
-            "stun:stun.stunprotocol.org:3478",
+            "stun:stun.cloudflare.com:3478",
         };
 
         SignalServerProcess _signalServer;
