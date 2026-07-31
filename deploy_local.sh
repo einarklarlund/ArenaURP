@@ -36,7 +36,13 @@ fi
 # --- Starting Local Web Server ---
 echo "--- Starting Local Web Server ---"
 cd "$BUILD_PATH"
-npx http-server -p 8080 &
+# -c-1 disables Cache-Control. Every build writes the same three filenames
+# (webgl.data, webgl.wasm, webgl.framework.js), so http-server's default
+# max-age=3600 lets the browser pair a cached webgl.data from an earlier build
+# with fresh wasm. Their global-metadata.dat indices disagree and IL2CPP then
+# recurses forever resolving a bogus parent type:
+#   "Maximum call stack size exceeded"
+npx http-server -p 8080 -c-1 &
 WEB_PID=$!
 
 echo "Local environment is live!"
