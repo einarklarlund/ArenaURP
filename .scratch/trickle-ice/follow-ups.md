@@ -204,3 +204,131 @@ Sized as a `/prototype` first — the candidate-gathering question above decides
 worth designing. If it works, it converts the feature's least-defended surface from "ask Einar" into
 something an agent can run unattended, which is the same move that took the signal server from
 unverifiable to 34 tests.
+
+---
+
+# Code-review findings — the Standards axis
+
+Raised by `/code-review` over the merged feature (ArenaURP `ecd61d98..HEAD`, ArenaInfra
+`b5398d3..HEAD`), on the axis that asks *does this conform to the project's own standards* rather
+than *does it do what the tickets asked*. The Spec axis found the wire contract clean on both
+sides and its gaps already recorded in the punch list, so nothing from it lands here.
+
+The three `SignalServer.js` code-shape items that review also raised — the `relayCandidate`
+direction branching, the hand-inlined length prefixes, and `findBoundSession`'s two bare int32s —
+are **already F7**, decided and closed. They are not repeated below.
+
+## F10 — Doc comments are back in first-party code, and the one guardrail that mentions them says the opposite
+
+**Where:** `Assets/Scripts/Events/LocalUIEvents.cs` (18 comment lines), `RoomManager.cs` (29),
+`UIManager.cs` (34), `LoadingView.cs` (11); `ArenaInfra/signal-server/SignalServer.js` (~60 added).
+
+The standing rule is that code carries no comments and is made self-explanatory instead. This
+feature added them at volume to first-party code — XML docs on every `JoinPhase` member, rationale
+blocks through `RoomManager`'s join lifecycle, a class doc on `LoadingView`.
+
+**The interesting part is why, and it is not forgetfulness.** No skill, no ADR and no line of
+`CLAUDE.md` states the rule; it lives only in a memory. The *single* place in the repo that
+mentions comments at all is `.claude/skills/commit-conventions/SKILL.md:22`, which justifies
+keeping reasoning out of commit messages on the grounds that it "already lives in the code's doc
+comments" — instructing the reader to do the thing the rule forbids. An agent reading only the
+repo would write these comments every time.
+
+So the defect is in the guardrail, not the diff. Settle which way the rule actually runs, then
+make the repo say it: if comments stay out, `commit-conventions:22` needs a different
+justification for the same advice, and the rule needs a home outside memory. Only then is
+sweeping the four files worth doing — otherwise it grows straight back.
+
+The ArenaInfra half is the same rule with an extra edge: `sweepSession`'s docblock and the
+`sessions` block-comment restate ADR 0001 and `CONTEXT.md` almost verbatim, so the same knowledge
+now sits in three files that will drift apart. Point at the ADR instead of paraphrasing it.
+
+## F11 — `-1` means two different things under two names, and the code that tests it uses neither
+
+**Where:** `Canoe/Common/Supporting.cs:153` (`TrickledICE.NoConnectionId = -1`),
+`Extra/Signal/SignalManager.cs:45` (`clientRouteID = -1`), and the bare literal in
+`CanoeWebRTC.cs:334`, `:358`, `:385`, `:419`, `:476`.
+
+Two constants of equal value carry unrelated meanings — "this wire form stamps no connection id"
+and "this route is our own client connection" — and the five sites that actually branch on the
+sentinel spell `-1` inline rather than naming either. A reader at `CanoeWebRTC.cs:385` cannot tell
+which of the two concepts is being tested, and the compiler will never tell them they guessed
+wrong.
+
+The cascade is the same question asked five times (`if (connectionID != -1)` = "am I the server?"),
+which is the shape that wants a named predicate rather than a repeated comparison. Naming it is
+the cheap half and worth doing on its own; collapsing the branch is the part that touches the
+send path and should wait for a reason.
+
+`TrickledICE` has a related seam: it now holds two disjoint wire forms — token XOR connectionId —
+behind one struct with two factories and two serializer pairs. That is arguably two types wearing
+one name, and the sentinel exists only to mark which one you are holding. If it is ever split,
+`NoConnectionId` disappears with it.
+
+## F12 — The buffer-until-ready machine exists twice in C#, once tested and once not
+
+**Where:** `Canoe/Common/InboundCandidateQueue.cs` versus `SignalManager.TrickleRoute`
+(`:53-61`, `:279-312`).
+
+Trickle needs the same small machine in several places: hold candidates until the far side is
+ready, then release them in arrival order and pass through from then on. `InboundCandidateQueue`
+is that machine — pure, `Reset`-able, covered by EditMode tests. `SignalManager` then hand-rolls
+it a second time as `TrickleRoute { sessionToken, open, pending }` plus `OpenTrickleRoute`, with
+no test of its own.
+
+The jslib copy is forced — it is another language. This one is not: `TrickleRoute`'s buffer is
+`InboundCandidateQueue` with the fields renamed. Folding it in is a small, contained change that
+puts an untested ordering guarantee behind tests that already exist.
+
+## F13 — The join phase is published from eight sites across two assemblies
+
+**Where:** `SignalManager.cs:140`, `:239`, `:245`, `:397`, `:415`; `RoomManager.cs:109`, `:116`,
+`:132`.
+
+`LocalUIEvents.OnJoinPhaseChanged` is fired from five points inside the vendored transport and
+three inside first-party networking. Adding a phase, or changing when an existing one fires, means
+finding all eight — and three of them publish `Failed` for three unrelated reasons.
+
+That the transport reaches into a first-party UI event at all is the sharper edge: `CanoeWebRTC`
+is otherwise a self-contained vendored assembly. It works, and the alternative — the transport
+exposing state that `RoomManager` translates into phases — is a real design change, not a tidy-up.
+Recorded so the eighth publish site is a decision rather than a discovery.
+
+## F14 — The signal server invents a synonym for `player id`, which its own docs forbid
+
+**Where:** `ArenaInfra/signal-server/SignalServer.js:36`, `:193-197`, `:356-368`, `:387-390`.
+
+`ArenaInfra/CONTEXT.md:10` names the per-socket identifier a **player id** (`ws.playerID`), and
+`docs/agents/domain.md` says to use the glossary term and not drift to synonyms. The new session
+fields are `hostSignalId` / `clientSignalId`, and the sweep is `sweepSessionsOfPlayer(signalId)` —
+a term the glossary never defines, sitting directly beside `ws.playerID` and the `playerID` table
+that hold exactly the same value. `:193` reads `ws.playerID !== session.hostSignalId`: one
+comparison, two names, one concept.
+
+This is the cheapest finding on the list and the one most likely to mislead — a reader has to
+prove the two are the same value before they can audit the anti-spoof check. Rename to
+`hostPlayerId` / `clientPlayerId`, or add "signal id" to `CONTEXT.md` and use it everywhere. Doing
+neither is the only bad outcome.
+
+## F15 — Smaller judgement calls, recorded without argument
+
+None of these is worth a section; all are cheap if the file is open anyway.
+
+- **`RoomManager.CancelJoin` walks `InstanceFinder.TransportManager.Transport.GetConnectionState`
+  twice** (`:81-82`). A local for the transport removes the second walk and the null-guard
+  duplication with it.
+- **The server's tests assert on `console.log` wording** — nine `assert.match(server.log(), ...)`
+  across `routing`/`session`/`trickle`, plus `harness.js:363` parsing `"N live."` to count
+  sessions. Log text is now a contract: rewording a message breaks tests for no behavioural
+  reason. Defensible while the log *is* the only observable for a silent drop, but the session
+  count at least deserves a real accessor.
+- **`signal-server/package.json` forbids the Node its own test script needs** — `engines` says
+  `>=16 <22`, and `"test": "node --test test/"` needs ≥18. The range was narrowed for the uWS ABI
+  (F5); the lower bound just never moved with it. Should be `>=18 <22`.
+- **The eight-line ioredis `on('error'|'connect')` block is pasted into both servers**
+  (`SignalServer.js:11-17`, `MainServer.js:5-11`). Out of feature — it arrived with the Redis
+  health gate — and two servers sharing no module is the reason, which is not worth fixing for
+  eight lines.
+- **`.claude/settings.json` inlines the same ~200-character project-dir resolver six times.** Out
+  of feature. One dispatcher script the hooks call would collapse it, and would stop the next
+  hook edit from having to be made six times.
