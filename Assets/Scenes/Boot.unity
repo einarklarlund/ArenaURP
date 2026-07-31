@@ -374,12 +374,11 @@ MonoBehaviour:
   - url: stun:stun4.l.google.com:19302
     username: 
     credential: 
-  - url: stun:stun.stunprotocol.org:3478
+  - url: stun:stun.cloudflare.com:3478
     username: 
     credential: 
   operationTimeoutDurationMilliseconds: 25000
-  candidateCollectDurationMilliseconds: 4000
-  signalTimeoutDurationMilliseconds: 80000
+  signalTimeoutDurationMilliseconds: 39500
 --- !u!4 &431599981
 Transform:
   m_ObjectHideFlags: 0

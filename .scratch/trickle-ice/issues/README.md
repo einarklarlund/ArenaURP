@@ -6,6 +6,17 @@ Decisions: ADR [0010](../../../docs/adr/0010-trickle-ice-sdp-only.md) (full tric
 [0011](../../../docs/adr/0011-signaling-session-routing.md) (server-owned signaling sessions),
 [0012](../../../docs/adr/0012-join-patience-pac-timer.md) (39.5s patience).
 
+## Status (2026-07-31)
+
+All six tickets are implemented, and everything that could be checked without a human at a running
+build has been: the Boot-scene and prefab authoring is done (punch list A1-A4), the EditMode suite
+is green (263), and both PlayMode tests that had never been executed now pass, inside a green full
+suite (61). A join reaches both data channels open in **0.05s**, against the ~8.05s floor the
+bundled-candidate path sat behind.
+
+What is left is manual: punch list T3, T5, T6, T7 — see [`../unity-punch-list.md`](../unity-punch-list.md).
+The important one is the WebGL gate below.
+
 ## Dependency order
 
 ```

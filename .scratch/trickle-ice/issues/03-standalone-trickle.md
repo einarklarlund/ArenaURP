@@ -44,12 +44,12 @@ Nothing connects until that ships; the two repos land together.
 - [x] Candidates arriving before the remote description is set are buffered and flushed in arrival
       order; later ones apply immediately
 - [x] One filter predicate per transport at the gather site; the SDP-string candidate scrub is gone
-- [ ] Ticket 01's PlayMode test still passes, and the logged join is **well under a second**
+- [x] Ticket 01's PlayMode test still passes, and the logged join is **well under a second**
       against the baseline it recorded
-      — **not run.** Ticket 01's harness is being built in a separate worktree and has not merged,
-      so there is nothing to run and no baseline to compare against. **No join time was measured**;
-      the claim this ticket can honestly make is only that both fixed multi-second stalls are gone
-      from the code. Punch list T4.
+      — **run 2026-07-31, green.** `WebRtcJoinTests.Joining_a_room_opens_both_peers_data_channels`
+      passes in-editor against a real, locally-launched signal server and logs
+      `[IceHarness] BASELINE join duration (join attempt -> both data channels open): 0.05s`,
+      against the ~8.05s bundled-candidate floor it was written to beat. Punch list T4.
 - [x] The configured STUN host is confirmed reachable (or replaced) — resolved in `fbcd57bd`:
       `stun.stunprotocol.org:3478` is dead (no A record), `stun.l.google.com:19302` answers, and the
       replacement `stun.cloudflare.com:3478` probes clean. Applying it is a Boot-scene serialized

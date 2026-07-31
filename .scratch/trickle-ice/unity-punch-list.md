@@ -1,62 +1,62 @@
 # Trickle ICE — outstanding Unity-editor work
 
-Everything here needs a Unity Editor **pointed at this worktree**, and is deliberately *not*
-done. Two categories: authoring that crosses the GUID boundary (scene/prefab serialized values,
-which go through the Unity MCP and never through hand-edited YAML), and test runs.
+Everything here needed a Unity Editor pointed at the checkout holding the trickle code. That
+condition is now met — trickle merged to `main` (`ae3d85d5`), which is exactly where the machine's
+one Editor is attached — so the authoring and the in-editor test runs were done on **2026-07-31**.
+No scene or prefab YAML was hand-edited; every serialized change went through the Unity MCP.
 
-The agents that built these tickets had no editor available — the only running instance is
-attached to the main `ArenaURP` checkout. Nothing below was faked, and the corresponding ticket
-checkboxes are left unticked.
+**What is left is only what needs a human in front of a running build**: T3, T5, T6, T7.
 
-## Authoring
+## Authoring — all done
 
-| # | Asset | Object / component | Change | Ticket |
-|---|---|---|---|---|
-| A1 | `Assets/Scenes/Boot.unity` | `Prod NetworkManager` → `CanoeWebRTC` | `signalTimeoutDurationMilliseconds`: **80000 → 39500** | 05 |
-| — | — | — | *A1 and A2 are already applied in `WebRtcJoinTests`, which configures the transport itself. Until they land in the scene the harness leads Boot rather than mirroring it; landing them makes the two agree again.* | — |
-| A2 | `Assets/Scenes/Boot.unity` | `Prod NetworkManager` → `CanoeWebRTC`, `iceServers` | Replace the dead `stun:stun.stunprotocol.org:3478` (see below). **Now matters more:** under trickle a dead STUN server delays gathering-complete, which is what emits the end-of-candidates marker. | 03 |
-| A3 | `Assets/Prefabs/Managers/UIManager.prefab` | `Loading View` → `LoadingView` | Add a child UI `Button` labelled "Cancel"; assign it to the `cancelButton` field. No inspector `onClick` wiring — the view adds/removes its own listener. | 06 |
-| A4 | `Assets/Scenes/Boot.unity` | `Prod NetworkManager` → `CanoeWebRTC` | Drop the orphaned `candidateCollectDurationMilliseconds: 4000` (`Boot.unity:381`). The C# field is gone, so this key now points at nothing (see below). | 04 |
+| # | Asset | Object / component | Change | Ticket | Status |
+|---|---|---|---|---|---|
+| A1 | `Assets/Scenes/Boot.unity` | `Prod NetworkManager` → `CanoeWebRTC` | `signalTimeoutDurationMilliseconds`: 80000 → **39500** | 05 | **done** |
+| A2 | `Assets/Scenes/Boot.unity` | `Prod NetworkManager` → `CanoeWebRTC`, `iceServers[4]` | dead `stun:stun.stunprotocol.org:3478` → **`stun:stun.cloudflare.com:3478`** | 03 | **done** |
+| A3 | `Assets/Prefabs/Managers/UIManager.prefab` | `Canvas/Loading View` → `LoadingView` | added child `Cancel Button`, assigned to `cancelButton` | 06 | **done** |
+| A4 | `Assets/Scenes/Boot.unity` | `Prod NetworkManager` → `CanoeWebRTC` | orphaned `candidateCollectDurationMilliseconds: 4000` key removed | 04 | **done** |
 
-**On A2.** `Boot.unity` configures five ICE servers (`:365`, `:368`, `:371`, `:374`, `:377`) — four
-Google hosts plus stunprotocol. The two distinct hosts were probed on
-2026-07-24 with real STUN binding requests, not just DNS:
+**A1/A2 close the gap the harness was leading.** `WebRtcJoinTests` already configured its transport
+with 39500 and the cloudflare STUN server; Boot now agrees with it instead of trailing it.
 
-- `stun:stun.l.google.com:19302` — **OK**, binding response from 74.125.250.129
-- `stun:stun.stunprotocol.org:3478` — **dead**, no A record at all, so it never answers
+**A2 was re-probed on 2026-07-31**, not taken on trust from the 07-24 probe — real STUN binding
+requests, not DNS alone:
 
-Suggested replacement: `stun:stun.cloudflare.com:3478`, which probes clean and is independently
-operated (worth keeping a second operator for redundancy). This matters more under trickle than
-it did before — a dead STUN server delays *gathering-complete*, which is the trigger for the
-end-of-candidates marker, rather than merely wasting a slot in a bundle.
+- `stun.l.google.com:19302` — **OK**, binding response from 74.125.250.129
+- `stun.stunprotocol.org:3478` — **still dead**, no A record
+- `stun.cloudflare.com:3478` — **OK**, binding response from 162.159.207.0
 
-**On A3.** Until the button exists, `LoadingView` logs a warning on enable and the Cancel path
-no-ops rather than throwing, so the scene is not broken in the meantime.
-
-**On A4.** Harmless in the meantime — Unity ignores a serialized key with no matching field, and
-nothing reads the value any more. It disappears the moment an editor pointed at this worktree
-re-serializes `Boot.unity` (open the scene, touch the `CanoeWebRTC` component, save). Left unticked
-because it is a serialized value that crosses the GUID boundary and no editor was available; the
-hand-edit of scene YAML that would remove the line is exactly what this list exists to avoid.
+**A3 shape.** The button is a copy of `Settings View/Cancel Button`, so it inherits the house sprite,
+colours and TMP font; it sits at anchored `(0, -40)`, below `Info Text`. No inspector `onClick` —
+`LoadingView` adds and removes its own listener, and the copied button carried no persistent
+listeners to strip.
 
 ## Test runs
 
-| # | What | Ticket |
-|---|---|---|
-| T1 | `Arena.Tests` **EditMode** suite in-editor — the payload/token/queue tests. Their logic was verified out-of-editor (23 passed under a standalone NUnit harness), but the new `CanoeWebRTC` reference in `Arena.Tests.asmdef` has never been resolved by Unity itself. | 02 |
-| T2 | `Assets/Tests/PlayMode/WebRtcSignalTimeoutLeakTests.cs` — written, never executed. | 05 |
-| T3 | Manual: a successful join **and** a join that times out, watching the loading view's phase text and the Cancel button. | 06 |
-| T4 | Ticket 01's PlayMode ICE harness against the trickle path, to confirm the join is well under a second. **No join time has been measured** — 01's harness is in a separate, unmerged worktree, so there is neither a run nor a baseline. Ticket 03's code-level claim is only that both fixed gather stalls are gone. | 03 |
-| T5 | Standalone ↔ standalone join in-editor (two ParrelSync instances) against a Node 20 signal server, watching candidates trickle both ways and the end-of-candidates marker land once per side. The wire bytes were verified against `SignalServer.js`'s own parsing expressions out of editor, but no real handshake has been run. | 03 |
-| T6 | Manual: a **two-browser join** over a locally served dev build (`./deploy_local.sh`), connecting in well under a second. | 04 |
-| T7 | Manual: a **browser client joining an editor host** — the cross-transport join that was the documented green-gap between tickets 03 and 04. | 04 |
+| # | What | Ticket | Status |
+|---|---|---|---|
+| T1 | `Arena.Tests` **EditMode** suite in-editor — payload/token/queue tests, and the never-resolved `CanoeWebRTC` reference in `Arena.Tests.asmdef` | 02 | **done — 263/263.** The asmdef reference resolves cleanly in-editor (`Arena.Tests` loads with a live `CanoeWebRTC` assembly, which references `Unity.WebRTC`). Zero console errors. |
+| T2 | `Assets/Tests/PlayMode/WebRtcSignalTimeoutLeakTests.cs` — written, never executed | 05 | **done — passes**, alone and in the full suite. |
+| T4 | Ticket 01's PlayMode ICE harness against the trickle path | 03 | **done — passes, and the number is in.** `[IceHarness] BASELINE join duration (join attempt -> both data channels open): 0.05s`, against the ~8.05s bundled floor. |
+| — | Full `Arena.PlayTests` suite, as a regression check on the rest of the game | — | **done — 61/61**, no console errors. |
+| T3 | Manual: a successful join **and** a join that times out, watching the loading view's phase text and the Cancel button | 06 | **open — needs a human.** |
+| T5 | Standalone ↔ standalone join across two processes (two ParrelSync instances) against a Node 20 signal server | 03 | **open — needs a human.** Partly covered: T4 drives a real host *and* client through real ICE and a real signal server, so both trickle directions and the end-of-candidates marker are exercised — but within one process. |
+| T6 | Manual: a **two-browser join** over a locally served dev build (`./deploy_local.sh`), connecting in well under a second | 04 | **open — needs a human.** |
+| T7 | Manual: a **browser client joining an editor host** — the cross-transport join | 04 | **open — needs a human.** |
 
-**On T6/T7 — nothing has executed the WebGL path.** Between them they are the *only* way to run the
-jslib at all: real browser ICE, real mDNS, real emscripten marshalling of the two new callbacks.
-Neither was run, so the WebGL half of ticket 04 has **no runtime evidence whatsoever** — only a
-compile of the `UNITY_WEBGL && !UNITY_EDITOR` C# under a stripped define set, a `node --check` of the
-jslib, and a Node harness over the extracted `Connection` class. Treat "WebGL works" as unverified
-until one of these is green.
+**Running the harness needs port 9001 free.** `SignalManager` hard-codes `ws://localhost:9001/Signal`
+in the editor, so the fixture launches its own server there. The `arena-signal-server` Docker
+container binds the same port; it was stopped for the run and restarted afterwards. (Follow-up F2 is
+what would remove this collision.)
+
+**Node 20 is required** and the fixture finds it on its own (`$ARENA_SIGNAL_NODE`, else the newest
+`~/.nvm/versions/node/v20.*`). `uWebSockets.js` cannot load on the machine's default Node 24.
+
+**On T6/T7 — the WebGL path still has no runtime evidence.** Nothing has executed the jslib: real
+browser ICE, real mDNS, real emscripten marshalling of the two new callbacks. The C# under
+`UNITY_WEBGL && !UNITY_EDITOR` compiles, the jslib passes `node --check`, and a Node harness covers
+the extracted `Connection` class — that is all. **Treat "WebGL works" as unverified** until T6 or T7
+is green. The standalone half, by contrast, now has a real in-editor handshake behind it.
 
 Note for whoever runs them: the WebGL-dev and Local `Bootstrap` paths add the transport with **zero
 ICE servers** — host and mDNS candidates only. Fine for a LAN test, but it does **not** exercise

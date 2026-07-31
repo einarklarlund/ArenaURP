@@ -133,3 +133,20 @@ Use `nvm use 20`. The dependency was left pinned on purpose: the uWS release tha
 binaries (v20.69.0) **drops** Node 20, which is what `signal-server/Dockerfile` deploys on, so a
 bump would break the image. `package.json` now declares `engines: node >=16 <22` to make the
 constraint loud instead of mysterious.
+
+## F8 — Nothing in the suite defends the join time the feature exists to deliver
+
+**Where:** `Assets/Tests/PlayMode/Networking/WebRtcJoinTests.cs`.
+
+The harness asserts on data-channels-open and **logs** the duration; the plan settled on "no timing
+asserts" deliberately, because real ICE is asynchronous and tight timing assertions are a known
+flakiness source. That reasoning holds for a tight bound. But the consequence is that the whole
+point of trickle — the join going from an ~8.05s floor to the **0.05s** measured on 2026-07-31 — is
+an observation, not a guard. If a future change reintroduced a multi-second gather stall, every test
+in the suite would still pass.
+
+The gap between 0.05s and 8.05s is two and a half orders of magnitude, so a **generous ceiling** —
+assert the join completes in under, say, 3s — would be nowhere near the flakiness regime the "no
+timing asserts" rule was protecting against, while failing loudly on exactly the regression that
+matters. Not applied here, because it edits an assertion the plan settled on and that is a decision
+to take deliberately rather than in passing.

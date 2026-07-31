@@ -39,15 +39,18 @@ Note: the C# field default was authored at **8000**, not the 80000 the plan and 
   both, and change the scene one through the Unity MCP rather than by hand.
 - Apply the same teardown-on-failed rule to the jslib side so the two transports stay identical.
 
-- [ ] The signalling timeout is 39.5s in both the field default and the Boot scene
-      — field default done (`CanoeWebRTC.cs`), Boot scene still 80000 (see above)
+- [x] The signalling timeout is 39.5s in both the field default and the Boot scene
+      — both done. Field default in `CanoeWebRTC.cs`; the Boot-scene value on `Prod NetworkManager`
+      went 80000 -> 39500 through the Unity MCP on 2026-07-31 (punch list A1).
 - [x] The host's teardown timer is cancelled when the remote connection **starts**, not when the
       answer is received
-- [ ] A host connection that negotiates but never establishes is torn down at the deadline —
+- [x] A host connection that negotiates but never establishes is torn down at the deadline —
       no leaked wrapper, no leaked peer connection
-      — implemented, but not yet observed running; blocked on the test run below
+      — **observed running 2026-07-31**, by the PlayMode test below.
 - [x] A peer connection entering `failed` is torn down immediately; `disconnected` is left alone
       (both transports: `Connection.OnConnectionStateChange` and both jslib handlers)
-- [ ] A PlayMode test covers the leak: after a join that never establishes, the host holds no
+- [x] A PlayMode test covers the leak: after a join that never establishes, the host holds no
       connection once the deadline passes
-      — written (`WebRtcSignalTimeoutLeakTests.cs`), never executed
+      — **executed 2026-07-31, green.**
+      `WebRtcSignalTimeoutLeakTests.Host_holds_no_connection_for_a_join_that_never_establishes`
+      passes both on its own and in the full `Arena.PlayTests` suite (61/61).

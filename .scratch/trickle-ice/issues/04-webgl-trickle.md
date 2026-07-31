@@ -37,12 +37,13 @@ callback-registration signatures that pass it, and its Boot-scene serialized val
       then flushes them in arrival order
 - [x] One gather-site filter predicate on this transport too, matching the standalone behaviour
 - [x] The candidates array is gone from the offer/answer struct, its serializers and the JSON shape
-- [ ] The collect-duration setting is gone from the component, both extern signatures, the jslib
+- [x] The collect-duration setting is gone from the component, both extern signatures, the jslib
       and the Boot scene
-      — **code done, scene not.** The field, `_candidateCollectDurationMilliseconds`, both
+      — **done 2026-07-31.** The field, `_candidateCollectDurationMilliseconds`, both
       `RegisterCallbacks` signatures and their jslib parameter lists, and both `setTimeout` blocks
-      are gone. `Boot.unity:381` still carries the now-orphaned
-      `candidateCollectDurationMilliseconds: 4000` — a serialized value, punch list A4.
+      were already gone; the orphaned `candidateCollectDurationMilliseconds: 4000` key disappeared
+      from `Boot.unity` when an editor pointed at this checkout re-serialized the scene (punch list
+      A4). Nothing reads the value on either transport now.
 - [ ] Manual gate: a two-browser join over a locally served dev build connects in well under a
       second
       — **not run.** No browser and no dev build were available. Punch list T6.
