@@ -5,7 +5,8 @@ condition is now met — trickle merged to `main` (`ae3d85d5`), which is exactly
 one Editor is attached — so the authoring and the in-editor test runs were done on **2026-07-31**.
 No scene or prefab YAML was hand-edited; every serialized change went through the Unity MCP.
 
-**What is left is only what needs a human in front of a running build**: T3, T5, T6, T7.
+Einar then ran the four manual gates — T3, T5, T6, T7 — on **2026-07-31**, all successful.
+**Nothing on this list is outstanding.**
 
 ## Authoring — all done
 
@@ -39,10 +40,10 @@ listeners to strip.
 | T2 | `Assets/Tests/PlayMode/WebRtcSignalTimeoutLeakTests.cs` — written, never executed | 05 | **done — passes**, alone and in the full suite. |
 | T4 | Ticket 01's PlayMode ICE harness against the trickle path | 03 | **done — passes, and the number is in.** `[IceHarness] BASELINE join duration (join attempt -> both data channels open): 0.05s`, against the ~8.05s bundled floor. |
 | — | Full `Arena.PlayTests` suite, as a regression check on the rest of the game | — | **done — 61/61**, no console errors. |
-| T3 | Manual: a successful join **and** a join that times out, watching the loading view's phase text and the Cancel button | 06 | **open — needs a human.** |
-| T5 | Standalone ↔ standalone join across two processes (two ParrelSync instances) against a Node 20 signal server | 03 | **open — needs a human.** Partly covered: T4 drives a real host *and* client through real ICE and a real signal server, so both trickle directions and the end-of-candidates marker are exercised — but within one process. |
-| T6 | Manual: a **two-browser join** over a locally served dev build (`./deploy_local.sh`), connecting in well under a second | 04 | **open — needs a human.** |
-| T7 | Manual: a **browser client joining an editor host** — the cross-transport join | 04 | **open — needs a human.** |
+| T3 | Manual: a successful join **and** a join that times out, watching the loading view's phase text and the Cancel button | 06 | **done — run by Einar 2026-07-31, successful.** |
+| T5 | Standalone ↔ standalone join across two processes (two ParrelSync instances) against a Node 20 signal server | 03 | **done — run by Einar 2026-07-31, successful.** T4 already covered both trickle directions and the end-of-candidates marker, but within one process; this is the first two-process join. |
+| T6 | Manual: a **two-browser join** over a locally served dev build (`./deploy_local.sh`), connecting in well under a second | 04 | **done — run by Einar 2026-07-31, successful.** |
+| T7 | Manual: a **browser client joining an editor host** — the cross-transport join | 04 | **done — run by Einar 2026-07-31, successful.** |
 
 **Running the harness needs port 9001 free.** `SignalManager` hard-codes `ws://localhost:9001/Signal`
 in the editor, so the fixture launches its own server there. The `arena-signal-server` Docker
@@ -52,17 +53,20 @@ what would remove this collision.)
 **Node 20 is required** and the fixture finds it on its own (`$ARENA_SIGNAL_NODE`, else the newest
 `~/.nvm/versions/node/v20.*`). `uWebSockets.js` cannot load on the machine's default Node 24.
 
-**On T6/T7 — the WebGL path still has no runtime evidence.** Nothing has executed the jslib: real
-browser ICE, real mDNS, real emscripten marshalling of the two new callbacks. The C# under
-`UNITY_WEBGL && !UNITY_EDITOR` compiles, the jslib passes `node --check`, and a Node harness covers
-the extracted `Connection` class — that is all. **Treat "WebGL works" as unverified** until T6 or T7
-is green. The standalone half, by contrast, now has a real in-editor handshake behind it.
+**On T6/T7 — the WebGL path now has runtime evidence, and it is a one-off.** Before these two runs
+nothing had ever executed the jslib: real browser ICE, real mDNS, real emscripten marshalling of the
+two new callbacks. Both gates passed, so the WebGL half of ticket 04 and the cross-transport gap
+from 03 are closed **as observed**, not merely as written.
 
-Note for whoever runs them: the WebGL-dev and Local `Bootstrap` paths add the transport with **zero
-ICE servers** — host and mDNS candidates only. Fine for a LAN test, but it does **not** exercise
-STUN, so A2 is not covered by passing T6/T7.
+But that evidence expires the moment the jslib changes again, because reproducing it costs a human
+two browsers. **Follow-up F9** proposes automating exactly these two gates; until it exists, treat
+any future jslib edit as returning this path to unverified.
 
-Watch for, specifically:
+Note on coverage: the WebGL-dev and Local `Bootstrap` paths add the transport with **zero ICE
+servers** — host and mDNS candidates only. Fine for a LAN test, but it does **not** exercise STUN,
+so A2 is not covered by T6/T7 passing.
+
+What these gates are watching for, and what an automated version has to keep watching for:
 
 - exactly **one** empty end-of-candidates trickle per peer connection per side (browsers signal
   gathering-complete twice — a null `onicecandidate` and `onicegatheringstatechange`);

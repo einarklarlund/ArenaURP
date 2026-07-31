@@ -44,11 +44,12 @@ callback-registration signatures that pass it, and its Boot-scene serialized val
       were already gone; the orphaned `candidateCollectDurationMilliseconds: 4000` key disappeared
       from `Boot.unity` when an editor pointed at this checkout re-serialized the scene (punch list
       A4). Nothing reads the value on either transport now.
-- [ ] Manual gate: a two-browser join over a locally served dev build connects in well under a
+- [x] Manual gate: a two-browser join over a locally served dev build connects in well under a
       second
-      — **not run.** No browser and no dev build were available. Punch list T6.
-- [ ] Manual gate: a browser client joins an editor host — the cross-transport gap from 03 is closed
-      — **not run.** The only Unity Editor is attached to the main checkout. Punch list T7.
+      — **run by Einar 2026-07-31, successful.** Punch list T6.
+- [x] Manual gate: a browser client joins an editor host — the cross-transport gap from 03 is closed
+      — **run by Einar 2026-07-31, successful.** Punch list T7. This is the first time the jslib has
+      executed anywhere, and the first cross-transport join since 03 opened the gap.
 
 ## What was built
 

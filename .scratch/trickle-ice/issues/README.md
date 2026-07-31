@@ -14,8 +14,10 @@ is green (263), and both PlayMode tests that had never been executed now pass, i
 suite (61). A join reaches both data channels open in **0.05s**, against the ~8.05s floor the
 bundled-candidate path sat behind.
 
-What is left is manual: punch list T3, T5, T6, T7 — see [`../unity-punch-list.md`](../unity-punch-list.md).
-The important one is the WebGL gate below.
+Einar then ran the four manual gates (punch list T3, T5, T6, T7) the same day, all successful — so
+**the feature is complete and nothing on the punch list is outstanding.** The open item is not work
+left undone but coverage: see follow-up F9 on automating the WebGL gate, and F8 on the join time
+having no regression guard.
 
 ## Dependency order
 
@@ -43,7 +45,10 @@ did not connect: the standalone side had stopped bundling candidates into the SD
 side had not yet learned to trickle. Same-transport joins stayed green throughout — standalone
 ↔ standalone via 03, WebGL ↔ WebGL via the untouched bundled path.
 
-04 has now moved the jslib across and deleted the bundled path outright, so both transports
-trickle and there is only one negotiation shape left. **But nothing has run the WebGL side** — the
-two manual gates that would (a two-browser join, and a browser client joining an editor host) are
-both outstanding, punch list T6/T7. The gap is closed as written, not as observed.
+04 moved the jslib across and deleted the bundled path outright, so both transports trickle and
+there is only one negotiation shape left. **The gap is now closed as observed:** both gates ran on
+2026-07-31 — a two-browser join, and a browser client joining an editor host — and both succeeded.
+
+That was the jslib's first execution anywhere, and it stays a one-off: reproducing it costs a human
+two browsers, so any future jslib edit returns this path to unverified. Follow-up **F9** proposes
+automating both gates headlessly.

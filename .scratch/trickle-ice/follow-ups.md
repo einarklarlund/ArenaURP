@@ -150,3 +150,57 @@ assert the join completes in under, say, 3s — would be nowhere near the flakin
 timing asserts" rule was protecting against, while failing loudly on exactly the regression that
 matters. Not applied here, because it edits an assertion the plan settled on and that is a decision
 to take deliberately rather than in passing.
+
+## F9 — The WebGL gate is a human with two browsers; it could be a headless harness
+
+**Where:** the two manual gates in ticket 04 (punch list T6/T7), against `builds/webgl` as served by
+`./deploy_local.sh`.
+
+Both gates passed on 2026-07-31, so the jslib has now run for real — browser ICE, mDNS, and the
+emscripten marshalling of the two new trickle callbacks. That is the **only** runtime evidence the
+WebGL transport has ever had, and it is not repeatable by anything but a person opening two windows.
+
+The asymmetry is the problem. The standalone transport is defended by `WebRtcJoinTests`, which
+launches a real signal server and drives a real handshake on every run. The jslib — the half the
+plan requires to stay *behaviourally identical*, and which already carries three recorded
+divergences (F6) — is defended by a compile, a `node --check`, and a Node harness over the extracted
+`Connection` class. Every future jslib edit silently returns this path to unverified until someone
+volunteers an afternoon.
+
+### The opening
+
+A Unity WebGL build exposes `unityInstance.SendMessage(gameObject, method, arg)` to page JavaScript.
+That is a real control surface into a running build from outside it, which means a headless-Chrome
+driver (Playwright or Puppeteer) can load the served build in two pages, tell one to host and the
+other to join, and read the outcome back off the console — no clicking into a canvas, no pixel
+matching. The same driver could assert the specific things a human is asked to eyeball today:
+
+- exactly **one** empty end-of-candidates trickle per peer connection per side (browsers signal
+  gathering-complete twice, so this is precisely the kind of once-only condition an eye slides past);
+- the host's first candidates reaching the server only **after** its offer (a mis-ordering shows up
+  as a slow or failed join, never as an error);
+- no `Failed to add ICE candidate` spam;
+- and a join duration, which would extend F8's proposed ceiling to the transport that has no
+  timing evidence at all.
+
+### What has to be answered before this is a ticket
+
+- **Is there a `SendMessage`-reachable entry point?** `RoomManager`'s host/join paths are driven by
+  UI today. This may need a small dev-only bridge component on a known GameObject, present only in
+  development builds — which is a design question (what is the smallest surface that does not become
+  a second, drifting way to start a match?), not a scripting one.
+- **Does headless Chrome gather usable candidates?** Data channels need no media, so no fake-device
+  flags, but mDNS candidates may be absent headless. The Local/WebGL-dev bootstrap paths configure
+  **zero ICE servers**, so a loopback join should have host candidates to work with — this needs
+  proving, not assuming, and it is the single most likely reason the idea fails.
+- **T7 is the harder half.** A browser client against an *editor* host means driving the editor too.
+  A standalone player build as the host is probably the tractable substitute, at the cost of no
+  longer testing the editor path specifically.
+- **Where does it run?** Locally as a `deploy_local.sh` companion is the cheap version; CI needs a
+  WebGL build per run, which is minutes, so it likely belongs on a pre-merge or nightly job rather
+  than on every push.
+
+Sized as a `/prototype` first — the candidate-gathering question above decides whether the rest is
+worth designing. If it works, it converts the feature's least-defended surface from "ask Einar" into
+something an agent can run unattended, which is the same move that took the signal server from
+unverifiable to 34 tests.

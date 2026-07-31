@@ -31,13 +31,12 @@ carrying the phase, fired from the points that already log those transitions.
       started, and timeout or failure
 - [x] The loading view switches on the phase and shows distinct text per phase
 - [x] The log-message regex scrape is deleted, along with its log subscription
-- [ ] A Cancel button stops the client and returns to the menu, leaving no half-open connection
-      — the button is now **authored and wired**: `UIManager.prefab` -> `Canvas/Loading View/Cancel
+- [x] A Cancel button stops the client and returns to the menu, leaving no half-open connection
+      — **authored, wired and now observed working.** `UIManager.prefab` -> `Canvas/Loading View/Cancel
       Button` (a copy of the settings view's cancel button, so it inherits the house style), assigned
-      to `LoadingView.cancelButton`, no inspector `onClick`. The *behaviour* is still unobserved —
-      it needs a real join to cancel. Punch list T3.
-- [ ] Manually verified for both a successful join and a join that times out
-      — still open; needs a human at a running build. Punch list T3.
+      to `LoadingView.cancelButton`, no inspector `onClick` — the view adds and removes its own listener.
+- [x] Manually verified for both a successful join and a join that times out
+      — run by Einar 2026-07-31, successful. Punch list T3.
 
 **Remaining**
 
