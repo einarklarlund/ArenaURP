@@ -6,7 +6,9 @@ How the engineering skills should consume this repo's design documentation. **Si
 
 - **`CONTEXT.md`** at the repo root — the glossary of Arena's own terms, prefaced by the game's **essence** (the north star every feature answers to). Read it so output names concepts as this project does.
 - **`docs/adr/`** — the ADRs (`NNNN-kebab-title.md`), indexed by [`docs/adr/README.md`](../adr/README.md). Read the ones that touch the area you're about to work in. This is the location the mattpocock skills expect by default, so they find ADRs here without an override.
-- **`docs/plans/features.md`** — the grill-ready backlog (open features + the deferred design decisions in `docs/plans/decisions/` each rides). What's next, and what must be settled before it.
+- **`docs/plans/gameplay-features.md`** — the grill-ready backlog for the *game* (open features + the deferred design decisions in `docs/plans/decisions/` each rides), filtered by the essence gate. What's next, and what must be settled before it.
+- **`docs/plans/tooling-features.md`** — the same shape for work on the *tools* (harnesses, build and deploy plumbing, the AI-development layer), which does not answer to the essence gate and has its own.
+- **`docs/known-issues.md`** — behaviour that is wrong, or looks wrong, and is deliberately not being fixed. Read before "fixing" something that turns out to be a recorded decision.
 - The **`design-elegance`** and **`engineering-canon`** skills carry the design *values and lenses* a plan is judged against; `arena-systems-map` narrates the codebase. These load on demand — the docs above are the always-read set.
 
 ## Writing an ADR

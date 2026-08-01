@@ -19,4 +19,4 @@ Architectural Decision Records — the **why** behind a contested, load-bearing 
 
 ## What is *not* yet decided
 
-Deliberately deferred decisions — so they aren't improvised under pressure — live as grill-ready briefs in [../plans/decisions/](../plans/decisions/), indexed with the features waiting on each in [../plans/features.md](../plans/features.md). Feed a brief to a `/grill-with-docs` session to settle it into an ADR here.
+Deliberately deferred decisions — so they aren't improvised under pressure — live as grill-ready briefs in [../plans/decisions/](../plans/decisions/), indexed with the features waiting on each in [../plans/gameplay-features.md](../plans/gameplay-features.md). Feed a brief to a `/grill-with-docs` session to settle it into an ADR here.

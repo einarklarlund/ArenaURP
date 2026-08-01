@@ -19,8 +19,10 @@ implementation walkthrough. Someone reading `git log` should learn *what the gam
 ## Describe features, NOT implementation
 
 Say what changed at the level of behaviour, content, and renames. Do **not** narrate class names, method
-signatures, contexts, or the reasoning for a particular design — that already lives in the code's doc comments
-and in memories/skills.
+signatures, contexts, or the reasoning for a particular design — that lives in the ADRs (`docs/adr/`), in
+`CONTEXT.md`, and in the skills. It does **not** live in code comments: this project's rule is no comments
+except where the code cannot be made self-explanatory (see `CLAUDE.md`), so a commit message must never
+defer its reasoning to one.
 
 - ✅ "Passives now author a list of stat-buff effects (walk speed, jump, fire rate, …) folded into the pawn while equipped."
 - ✅ "Spawned objects can be granted extra durability (survive more ricochets/bounces)."

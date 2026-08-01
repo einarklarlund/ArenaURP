@@ -2,7 +2,7 @@
 
 An arena deathmatch FPS where players **build their characters** a la rogue-like or deck builder. The depth comes from a **handful of systems interacting**; upgrades target those systems and, above all, the **interactions between them.**
 
-That paragraph is the **essence** — the north star every feature answers to. It is deliberately tiny, and a change to it **replaces** rather than appends: if you can't recite it, it isn't doing its job. The operative gate a feature must pass ("drastically changes how someone plays" **and** "interacts with an existing system") lives with the backlog it filters, in [docs/plans/features.md](docs/plans/features.md).
+That paragraph is the **essence** — the north star every feature answers to. It is deliberately tiny, and a change to it **replaces** rather than appends: if you can't recite it, it isn't doing its job. The operative gate a feature must pass ("drastically changes how someone plays" **and** "interacts with an existing system") lives with the backlog it filters, in [docs/plans/gameplay-features.md](docs/plans/gameplay-features.md).
 
 ## Language
 
@@ -104,4 +104,4 @@ _Avoid_: bundling, gathering wait, half-trickle (that's the interop fallback we 
 
 - **How** each of these is built — the doctrine — is in `.claude/skills/`; start from `arena-systems-map`.
 - **Why** a contested choice went the way it did is in [docs/adr/](docs/adr/).
-- **What is not yet decided** is in [docs/plans/decisions/](docs/plans/decisions/), indexed with the features waiting on it in [docs/plans/features.md](docs/plans/features.md).
+- **What is not yet decided** is in [docs/plans/decisions/](docs/plans/decisions/), indexed with the features waiting on it in [docs/plans/gameplay-features.md](docs/plans/gameplay-features.md).

@@ -1,6 +1,8 @@
-# Features — the grill-ready backlog
+# Gameplay features — the grill-ready backlog
 
-_Forward-looking index of everything not yet built. Each entry is a small, self-contained brief written to be fed to a **`/grill-with-docs`** session one at a time — fuzzy-but-scoped, with the open decisions surfaced (not pre-answered) so the grill can walk them and emit an ADR. The game's essence gate lives in [CONTEXT.md](../../CONTEXT.md), the Elegance value in the `design-elegance` skill, and the deferred-decision register in [decisions/](decisions/); the doctrine each brief leans on lives in `.claude/skills/`._
+_Forward-looking index of everything not yet built **in the game**. Each entry is a small, self-contained brief written to be fed to a **`/grill-with-docs`** session one at a time — fuzzy-but-scoped, with the open decisions surfaced (not pre-answered) so the grill can walk them and emit an ADR. The game's essence gate lives in [CONTEXT.md](../../CONTEXT.md), the Elegance value in the `design-elegance` skill, and the deferred-decision register in [decisions/](decisions/); the doctrine each brief leans on lives in `.claude/skills/`._
+
+_Work on the **tools** — harnesses, build and deploy plumbing, the AI-development layer — is not a gameplay feature and does not answer to the essence gate. It has its own backlog and its own gate: [tooling-features.md](tooling-features.md)._
 
 **How to use this file.** Pick a feature. Read its brief. If it names a **blocking decision**, grill that decision first (`decisions/*.md`) — a feature can't be specced until the design decision it rides is settled. If it names only a **ship gate** (a playtest), build it and hold the release. Buildable-now features have neither.
 
