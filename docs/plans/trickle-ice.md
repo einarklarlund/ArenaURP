@@ -16,7 +16,7 @@ New/changed signal opcodes (`SignalManager.cs` byte constants must match `Signal
 |---|---|---|---|
 | 0x02 | `attemptToJoinRoom` | client→server, server→host | **+ session token** now flows back to both (see 0x03 / host notify) |
 | 0x04 | `receivedOfferFromHost` | host→server→client | unchanged shape, SDP now candidate-free |
-| 0x05 | `receivedAnswerFromClient` | client→server→host | unchanged shape, SDP now candidate-free |
+| 0x05 | `receivedAnswerFromClient` | client→server→host | SDP now candidate-free; client→server later gained `[tok]` (see the byte layouts) |
 | **0x08** | `trickleToClient` | host→server→client | `sessionToken`, UTF-8 candidate string (empty string = end-of-candidates) |
 | **0x09** | `trickleToHost` | client→server→host | `sessionToken`, UTF-8 candidate string (empty string = end-of-candidates) |
 
@@ -39,7 +39,8 @@ Byte layouts (integers little-endian, as today):
 | `attemptToJoinRoom` 0x02 — host notify | server→host | `0x02` `int32 clientSignalId` `[tok]` |
 | `receivedOfferFromHost` 0x04 | host→server | `0x04` `int32 targetClientSignalId` `int32 connectionId` `[tok]` `sdp…` |
 | `receivedOfferFromHost` 0x04 | server→client | `0x04` `int32 hostSignalId` `sdp…` *(unchanged)* |
-| `receivedAnswerFromClient` 0x05 | both | *(unchanged)* |
+| `receivedAnswerFromClient` 0x05 | client→server | `0x05` `int32 targetPlayerId` `[tok]` `sdp…` |
+| `receivedAnswerFromClient` 0x05 | server→host | `0x05` `int32 connectionId` `sdp…` *(unchanged)* |
 | `trickleToClient` 0x08 | host→server | `0x08` `[tok]` `candidate…` |
 | `trickleToClient` 0x08 | server→client | `0x08` `int32 connectionId` `candidate…` |
 | `trickleToHost` 0x09 | client→server | `0x09` `[tok]` `candidate…` |

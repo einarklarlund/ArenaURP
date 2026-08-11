@@ -10,8 +10,26 @@ Out of feature, cheap while the file is open.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** LANDED 2026-08-11, **partially** — one criterion is not met and cannot be, see below.
 
-- [ ] One dispatcher script resolves the project directory
-- [ ] All six hook entries call it; no inlined copy remains
-- [ ] The hooks still fire — confirmed by exercising them, and reported as exercised rather than verified
+## What the ticket asked for that is impossible
+
+"No inlined copy remains" cannot be satisfied in full. **A dispatcher has to be located before it
+can dispatch**, and locating it is the very thing being deduplicated. Every hook entry still runs
+the three-candidate search — for `dispatch.sh` alone now, not for its own hook.
+
+What did move into `dispatch.sh`: the hook-name path, the executability test, the exec, the
+not-found note, and the explanation of why `$CLAUDE_PROJECT_DIR` cannot be trusted on its own.
+What each entry still carries is one uniform lookup that differs only in the hook name.
+
+Counted honestly, this is five entries (the spec said six) whose bodies shrank, not five entries
+that became one line. **A change to the resolution policy is still a five-place edit.** If that is
+worth closing, the shape that would do it is an absolute path or a wrapper the harness resolves —
+neither exists today.
+
+- [x] One dispatcher script resolves the project directory
+- [ ] ~~All six hook entries call it; no inlined copy remains~~ — all five call it; the dispatcher
+      lookup is necessarily still inlined. See above.
+- [x] The hooks still fire — EXERCISED, not verified. Each of the five was driven through
+      `dispatch.sh`, and `session-start.sh` and `habit-check.sh` additionally through the
+      settings.json bootstrap verbatim; the unresolvable case prints to stderr and no-ops.

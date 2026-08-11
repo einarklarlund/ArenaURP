@@ -16,7 +16,31 @@ The stopwatch already starts at the join attempt, after server-up and room-creat
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** LANDED 2026-08-11.
+
+## The can-fail check, and its result
+
+Run deliberately, because the gate is "can this test fail?" and a ceiling that never trips is not
+coverage. A temporary `WaitForSecondsRealtime(2f)` was inserted **inside** the measured stopwatch
+window — the join itself still succeeded normally, only the measured elapsed time was inflated —
+and the PlayMode fixture was re-run headless.
+
+Result: the test failed, on `WebRtcJoinTests.cs`'s `Assert.Less`, **not** on either liveness
+assertion. `"never reached data-channels-open"` appears zero times in that run's log. Verbatim:
+
+```
+the join connected, but took 2.05s — over the 0.5s ceiling for a loopback join. The recorded
+baseline is 0.05s; if this ceiling is being raised, raise it against that number rather than
+against the failure.
+Expected: less than 0.5d
+But was:  2.0504484000000001d
+```
+
+The probe was then removed and the removal confirmed by a clean full-suite run.
+
+**Measured spread of the real join across four headless runs: 0.05s, 0.05s, 0.06s, 0.07s** — a 7×
+margin under the ceiling. That is the number to weigh against `integration-testing`'s "a flaky test
+is worse than no test" if this ever starts tripping on CI hardware rather than a dev machine.
 
 - [ ] The existing liveness timeout is unchanged and still says *never connected*
 - [ ] A second assertion bounds the measured elapsed time at 0.5s

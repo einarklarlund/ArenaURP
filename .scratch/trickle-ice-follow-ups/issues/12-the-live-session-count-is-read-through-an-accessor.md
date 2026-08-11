@@ -26,8 +26,10 @@ the suite as it stands on 2026-08-11:
 - `session.test.js` — one of the two files that would migrate — **also asserts on log text** at
   line 52: `/Session \w+ minted for host 1, client 2\./`. So after the migration, log wording is
   still a test contract *in the very file the migration was for*.
-- Ten further log-text assertions across routing, session and trickle are **out of scope by the
-  ticket's own terms**, and stay.
+- Nine further log-text assertions across routing, session and trickle are **out of scope by the
+  ticket's own terms**, and stay. (Ticket 02 added two more on top of those nine, both asserting on
+  drop messages — the same defensible category, since a silently-dropped message has no other
+  observable.)
 
 So the mechanism changes and the property does not.
 
@@ -51,8 +53,8 @@ already ruled out of scope.
 **Not half-landed:** no part of this was started. `SignalServer.js` still starts at require-time,
 the harness has one mode, and `liveSessionCount` still reads the log.
 
-**If it is ever revived**, revive it with the ten sibling assertions, not without them — the
-property only exists once the log stops being an observable anywhere in the suite.
+**If it is ever revived**, revive it with the sibling assertions, not without them — the property
+only exists once the log stops being an observable anywhere in the suite.
 
 ## Original acceptance criteria (not met, by decision)
 
