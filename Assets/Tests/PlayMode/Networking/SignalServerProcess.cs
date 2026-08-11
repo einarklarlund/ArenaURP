@@ -45,7 +45,12 @@ namespace Arena.PlayTests
         /// <summary>What <c>SignalManager</c> must dial to reach this instance.</summary>
         public string SignalAddress => $"ws://localhost:{Port}/Signal";
 
-        /// <summary>Path of the pid file recording the server we started, so a crashed run is reapable.</summary>
+        /// <summary>
+        /// Path of the pid file recording the server we started, so a crashed run is reapable. One
+        /// path per checkout is enough for the concurrent runs <see cref="Port"/> enables: it is
+        /// rooted at this project's own Temp, and Unity allows one editor per project directory, so
+        /// two simultaneous harness runs are always two checkouts and never share this file.
+        /// </summary>
         static string PidFilePath =>
             Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Temp", "ice-harness-signal-server.pid"));
 

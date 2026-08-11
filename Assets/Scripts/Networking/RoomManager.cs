@@ -64,7 +64,11 @@ public class RoomManager : MonoBehaviour
         SignalManager.Instance.JoinRoom(roomCode);
     }
 
-    /// <summary>Aborts an in-flight join and returns the local peer to the menu (ADR 0012).</summary>
+    /// <summary>
+    /// Aborts an in-flight join and returns the local peer to the menu (ADR 0012). Stopping through
+    /// FishNet runs the transport's own teardown, so a cancelled join leaves no half-open peer
+    /// connection behind.
+    /// </summary>
     public void CancelJoin()
     {
         // Cleared first: the stop below is deliberate, not a failure, and must not report one.
