@@ -30,11 +30,12 @@ namespace Arena.PlayTests
     /// <c>RoomManager</c> does in game (the host joins its own room, so one process carries both
     /// peers of the handshake).
     ///
-    /// **Channels-open is the assertion; duration is only logged.** Real ICE is asynchronous and a
-    /// known flakiness source, so the timeout is deliberately generous and nothing asserts on time.
-    /// The logged baseline exists to be beaten: the bundled-candidate path it was written against
-    /// sat behind two serial 4s gather stalls, giving an ~8.05s floor. Grep the run log for
-    /// <c>BASELINE join duration</c>.
+    /// **Two bounds, two different failures.** <see cref="JoinTimeoutSeconds"/> says the join never
+    /// connected; <see cref="JoinCeilingSeconds"/> says it connected but slowly. The ceiling is not
+    /// an ICE-timing assert — real ICE is asynchronous and a known flakiness source, so it sits an
+    /// order of magnitude above the measured baseline and an order of magnitude below the ~8.05s
+    /// floor of the bundled-candidate path trickle ICE replaced. Grep the run log for
+    /// <c>BASELINE join duration</c> for the measured number.
     ///
     /// The transport is configured the way a joining player's is, so the measurement reflects what
     /// players experience. Two of those values currently lead Boot.unity rather than mirroring it:
@@ -58,6 +59,13 @@ namespace Arena.PlayTests
         // Generous on purpose: see the class summary. Below the transport's own signal timeout, so a
         // stalled handshake surfaces here as a clear assertion rather than as transport teardown.
         const float JoinTimeoutSeconds = 30f;
+
+        // The two bounds answer different questions. JoinTimeoutSeconds asks "did it connect at
+        // all"; this asks "did it connect fast". An order of magnitude above the recorded baseline
+        // and an order of magnitude below the ~8s bundled-candidate path trickle ICE replaced, so a
+        // regression to that path fails and ordinary loopback jitter does not.
+        const float JoinCeilingSeconds = 0.5f;
+        const float RecordedBaselineSeconds = 0.05f;
 
         // The CanoeWebRTC values a joining player runs with.
         const int BootMtu = 2047;
@@ -112,9 +120,13 @@ namespace Arena.PlayTests
             Assert.IsTrue(_hostReachedChannelsOpen,
                 $"the host never reached data-channels-open within {JoinTimeoutSeconds}s");
 
-            // Logged, never asserted — the number ticket 03 has to beat.
             Debug.Log($"[IceHarness] BASELINE join duration (join attempt -> both data channels open): " +
                       $"{join.Elapsed.TotalSeconds:F2}s");
+
+            Assert.Less(join.Elapsed.TotalSeconds, JoinCeilingSeconds,
+                $"the join connected, but took {join.Elapsed.TotalSeconds:F2}s — over the {JoinCeilingSeconds}s " +
+                $"ceiling for a loopback join. The recorded baseline is {RecordedBaselineSeconds}s; if this " +
+                "ceiling is being raised, raise it against that number rather than against the failure.");
 #else
             yield break;
 #endif
