@@ -2,20 +2,20 @@
   "enabledPlugins": {
     "andrej-karpathy-skills@karpathy-skills": true
   },
-  "_hookPathNote": "Hooks resolve their own repo root instead of trusting $CLAUDE_PROJECT_DIR, which is the session's LAUNCH dir - when claude starts in the multi-repo parent (~/Projects) it points outside this repo and every hook dies with 'No such file or directory'. Candidate order: git toplevel (covers worktrees), $CLAUDE_PROJECT_DIR, then $CLAUDE_PROJECT_DIR/ArenaURP. Unresolvable = silent no-op with a stderr note.",
+  "_hookPathNote": "Hooks go through .claude/hooks/dispatch.sh, which resolves this repo's root and runs the named hook. The candidate roots and the reason they exist are documented there, not here. Each entry below only has to locate the dispatcher.",
   "hooks": {
     "SessionStart": [
       {
         "matcher": "startup|resume|clear|compact",
         "hooks": [
-          { "type": "command", "command": "sh -c 'h=.claude/hooks/session-start.sh; for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\" \"$CLAUDE_PROJECT_DIR\"/ArenaURP; do [ -x \"$d/$h\" ] && exec \"$d/$h\"; done; echo \"hook not found: $h\" >&2'" }
+          { "type": "command", "command": "sh -c 'for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\" \"$CLAUDE_PROJECT_DIR\"/ArenaURP; do [ -x \"$d/.claude/hooks/dispatch.sh\" ] && exec \"$d/.claude/hooks/dispatch.sh\" session-start.sh; done'" }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "sh -c 'h=.claude/hooks/habit-check.sh; for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\" \"$CLAUDE_PROJECT_DIR\"/ArenaURP; do [ -x \"$d/$h\" ] && exec \"$d/$h\"; done; echo \"hook not found: $h\" >&2'" }
+          { "type": "command", "command": "sh -c 'for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\" \"$CLAUDE_PROJECT_DIR\"/ArenaURP; do [ -x \"$d/.claude/hooks/dispatch.sh\" ] && exec \"$d/.claude/hooks/dispatch.sh\" habit-check.sh; done'" }
         ]
       }
     ],
@@ -23,7 +23,7 @@
       {
         "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
         "hooks": [
-          { "type": "command", "command": "sh -c 'h=.claude/hooks/guard-unity-yaml.sh; for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\" \"$CLAUDE_PROJECT_DIR\"/ArenaURP; do [ -x \"$d/$h\" ] && exec \"$d/$h\"; done; echo \"hook not found: $h\" >&2'" }
+          { "type": "command", "command": "sh -c 'for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\" \"$CLAUDE_PROJECT_DIR\"/ArenaURP; do [ -x \"$d/.claude/hooks/dispatch.sh\" ] && exec \"$d/.claude/hooks/dispatch.sh\" guard-unity-yaml.sh; done'" }
         ]
       }
     ],
@@ -31,14 +31,14 @@
       {
         "matcher": "Write|Edit",
         "hooks": [
-          { "type": "command", "command": "sh -c 'h=.claude/hooks/skill-nudge.sh; for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\" \"$CLAUDE_PROJECT_DIR\"/ArenaURP; do [ -x \"$d/$h\" ] && exec \"$d/$h\"; done; echo \"hook not found: $h\" >&2'" }
+          { "type": "command", "command": "sh -c 'for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\" \"$CLAUDE_PROJECT_DIR\"/ArenaURP; do [ -x \"$d/.claude/hooks/dispatch.sh\" ] && exec \"$d/.claude/hooks/dispatch.sh\" skill-nudge.sh; done'" }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "sh -c 'h=.claude/hooks/cs-compile-gate.sh; for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\" \"$CLAUDE_PROJECT_DIR\"/ArenaURP; do [ -x \"$d/$h\" ] && exec \"$d/$h\"; done; echo \"hook not found: $h\" >&2'" }
+          { "type": "command", "command": "sh -c 'for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\" \"$CLAUDE_PROJECT_DIR\"/ArenaURP; do [ -x \"$d/.claude/hooks/dispatch.sh\" ] && exec \"$d/.claude/hooks/dispatch.sh\" cs-compile-gate.sh; done'" }
         ]
       }
     ]
