@@ -46,15 +46,14 @@ public class SignalManager : MonoBehaviour
 
     /// <summary>
     /// One live trickle route: the session token addressing a peer-connection attempt on the signal
-    /// server, and whether the server can resolve it yet. The server binds the session's connection
-    /// id when it relays the host's offer and <b>silently drops</b> any trickle that arrives before
-    /// that, so candidates gathered ahead of the offer wait in <see cref="pending"/>.
+    /// server, and the buffer holding candidates the server cannot route yet. The server binds the
+    /// session's connection id when it relays the host's offer and <b>silently drops</b> any trickle
+    /// that arrives before that, so candidates gathered ahead of the offer wait in <see cref="buffer"/>.
     /// </summary>
     private class TrickleRoute
     {
         public string sessionToken;
-        public bool open;
-        public List<string> pending = new List<string>();
+        public readonly OutboundCandidateBuffer buffer = new OutboundCandidateBuffer();
     }
 
     /// <summary>Live routes by connection id; <see cref="clientRouteID"/> is our own client connection.</summary>
@@ -310,11 +309,8 @@ public class SignalManager : MonoBehaviour
             return;
         }
 
-        if (!route.open)
-        {
-            route.pending.Add(candidate);
+        if (!route.buffer.TrySendNow(candidate))
             return;
-        }
 
         SendTrickle(connectionID, route, candidate);
     }
@@ -328,12 +324,7 @@ public class SignalManager : MonoBehaviour
         if (!trickleRoutes.TryGetValue(connectionID, out TrickleRoute route))
             return;
 
-        route.open = true;
-
-        List<string> buffered = route.pending;
-        route.pending = new List<string>();
-
-        foreach (string candidate in buffered)
+        foreach (string candidate in route.buffer.Open())
             SendTrickle(connectionID, route, candidate);
     }
 
@@ -430,11 +421,12 @@ public class SignalManager : MonoBehaviour
                     //that addresses our candidates. The route opens immediately: the server binds
                     //the session's connection id when it relays the host's offer, which is strictly
                     //before that offer can reach us, and we gather nothing until we answer it.
-                    trickleRoutes[clientRouteID] = new TrickleRoute
+                    TrickleRoute ourRoute = new TrickleRoute
                     {
                         sessionToken = SessionToken.Read(data.Array, data.Offset + 2, out _),
-                        open = true,
                     };
+                    ourRoute.buffer.Open();
+                    trickleRoutes[clientRouteID] = ourRoute;
 
                     OnRoomJoined?.Invoke(true);
                     Debug.Log("<color=cyan>[Signal]</color> Join Code Valid, waiting for offer from host.");
