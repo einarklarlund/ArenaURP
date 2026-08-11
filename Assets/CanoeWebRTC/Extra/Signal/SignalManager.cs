@@ -231,6 +231,17 @@ public class SignalManager : MonoBehaviour
     //and would otherwise rewrite the local player's phase for somebody else's join.
     public async void ReceivedOfferFromServer(int signalID, OfferAnswer offerAnswer)
     {
+        if (!trickleRoutes.TryGetValue(clientRouteID, out TrickleRoute route))
+        {
+            //Without the token the answer names no session, so the server would drop it and the
+            //join would hang in silence. Fail loudly here instead.
+            Debug.LogError($"<color=cyan>[Signal]</color> No signaling session for our own join attempt; not sending an answer.");
+            LocalUIEvents.OnJoinPhaseChanged?.Invoke(JoinPhase.Failed);
+            return;
+        }
+
+        string sessionToken = route.sessionToken;
+
         OfferAnswer answerResult = await CanoeWebRTC.CreateAnswerForServer(offerAnswer);
 
         if (answerResult.error)
@@ -240,18 +251,20 @@ public class SignalManager : MonoBehaviour
         }
         else
         {
-            client.Send(sendAnswerSerializer(answerResult, signalID));
+            client.Send(sendAnswerSerializer(answerResult, signalID, sessionToken));
             //Offer in, answer out: negotiation is done and ICE now has to establish the connection.
             LocalUIEvents.OnJoinPhaseChanged?.Invoke(JoinPhase.EstablishingConnection);
         }
 
     }
 
-    private static ArraySegment<byte> sendAnswerSerializer(OfferAnswer offerAnswer, int targetPlayerID)
+    //`0x05 int32 targetPlayerId [tok] sdp...` - the client names the signaling session it was
+    //handed at join-attempt, so the server resolves it directly instead of guessing from the pair.
+    private static ArraySegment<byte> sendAnswerSerializer(OfferAnswer offerAnswer, int targetPlayerID, string sessionToken)
     {
         byte[] respondObjectBytes = offerAnswer.Serialize();
 
-        int totalLength = sizeof(byte) + sizeof(int) + respondObjectBytes.Length;
+        int totalLength = sizeof(byte) + sizeof(int) + SessionToken.ByteLength(sessionToken) + respondObjectBytes.Length;
         byte[] result = CustomByteArrayPool.Retrieve(totalLength);
 
         int offset = 0;
@@ -260,6 +273,9 @@ public class SignalManager : MonoBehaviour
 
         BitConverter.GetBytes(targetPlayerID).CopyTo(result, offset);
         offset += sizeof(int);
+
+        offset += SessionToken.Write(sessionToken, result, offset);
+
         Array.Copy(respondObjectBytes, 0, result, offset, respondObjectBytes.Length);
 
         //A pooled buffer can be longer than asked for; send exactly the message.
