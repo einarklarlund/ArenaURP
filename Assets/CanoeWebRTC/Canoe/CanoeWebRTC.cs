@@ -162,7 +162,7 @@ namespace FishNet.Transporting.CanoeWebRTC
         {
             if (connectionStateArgs.ConnectionState == LocalConnectionState.Started)
             {
-                StopSignalTimeout(-1);
+                StopSignalTimeout(ClientConnectionID);
             }
 
             OnClientConnectionState?.Invoke(connectionStateArgs);
@@ -227,6 +227,14 @@ namespace FishNet.Transporting.CanoeWebRTC
         }
 
 
+        /// <summary>
+        /// The connection id of a peer's own connection to its host — the single connection a
+        /// client has, and never one of a host's remote clients. Distinct from
+        /// <see cref="TrickledICE.NoConnectionId"/>, which happens to share its value but means
+        /// "this wire form stamps no connection id".
+        /// </summary>
+        public const int ClientConnectionID = -1;
+
         public static int CreateNewRemoteConnection()
         {
             InstanceFinder.NetworkManager.Log($"<color=#FFA500>[Server]</color> Creating new remote connection");
@@ -245,8 +253,9 @@ namespace FishNet.Transporting.CanoeWebRTC
         /// <summary>
         /// Raised as each local ICE candidate is gathered, and once more with
         /// <see cref="TrickledICE.EndOfCandidates"/> when gathering completes.
-        /// <c>connectionId</c> is <c>-1</c> for the local client's connection to its host, and the
-        /// server-side connection id otherwise — which is also what selects the trickle direction.
+        /// <c>connectionId</c> is <see cref="ClientConnectionID"/> for the local client's connection
+        /// to its host, and the server-side connection id otherwise — which is also what selects
+        /// the trickle direction.
         /// </summary>
         public static Action<int, string> OnLocalIceCandidate;
 
@@ -331,7 +340,7 @@ namespace FishNet.Transporting.CanoeWebRTC
             InstanceFinder.NetworkManager.Log("Starting signal timeout");
             CancellationToken token;
 
-            if (connectionID != -1)
+            if (connectionID != ClientConnectionID)
             {
                 CancellationTokenSource remoteClientCancellationTokenSources = new CancellationTokenSource();
                 remoteCancellationTokenSources.Add(connectionID, remoteClientCancellationTokenSources);
@@ -355,7 +364,7 @@ namespace FishNet.Transporting.CanoeWebRTC
         //already have been stopped (or never started) by the time the connection reports Started.
         private static void StopSignalTimeout(int connectionID)
         {
-            if (connectionID != -1)
+            if (connectionID != ClientConnectionID)
             {
                 if (!remoteCancellationTokenSources.TryGetValue(connectionID, out CancellationTokenSource remoteSource))
                     return;
@@ -382,7 +391,7 @@ namespace FishNet.Transporting.CanoeWebRTC
                 await Task.Delay(_signalTimeoutDurationMilliseconds, cancellationToken);
                 InstanceFinder.NetworkManager.LogWarning("Signal timeout occured! - consider extending the timeout duration");
 
-                if (connectionID != -1)
+                if (connectionID != ClientConnectionID)
                 {
                     remoteCancellationTokenSources[connectionID].Cancel();
 
@@ -402,7 +411,7 @@ namespace FishNet.Transporting.CanoeWebRTC
 
                     if (clientCancellationTokenSource != null)
                     {
-                        HandleSignalTimeout(-1);
+                        HandleSignalTimeout(ClientConnectionID);
                     }
                 }
             }
@@ -416,7 +425,7 @@ namespace FishNet.Transporting.CanoeWebRTC
         //this occurs if it times out - needs to be handled by the server on offer creation up until handle recevied answer at which point we consider a success in the signalling (before the handling but after receiving)
         private static void HandleSignalTimeout(int connectionID)
         {
-            if (connectionID != -1)
+            if (connectionID != ClientConnectionID)
             {
                 if (remoteCancellationTokenSources.TryGetValue(connectionID, out CancellationTokenSource remoteSource))
                 {
@@ -463,7 +472,7 @@ namespace FishNet.Transporting.CanoeWebRTC
         //Server
 
         //Create Offer For a client from the server (us)
-        public static async Task<OfferAnswer> CreateOfferForClient(int connectionID = -1)
+        public static async Task<OfferAnswer> CreateOfferForClient(int connectionID = ClientConnectionID)
         {
 
             if (_server.GetLocalConnectionState() != LocalConnectionState.Started)
@@ -473,7 +482,7 @@ namespace FishNet.Transporting.CanoeWebRTC
 
 
 
-            if (connectionID == -1)
+            if (connectionID == ClientConnectionID)
             {
                 connectionID = CanoeWebRTC.CreateNewRemoteConnection();
             }
@@ -680,7 +689,7 @@ namespace FishNet.Transporting.CanoeWebRTC
                 return new OfferAnswer("", true, "Client not started");
             }
 
-            CancellationToken token = StartSignalTimeout(-1);
+            CancellationToken token = StartSignalTimeout(ClientConnectionID);
 
 
             var timeoutTask = Task.Delay(_operationTimeoutDurationMilliseconds);
@@ -706,7 +715,7 @@ namespace FishNet.Transporting.CanoeWebRTC
             {
                 if (token.IsCancellationRequested)
                 {
-                    HandleSignalTimeout(-1);
+                    HandleSignalTimeout(ClientConnectionID);
                     return new OfferAnswer("", true, "Signal timeout error");
 
                 }

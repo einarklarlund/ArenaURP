@@ -41,8 +41,8 @@ public class SignalManager : MonoBehaviour
     //state; deciding whether a candidate can be applied yet belongs to the peer-connection wrapper
     //that owns it (ADR 0011). This is a pipe.
 
-    /// <summary>The route key for this peer's own connection to its host, matching <c>Connection.ConnectionID</c>.</summary>
-    private const int clientRouteID = -1;
+    /// <summary>The route key for this peer's own connection to its host.</summary>
+    private const int clientRouteID = CanoeWebRTC.ClientConnectionID;
 
     /// <summary>
     /// One live trickle route: the session token addressing a peer-connection attempt on the signal
