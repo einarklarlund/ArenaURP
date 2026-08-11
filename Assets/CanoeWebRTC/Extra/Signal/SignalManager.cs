@@ -67,11 +67,21 @@ public class SignalManager : MonoBehaviour
     private readonly Dictionary<int, string> pendingSessionTokens = new Dictionary<int, string>();
 
 
+    /// <summary>
+    /// Points the editor at a signal server other than the default one. Set it and a harness can
+    /// run against an isolated instance instead of whatever is already holding the default port —
+    /// the matching half of ArenaInfra's <c>SIGNAL_PORT</c>.
+    /// </summary>
+    private const string EditorSignalAddressVariable = "ARENA_SIGNAL_ADDRESS";
+
+    private const string DefaultEditorSignalAddress = "ws://localhost:9001/Signal";
+
     private void Start()
     {
         if (Debug.isDebugBuild || Application.isEditor)
         {
-            SignalAddress = "ws://localhost:9001/Signal";
+            string overridden = Environment.GetEnvironmentVariable(EditorSignalAddressVariable);
+            SignalAddress = string.IsNullOrEmpty(overridden) ? DefaultEditorSignalAddress : overridden;
         }
         if (Instance != null)
         {

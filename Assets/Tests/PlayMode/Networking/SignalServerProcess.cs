@@ -19,15 +19,13 @@ namespace Arena.PlayTests
     /// <see cref="Launch"/> reaps the orphan it recorded rather than colliding with it. It only ever
     /// kills a pid this class wrote, so a signal server the developer started by hand is never touched.
     ///
-    /// The port is fixed at 9001 because <c>SignalManager</c> hard-codes
-    /// <c>ws://localhost:9001/Signal</c> in the editor. If two harnesses ever need to run at once,
-    /// that address and the server's listen port both have to become configurable — ArenaInfra is
-    /// threading a port env var through as its own ticket; wire it in here when it lands.
+    /// Each launch takes an ephemeral port, so two harnesses can run at once and neither collides
+    /// with a signal server the developer already has bound to the default. <see cref="Port"/> and
+    /// <see cref="SignalAddress"/> are the single source both sides read: the server gets the port
+    /// through <c>SIGNAL_PORT</c>, the game gets the address through <c>ARENA_SIGNAL_ADDRESS</c>.
     /// </summary>
     sealed class SignalServerProcess : IDisposable
     {
-        public const int Port = 9001;
-
         const int KillTimeoutMs = 5000;
         const int MaxCapturedOutputChars = 8 * 1024;
 
@@ -35,7 +33,17 @@ namespace Arena.PlayTests
         readonly StringBuilder _output = new StringBuilder();
         readonly object _outputLock = new object();
 
-        SignalServerProcess(Process process) => _process = process;
+        SignalServerProcess(Process process, int port)
+        {
+            _process = process;
+            Port = port;
+        }
+
+        /// <summary>The port this instance was launched on — never the default, so runs never collide.</summary>
+        public int Port { get; }
+
+        /// <summary>What <c>SignalManager</c> must dial to reach this instance.</summary>
+        public string SignalAddress => $"ws://localhost:{Port}/Signal";
 
         /// <summary>Path of the pid file recording the server we started, so a crashed run is reapable.</summary>
         static string PidFilePath =>
@@ -76,6 +84,8 @@ namespace Arena.PlayTests
         {
             ReapOrphanFromPreviousRun();
 
+            int port = ReserveEphemeralPort();
+
             var startInfo = new ProcessStartInfo(ResolveNodeExecutable(), "SignalServer.js")
             {
                 WorkingDirectory = serverDirectory,
@@ -84,9 +94,10 @@ namespace Arena.PlayTests
                 RedirectStandardError = true,
                 CreateNoWindow = true,
             };
+            startInfo.EnvironmentVariables["SIGNAL_PORT"] = port.ToString();
 
             var process = Process.Start(startInfo);
-            var launched = new SignalServerProcess(process);
+            var launched = new SignalServerProcess(process, port);
 
             process.OutputDataReceived += (_, e) => launched.Capture(e.Data);
             process.ErrorDataReceived += (_, e) => launched.Capture(e.Data);
@@ -118,6 +129,19 @@ namespace Arena.PlayTests
                 _process = null;
                 DeletePidFile();
             }
+        }
+
+        /// <summary>
+        /// A port the OS just confirmed is free. Bind-then-release races nothing in practice: the
+        /// server claims it milliseconds later, and two concurrent harnesses are handed different ones.
+        /// </summary>
+        static int ReserveEphemeralPort()
+        {
+            var probe = new TcpListener(System.Net.IPAddress.Loopback, 0);
+            probe.Start();
+            int port = ((System.Net.IPEndPoint)probe.LocalEndpoint).Port;
+            probe.Stop();
+            return port;
         }
 
         void Capture(string line)

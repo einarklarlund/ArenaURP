@@ -48,6 +48,9 @@ namespace Arena.PlayTests
         const string TestNetworkManagerPath = "Assets/Tests/PlayMode/TestNetworkManager.prefab";
         const string BlankScenePath = "Assets/Tests/PlayMode/Scenes/TestSmoke.unity";
 
+        // The override SignalManager reads in the editor; the harness is the thing that sets it.
+        const string EditorSignalAddressVariable = "ARENA_SIGNAL_ADDRESS";
+
         const float SignalServerReadyTimeoutSeconds = 30f;
         const float SignalSocketTimeoutSeconds = 15f;
         const float ServerStartTimeoutSeconds = 15f;
@@ -145,6 +148,10 @@ namespace Arena.PlayTests
                 _signalServer?.Dispose();
                 _signalServer = null;
 
+                // The editor process outlives the fixture; a stale address would send the next run
+                // at a server this one already reaped.
+                Environment.SetEnvironmentVariable(EditorSignalAddressVariable, null);
+
                 ResetSignalManagerStatics();
 
                 _signalManagerObject = null;
@@ -171,8 +178,12 @@ namespace Arena.PlayTests
             _signalServer = SignalServerProcess.Launch(serverDirectory);
             yield return WaitUntil(() => _signalServer.IsListening, SignalServerReadyTimeoutSeconds);
             Assert.IsTrue(_signalServer.IsListening,
-                $"the signal server never opened port {SignalServerProcess.Port}. Its output was:\n" +
+                $"the signal server never opened port {_signalServer.Port}. Its output was:\n" +
                 _signalServer.CapturedOutput);
+
+            // The one place the port becomes an address: the game reads it from here, the server
+            // was launched on it, and neither has a default to disagree about.
+            Environment.SetEnvironmentVariable(EditorSignalAddressVariable, _signalServer.SignalAddress);
         }
 
         IEnumerator StartHost()
@@ -210,7 +221,7 @@ namespace Arena.PlayTests
             _networkManager = networkManagerObject.GetComponent<NetworkManager>();
             Assert.IsNotNull(_networkManager, "IceHarnessNetworkManager has no NetworkManager");
 
-            // SignalManager dials ws://localhost:9001/Signal from Start when running in the editor.
+            // SignalManager dials the address set in LaunchSignalServer from its Start.
             _signalManagerObject = new GameObject("IceHarnessSignalManager");
             _signalManagerObject.AddComponent(SignalManagerType);
             yield return null;
