@@ -38,8 +38,7 @@ public class RoomManager : MonoBehaviour
     {
         LocalUIEvents.OnHostInitiated?.Invoke();
 
-        // To properly use SignalManager, the host room must be 
-        // created after the host server is started
+        // SignalManager refuses to create a room until the server is started.
         InstanceFinder.ServerManager.OnServerConnectionState += HandleServerConnectionState;
         InstanceFinder.ServerManager.StartConnection();
     }
@@ -50,16 +49,13 @@ public class RoomManager : MonoBehaviour
 
         joinInFlight = true;
 
-        // The last two join phases (Connected / Failed) are transport-level transitions. The
-        // transport logs them itself but lives in the CanoeWebRTC assembly, which cannot see
-        // LocalUIEvents, so they are published here from FishNet's surfacing of the same
-        // transitions: Started == connected, Stopped-while-in-flight == timed out or torn down.
+        // Connected and Failed are transport-level transitions, published from here because the
+        // CanoeWebRTC assembly cannot see LocalUIEvents.
         InstanceFinder.ClientManager.OnClientConnectionState -= HandleClientConnectionState;
         InstanceFinder.ClientManager.OnClientConnectionState += HandleClientConnectionState;
 
         // A join that never reaches the signal server has nothing else to end it: the 39.5s signal
-        // timeout only starts once an offer arrives (CanoeWebRTC.CreateAnswerForServer), so an
-        // unreachable or dropped signal socket would otherwise spin the loading view forever.
+        // timeout only starts once an offer arrives.
         SignalManager.OnClientStateChanged -= HandleSignalClientState;
         SignalManager.OnClientStateChanged += HandleSignalClientState;
 
@@ -68,11 +64,7 @@ public class RoomManager : MonoBehaviour
         SignalManager.Instance.JoinRoom(roomCode);
     }
 
-    /// <summary>
-    /// Aborts an in-flight join and returns the local peer to the menu. Stopping through FishNet
-    /// runs the transport's own teardown (<c>ClientSocket.StopClient</c> closes the peer
-    /// connection), so a cancelled join leaves no half-open connection behind (ADR 0012).
-    /// </summary>
+    /// <summary>Aborts an in-flight join and returns the local peer to the menu (ADR 0012).</summary>
     public void CancelJoin()
     {
         // Cleared first: the stop below is deliberate, not a failure, and must not report one.
@@ -110,8 +102,6 @@ public class RoomManager : MonoBehaviour
         }
         else if (args.ConnectionState == LocalConnectionState.Stopped)
         {
-            // The client only stops mid-join when the signal timeout fired or the peer connection
-            // failed and was torn down - either way this attempt is dead.
             joinInFlight = false;
             LocalUIEvents.OnJoinPhaseChanged?.Invoke(JoinPhase.Failed);
         }
@@ -143,8 +133,7 @@ public class RoomManager : MonoBehaviour
 
     private void HandleRoomCreated(string roomCode)
     {
-        // The host joins the room after it's created.
-        JoinRoom(roomCode);        
+        JoinRoom(roomCode);
     }
 
     private void HandleRoomJoined(bool succeeded)

@@ -3,11 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// The central orchestrator for UI visibility and transitions.
-/// Responsibilities:
-/// - Manages the lifecycle of UI Views (Show/Hide/Initialize).
-/// - Listens to the NetworkUIEvents bus to decide which View should be active.
-/// - Ensures only one primary View is displayed at a time to prevent UI overlap.
+/// The central orchestrator for UI visibility and transitions. Exactly one primary View is
+/// displayed at a time; showing one hides every other.
 /// </summary>
 public sealed class UIManager : MonoBehaviour
 {
@@ -19,38 +16,22 @@ public sealed class UIManager : MonoBehaviour
 
     private void OnEnable()
     {
-        // High level network events
         NetworkUIEvents.OnClientConnectionChanged += HandleClientConnectionChanged;
-
-        // Match events
         NetworkUIEvents.OnMatchStateChanged += HandleMatchStateChanged;
-
-        // Pawn events
         NetworkUIEvents.OnLocalPawnSpawned += HandleLocalSpawn;
         NetworkUIEvents.OnLocalDeath += HandleLocalDeath;
 
-        // Loading screen events
         LocalUIEvents.OnHostInitiated += Show<LoadingView>;
         LocalUIEvents.OnJoinInitiated += Show<LoadingView>;
         LocalUIEvents.OnJoinCancelled += Show<MainMenuView>;
-
-        // Settings events
         LocalUIEvents.OnSettingsOpened += Show<SettingsView>;
         LocalUIEvents.OnSettingsClosed += ShowPreviousView;
-
-        // Pause events
         LocalUIEvents.OnPause += Show<PauseView>;
         LocalUIEvents.OnUnpause += Show<MainView>;
-
-        // Server browser events
         LocalUIEvents.OnRoomBrowserOpened += Show<RoomBrowserView>;
         LocalUIEvents.OnRoomBrowserClosed += ShowPreviousView;
-
-        // Host options events
         LocalUIEvents.OnHostOptionsOpened += Show<HostOptionsView>;
         LocalUIEvents.OnHostOptionsClosed += ShowPreviousView;
-
-        // Debug events
         LocalUIEvents.OnDebugViewOpened += Show<DebugView>;
         LocalUIEvents.OnDebugViewClosed += ShowPreviousView;
 
@@ -59,38 +40,22 @@ public sealed class UIManager : MonoBehaviour
 
     private void OnDisable()
     {
-        // High level network events
         NetworkUIEvents.OnClientConnectionChanged -= HandleClientConnectionChanged;
-
-        // Match events
         NetworkUIEvents.OnMatchStateChanged -= HandleMatchStateChanged;
-        
-        // Pawn events
         NetworkUIEvents.OnLocalPawnSpawned -= HandleLocalSpawn;
         NetworkUIEvents.OnLocalDeath -= HandleLocalDeath;
 
-        // Loading screen events
         LocalUIEvents.OnHostInitiated -= Show<LoadingView>;
         LocalUIEvents.OnJoinInitiated -= Show<LoadingView>;
         LocalUIEvents.OnJoinCancelled -= Show<MainMenuView>;
-
-        // Settings events
         LocalUIEvents.OnSettingsOpened -= Show<SettingsView>;
         LocalUIEvents.OnSettingsClosed -= ShowPreviousView;
-
-        // Pause events
         LocalUIEvents.OnPause -= Show<PauseView>;
         LocalUIEvents.OnUnpause -= Show<MainView>;
-
-        // Server browser events
         LocalUIEvents.OnRoomBrowserOpened -= Show<RoomBrowserView>;
         LocalUIEvents.OnRoomBrowserClosed -= ShowPreviousView;
-
-        // Host options events
         LocalUIEvents.OnHostOptionsOpened -= Show<HostOptionsView>;
         LocalUIEvents.OnHostOptionsClosed -= ShowPreviousView;
-
-        // Debug events
         LocalUIEvents.OnDebugViewOpened -= Show<DebugView>;
         LocalUIEvents.OnDebugViewClosed -= ShowPreviousView;
     }

@@ -3,12 +3,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// The join/host loading screen. Shows which phase the local join attempt is actually in and
-/// offers a way out of one that is going nowhere.
-///
-/// The phase comes from the typed <see cref="LocalUIEvents.OnJoinPhaseChanged"/> event, published
-/// by the signal manager and the room manager at the transitions they already log. It used to be
-/// inferred by regex-matching Unity's log stream, which is why the phase event exists (ADR 0012).
+/// The join/host loading screen. Shows which phase the local join attempt is in and offers a way
+/// out of one that is going nowhere (ADR 0012).
 /// </summary>
 public class LoadingView : View
 {
@@ -18,15 +14,11 @@ public class LoadingView : View
 
     private void OnEnable()
     {
-        // Hacky way to see if we're hosting or joining a room
-        if (RoomManager.CurrentRoom == "")
-        {
-            mainText.text = "Creating a room...";
-        }
-        else
-        {
-            mainText.text = $"Joining room {RoomManager.CurrentRoom}...";
-        }
+        bool hostingRatherThanJoining = RoomManager.CurrentRoom == "";
+
+        mainText.text = hostingRatherThanJoining
+            ? "Creating a room..."
+            : $"Joining room {RoomManager.CurrentRoom}...";
 
         SignalManager.OnRoomCreated += HandleRoomCreated;
         LocalUIEvents.OnJoinPhaseChanged += HandleJoinPhaseChanged;
