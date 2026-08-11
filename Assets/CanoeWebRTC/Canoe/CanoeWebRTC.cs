@@ -472,19 +472,12 @@ namespace FishNet.Transporting.CanoeWebRTC
         //Server
 
         //Create Offer For a client from the server (us)
-        public static async Task<OfferAnswer> CreateOfferForClient(int connectionID = ClientConnectionID)
+        public static async Task<OfferAnswer> CreateOfferForClient(int connectionID)
         {
 
             if (_server.GetLocalConnectionState() != LocalConnectionState.Started)
             {
                 return new OfferAnswer("", true, "Server not started");
-            }
-
-
-
-            if (connectionID == ClientConnectionID)
-            {
-                connectionID = CanoeWebRTC.CreateNewRemoteConnection();
             }
 
             CancellationToken token = StartSignalTimeout(connectionID);
