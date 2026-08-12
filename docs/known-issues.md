@@ -61,4 +61,4 @@ Two smaller asymmetries ride along: the standalone queue collapses repeated mark
 
 ## Adjacent, and not an issue
 
-**Running the join harness needs port 9001 free.** `SignalManager.cs:74` hard-codes `ws://localhost:9001/Signal` in the editor, so the fixture launches its own server there and collides with the `arena-signal-server` Docker container and with a second concurrent harness. This is *scheduled work*, not a known issue — it is tracked on the trickle follow-up plan as F2.
+**~~Running the join harness needs port 9001 free.~~ Resolved.** The editor address was hard-coded to `ws://localhost:9001/Signal`, so the join fixture collided with the `arena-signal-server` Docker container and with a second concurrent harness. `SignalManager` now reads the `ARENA_SIGNAL_ADDRESS` environment variable in the editor and falls back to that default — the matching half of ArenaInfra's `SIGNAL_PORT`.
