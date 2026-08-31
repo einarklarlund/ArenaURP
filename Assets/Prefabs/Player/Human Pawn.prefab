@@ -49,6 +49,8 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 4298628873098372708}
   _networkObjectCache: {fileID: 4298628873098372708}
   Sensitivity: 1
+  weaponController: {fileID: 4721397841650128368}
+  pawnMovement: {fileID: 5727112192058547566}
 --- !u!114 &7437331317049218652
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -211,15 +213,11 @@ PrefabInstance:
     - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: 'NetworkBehaviours.Array.data[7]'
       value: 
-      objectReference: {fileID: 2829723535607393119}
+      objectReference: {fileID: 0}
     - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: 'NetworkBehaviours.Array.data[8]'
       value: 
       objectReference: {fileID: 7948966455331646831}
-    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
-      propertyPath: 'NetworkBehaviours.Array.data[9]'
-      value: 
-      objectReference: {fileID: 3269519716430886955}
     - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: 'NetworkBehaviours.Array.data[10]'
       value: 
@@ -260,9 +258,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4613304413970483175, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4945804142165519860}
-    - targetCorrespondingSourceObject: {fileID: 4613304413970483175, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 4201999973695924859}
     - targetCorrespondingSourceObject: {fileID: 3015136927240068084, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       insertIndex: 1
       addedObject: {fileID: 917710660114727215}
@@ -304,51 +299,11 @@ MonoBehaviour:
   - {fileID: -339553929967437806, guid: c360b019439d84f7fb4c04b4f695cfd8, type: 3}
   count: 12
   spreadDegrees: 360
---- !u!114 &4201999973695924859
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1447049282776183341}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 147cc15baafca4af3a35c6a2952b934e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnActiveAbilities
-  _componentIndexCache: 255
-  _addedNetworkObject: {fileID: 4298628873098372708}
-  _networkObjectCache: {fileID: 0}
-  pawn: {fileID: 8871399434096018864}
-  input: {fileID: 6882340550727723747}
-  aimSource: {fileID: 0}
 --- !u!4 &2534396703682639389 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8591372839943455703, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
   m_PrefabInstance: {fileID: 6057706863010018762}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2829723535607393119 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8310406695014145685, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
-  m_PrefabInstance: {fileID: 6057706863010018762}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d6bad650112074c0eb45d7583c6b3ec7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnTemperature
---- !u!114 &3269519716430886955 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8741177467162054113, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
-  m_PrefabInstance: {fileID: 6057706863010018762}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 42b4c392f2e4e409a85a22f808574fa0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &4298628873098372708 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
@@ -404,17 +359,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ecc6e2caf251423ca2dc8dbb4875e70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PawnInteractionHandler
---- !u!114 &8871399434096018864 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3390302888177528954, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
-  m_PrefabInstance: {fileID: 6057706863010018762}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1447049282776183341}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 48ccbba47b6ca4ec6a693e4420159f11, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &9063115212817100350 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3015136927240068084, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}

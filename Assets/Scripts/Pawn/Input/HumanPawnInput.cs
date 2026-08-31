@@ -1,14 +1,14 @@
+using FishNet.Managing.Timing;
+using FishNet.Object;
 using UnityEngine;
 
 /// <summary>
-/// Human player implementation of PawnInputProvider.
-/// Reads hardware input each frame (move, look, jump, fire) and writes it
-/// into Data for the pawn's handler components to consume.
-/// Only active on the owning client.
+/// All data + logic for handling human input on a pawn that the owner of the connection owns.
 /// </summary>
 public sealed class HumanPawnInput : PawnInput
 {
     public float Sensitivity = 1f;
+    public PawnWeaponController weaponController;
 
     public override bool IsActive => IsOwner;
 
@@ -38,15 +38,21 @@ public sealed class HumanPawnInput : PawnInput
             look /= webGLLookDivisor;
         #endif
 
-        Data = new PawnInputData
+        MovementData = new MovementInputData
         {
             Move = InputManager.PawnControls.Move.ReadValue<Vector2>(),
             Jump = InputManager.PawnControls.Jump.IsPressed(),
             Look = look,
-            Fire = InputManager.PawnControls.Attack.IsPressed(),
-            CycleAbilityPrev = InputManager.PawnControls.CycleAbilityPrev.WasPressedThisFrame(),
-            CycleAbilityNext = InputManager.PawnControls.CycleAbilityNext.WasPressedThisFrame(),
-            UseAbility = InputManager.PawnControls.UseAbility.WasPressedThisFrame(),
         };
+
+        if (InputManager.PawnControls.Attack.IsPressed())
+        {
+            FireWeapon(TimeManager.GetPreciseTick(TickType.Tick));
+        }
+    }
+
+    public override void FireWeapon(PreciseTick pt)
+    {
+        weaponController.FireWeapon(pt);
     }
 }

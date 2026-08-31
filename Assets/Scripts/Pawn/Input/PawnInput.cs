@@ -1,15 +1,14 @@
+using FishNet.Managing.Timing;
 using FishNet.Object;
 
 /// <summary>
-/// Abstract base class for any component that supplies PawnInputData to the
+/// Abstract base class for any component that supplies movement data to the
 /// pawn's handler components. Subclasses populate Data every frame.
-///
-/// Unity cannot serialize bare interfaces, so handler SerializeFields are
-/// typed to this class while C# logic programs to IPawnInput.
 /// </summary>
-public abstract class PawnInput : NetworkBehaviour, IPawnInput
+public abstract class PawnInput : NetworkBehaviour
 {
-    public PawnInputData Data { get; protected set; }
+    public MovementInputData MovementData { get; protected set; }
+    public abstract void FireWeapon(PreciseTick tick);
 
     /// <summary>
     /// True when this machine should run the pawn's logic.

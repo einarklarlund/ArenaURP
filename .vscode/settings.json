@@ -67,5 +67,5 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "passive-loadout-refactor.slnx"
+    "dotnet.defaultSolution": "ArenaURP.slnx"
 }

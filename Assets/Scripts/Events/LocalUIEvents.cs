@@ -37,8 +37,6 @@ public static class LocalUIEvents
     public static Action OnDebugViewOpened;
     public static Action OnDebugViewClosed;
 
-    public static Action<float> OnTemperatureChanged;
-
     public static void Reset()
     {
         OnPause = null;
@@ -56,6 +54,5 @@ public static class LocalUIEvents
         OnJoinCancelled = null;
         OnDebugViewOpened = null;
         OnDebugViewClosed = null;
-        OnTemperatureChanged = null;
     }
 }

@@ -18,8 +18,8 @@ public sealed class PawnCameraRotation : NetworkBehaviour
     {
         if (!input.IsActive) return;
 
-        float mouseX = input.Data.Look.x;
-        float mouseY = input.Data.Look.y;
+        float mouseX = input.MovementData.Look.x;
+        float mouseY = input.MovementData.Look.y;
 
         // Rotate Body (Yaw)
         horizontalRotation += mouseX;

@@ -1,3 +1,4 @@
+using FishNet.Managing.Timing;
 using FishNet.Object;
 using UnityEngine;
 using UnityEngine.AI;
@@ -101,7 +102,8 @@ public sealed class BotBrain : NetworkBehaviour
             botInput.ClearLookTarget();
 
         // Fire
-        botInput.SetFiring(decision.Fire);
+        if (decision.Fire)
+            botInput.FireWeapon(TimeManager.GetPreciseTick(TickType.Tick));
     }
 
     // Navigation helpers (NavMesh-dependent, not extractable to pure C#)

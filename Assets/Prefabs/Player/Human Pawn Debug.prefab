@@ -67,15 +67,13 @@ PrefabInstance:
     m_RemovedComponents:
     - {fileID: 4905315705758787153, guid: 15e1575cd91d94569a84442559d95ba8, type: 3}
     - {fileID: 6616396253244855364, guid: 15e1575cd91d94569a84442559d95ba8, type: 3}
+    - {fileID: 4201999973695924859, guid: 15e1575cd91d94569a84442559d95ba8, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 1447049282776183341, guid: 15e1575cd91d94569a84442559d95ba8, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5053898414423441428}
-    - targetCorrespondingSourceObject: {fileID: 1447049282776183341, guid: 15e1575cd91d94569a84442559d95ba8, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 8554272400193142097}
   m_SourcePrefab: {fileID: 100100000, guid: 15e1575cd91d94569a84442559d95ba8, type: 3}
 --- !u!1 &998779767643933763 stripped
 GameObject:
@@ -98,54 +96,3 @@ MonoBehaviour:
   - {fileID: -339553929967437806, guid: c360b019439d84f7fb4c04b4f695cfd8, type: 3}
   count: 12
   spreadDegrees: 360
---- !u!114 &8554272400193142097
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 998779767643933763}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 147cc15baafca4af3a35c6a2952b934e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnActiveAbilities
-  _componentIndexCache: 255
-  _addedNetworkObject: {fileID: 2481306788198881290}
-  _networkObjectCache: {fileID: 0}
-  pawn: {fileID: 7121626455967874014}
-  input: {fileID: 5064982826223162509}
-  aimSource: {fileID: 0}
---- !u!114 &2481306788198881290 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4298628873098372708, guid: 15e1575cd91d94569a84442559d95ba8, type: 3}
-  m_PrefabInstance: {fileID: 1857896817075175022}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 998779767643933763}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 26b716c41e9b56b4baafaf13a523ba2e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &5064982826223162509 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6882340550727723747, guid: 15e1575cd91d94569a84442559d95ba8, type: 3}
-  m_PrefabInstance: {fileID: 1857896817075175022}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ae7a67fb108a641f6846de1024f85608, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HumanPawnInput
---- !u!114 &7121626455967874014 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8871399434096018864, guid: 15e1575cd91d94569a84442559d95ba8, type: 3}
-  m_PrefabInstance: {fileID: 1857896817075175022}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 998779767643933763}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 48ccbba47b6ca4ec6a693e4420159f11, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 

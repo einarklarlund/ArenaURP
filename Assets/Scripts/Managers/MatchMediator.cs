@@ -10,23 +10,9 @@ public class MatchMediator : NetworkBehaviour
     [SerializeField] protected MatchFlowManager matchFlowManager;
     [SerializeField] protected DeathmatchManager deathmatchManager;
 
-    [Tooltip("The shared passive-kind catalogue, spawned once per match. Its children are the passive KINDs every " +
-             "player's loadout references. Leave null to run without passives.")]
-    [SerializeField] protected PassiveRegistry passiveRegistryPrefab;
-
     public override void OnStartServer()
     {
         base.OnStartServer();
-
-        // Spawn the one shared passive registry for this match before any grant path can reference its kinds.
-        // Idempotent: a scene may carry more than one mediator (e.g. a Debug variant), and only one registry is
-        // wanted — the server runs OnStartServer callbacks sequentially, so the first spawn sets Instance and the
-        // rest no-op here.
-        if (passiveRegistryPrefab != null && PassiveRegistry.Instance == null)
-        {
-            PassiveRegistry registry = Instantiate(passiveRegistryPrefab);
-            ServerManager.Spawn(registry.NetworkObject);
-        }
 
         // Subscribe to and kick-off NetworkPlayer registration
         networkPlayerManager.OnPlayerRegistered += ServerHandlePlayerRegistered;

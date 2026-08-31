@@ -36,8 +36,8 @@ public sealed class PawnMovement : NetworkBehaviour
         // Calculate input
         var movementInput = new MovementInput
         {
-            Move = input.Data.Move,
-            JumpPressed = input.Data.Jump,
+            Move = input.MovementData.Move,
+            JumpPressed = input.MovementData.Jump,
             IsGrounded = controller.isGrounded,
             WorldOrientation = transform.rotation,
             Modifiers = Modifiers,

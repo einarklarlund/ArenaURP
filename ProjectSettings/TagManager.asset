@@ -13,11 +13,11 @@ TagManager:
   - UI
   - Interactable
   - Player
-  - Dead Body
+  - Ragdoll
   - Bullet
   - Explosion
-  - Bullet-To-Bullet
-  - Power Up
+  - 
+  - 
   - 
   - 
   - 

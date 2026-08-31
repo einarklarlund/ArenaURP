@@ -706,7 +706,7 @@ MonoBehaviour:
   _timingType: 0
   _allowTickDropping: 1
   _maximumFrameTicks: 3
-  _tickRate: 50
+  _tickRate: 60
   _pingInterval: 1
   _physicsMode: 1
 --- !u!114 &1847283082
@@ -835,9 +835,9 @@ MonoBehaviour:
   _maximumClientPacketSize: 20480
   _intermediateLayer: {fileID: 0}
   _latencySimulator:
-    _enabled: 0
+    _enabled: 1
     _simulateHost: 1
-    _latency: 0
+    _latency: 100
     _outOfOrder: 0
     _packetLoss: 0
 --- !u!114 &1847283089
@@ -1010,6 +1010,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.y
       value: 183.8
       objectReference: {fileID: 0}
+    - target: {fileID: 1557840473881121355, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3395816263043659739, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5727193150556739211, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -1098,6 +1106,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: UIManager
       objectReference: {fileID: 0}
+    - target: {fileID: 8148123850570212594, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8320549360175390663, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -1122,8 +1134,11 @@ PrefabInstance:
       propertyPath: m_BackGroundColor.r
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedComponents:
+    - {fileID: 677895166377810070, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 2171258587826383377, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
+    - {fileID: 6895647229512782541, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}

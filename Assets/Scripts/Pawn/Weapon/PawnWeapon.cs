@@ -1,99 +1,90 @@
-using System;
-using System.Collections.Generic;
+using FishNet;
+using FishNet.Managing.Timing;
 using FishNet.Object;
 using UnityEngine;
 
 /// <summary>
-/// Thin NetworkBehaviour that wires the pure WeaponProcessor into Unity and FishNet.
-/// Owns the fire point, reads input, feeds data to the processor, and spawns bullets.
+/// All data and logic for an individual weapon.
 /// </summary>
-public class PawnWeapon : NetworkBehaviour
+public class PawnWeapon : MonoBehaviour
 {
-    // Configuration
-    [SerializeField] private Pawn pawn;
-    [SerializeField] private Transform firePoint;
-    [SerializeField] private WeaponConfig config;
-    [Tooltip("The projectile type this weapon fires; it owns the instance prefab + component defaults.")]
-    [SerializeField] private ProjectileType projectile;
-    [SerializeField] private Vector3 spawnPositionOffset;
-    [SerializeField] private PawnInput input;
-    [SerializeField] private Collider pawnCollider;
+    private static readonly int FiredHash = Animator.StringToHash("Fired");
 
-    // API
-    public readonly List<WeaponModifier> Modifiers = new();
+    [Header("Weapon Stats")]
 
-    /// <summary>Whether the weapon may START a new fire event (an already-committed burst plays out). Plain data
-    /// this weapon owns: the sibling HitstunController pushes it from the replicated stun window on whichever peer
-    /// simulates this pawn (server for a bot, owning client for a human), so both reach the same verdict and the
-    /// weapon never reaches into hitstun state.</summary>
-    public bool CanFire { get; private set; } = true;
+    [Tooltip("Firing rate in projectiles per second.")]
+    public float fireRate = 5;
 
-    public void SetCanFire(bool value) => CanFire = value;
+    public float spreadAngle = 5f;
 
-    // State
-    private WeaponState _state = WeaponState.Default;
-    private bool _fireHeldLastFrame;
+    [Header("Projectile Spawning")]
 
-    private void Update()
+    [Tooltip("Transform that keeps track of where projectiles are spawned.")]
+    public Transform spawnPoint;
+
+    [Tooltip("Transform that keeps track of where projectiles appear visually when spawned.")]
+    public Transform muzzlePoint;
+
+    [Tooltip("The projectile prefab to spawn.")]
+    public Projectile projectile;
+
+    [Header("Visuals")]
+    public Animator animator;
+
+    public GameObject smokeEffects;
+
+    public ParticleSystem muzzleFlash;
+
+    private float _lastFiredAt = 0;
+
+    public void ProcessFireInput(Pawn pawnOwner, PreciseTick tick)
     {
-        if (!input.IsActive) return;
-
-        bool fireHeld = input.Data.Fire;
-        bool firePressed = fireHeld && !_fireHeldLastFrame;
-        _fireHeldLastFrame = fireHeld;
-
-        // CanFire is pushed by the sibling HitstunController from the replicated stun window, on whichever peer
-        // simulates this pawn, so the owner never predicts a shot the server would reject.
-        var weaponInput = new WeaponInput
-        {
-            FireHeld = fireHeld,
-            FirePressed = firePressed,
-            HasAmmo = true,
-            Stunned = !CanFire,
-            Modifiers = Modifiers,
-        };
-
-        _state = WeaponProcessor.Process(
-            _state, in config, in weaponInput, Time.deltaTime, out int shotsToFire);
-
-        if (shotsToFire > 0)
-        {
-            float effectiveSpread = WeaponProcessor.GetEffectiveSpreadAngle(in config, in weaponInput);
-
-            for (int shot = 0; shot < shotsToFire; shot++)
-            {
-                ExecuteShot(effectiveSpread);
-            }
-        }
-    }
-
-    private void ExecuteShot(float effectiveSpread)
-    {
-        if (projectile == null)
+        float minDurationBetweenShots = 1 / fireRate;
+        if (_lastFiredAt + minDurationBetweenShots > Time.time)
             return;
 
-        int count = config.ProjectilesPerShot;
+        Fire(pawnOwner, tick);
+    }
 
-        for (int i = 0; i < count; i++)
+    private void Fire(Pawn pawnOwner, PreciseTick tick)
+    {
+        var fireRot = CalculateSpread();
+        var firePos = muzzlePoint.position;
+
+        NetworkObject nob = InstanceFinder.NetworkManager.GetPooledInstantiated(
+            projectile, firePos, fireRot, asServer: false);
+        if (nob.TryGetComponent<Projectile>(out var p))
         {
-            // effectiveSpread is post-modifier (overheat widens, accuracy buffs tighten); i is this pellet's
-            // slot in the fan. The 4-arg overload read the raw SpreadAngle at index 0 — every pellet identical.
-            var fireDir = WeaponHelper.CalculateSpread(
-                config.SpreadType, count, effectiveSpread, firePoint, i, count);
-            Vector3 spawnPos = firePoint.TransformPoint(spawnPositionOffset);
-
-            // Instantiate at the spawn pose and network-spawn; the instance's components self-configure
-            // (TypeObjectRoot at Awake, NetworkedMotion's anchor at OnStartNetwork from this pose + tick).
-            // Use THIS pawn's own NetworkManager (not InstanceFinder): on the owning client that is the
-            // client's manager, so the spawn takes FishNet's predicted-spawn path and the bullet appears
-            // locally on the SAME frame; on the server/host it spawns authoritatively. Owner = this pawn's
-            // connection so the predicting client owns its bullet. The firer id is the one per-spawn value a
-            // component cannot self-derive (bots have no owning connection), so it is stamped here.
-            Quaternion rot = fireDir.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(fireDir) : Quaternion.identity;
-            NetworkObject nob = NetworkManager.GetPooledInstantiated(projectile.InstancePrefab, spawnPos, rot, asServer: false);
-            if (nob.TryGetComponent<NetPlayerOwnership>(out var ownership))
-                ownership.SpawnOwnerId = pawn.ControllingPlayer.Value != null ? pawn.ControllingPlayer.Value.ObjectId : -1;
-            NetworkManager.ServerManager.Spawn(nob, Owner);
+            p.owningPawn = pawnOwner;
+            p.spawnTick = tick;
+            // Send the muzzle point to the *client only* so that projectiles
+            // always appear at the right spot during client-side predicted spawn.
+            p.visualPredictionPoint = muzzlePoint;
+            // TODO: spawn position should be set here and be calculated based on where
+            // the pawn was at spawnTick.
         }
+        InstanceFinder.NetworkManager.ServerManager.Spawn(nob, pawnOwner.Owner);
+
+        PlayVfx();
+
+        _lastFiredAt = Time.time;
+    }
+
+    private Quaternion CalculateSpread()
+    {
+        // Random spread within a cone
+        float maxPitch = Mathf.Min(2, spreadAngle);
+        float randomYaw = Random.Range(-spreadAngle / 2, spreadAngle / 2);
+        float randomPitch = Random.Range(-maxPitch / 2, maxPitch / 2);
+        return muzzlePoint.rotation * Quaternion.Euler(randomPitch, randomYaw, 0);
+    }
+
+    private void PlayVfx()
+    {
+        Instantiate(smokeEffects, muzzlePoint.position, muzzlePoint.rotation);
+        animator.SetTrigger(FiredHash);
+        if(muzzleFlash.isPlaying)
+            muzzleFlash.Stop();
+        muzzleFlash.Play();
     }
 }

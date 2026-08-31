@@ -1,63 +1,106 @@
 using UnityEngine;
 
 /// <summary>
-/// Spawns hit / death particle bursts for a pawn, driven by the REPLICATED health value
-/// (<see cref="global::Pawn.Health"/>'s <c>CurrentHealth</c> SyncVar OnChange) — the same signal
-/// <see cref="PawnColor"/> flashes off. The projectile-hit path resolves damage server-only, so the in-process
-/// damage events never reach a remote client; the SyncVar does, so reacting to it is what makes the bursts play
-/// on EVERY peer (including remote clients on a dedicated server). See ADR 0004.
-///
-/// Trade: the synced value carries no impact point, so the bursts play at the pawn's transform rather than the
-/// exact hit location. That is the accepted cost of a machinery-free cross-peer reaction — cosmetic fidelity is
-/// not where this project spends a networking pattern.
+/// Handles all VFX for a pawn taking damage, including particle effects
+/// and color changes.
 /// </summary>
 public class PawnDamageVfx : MonoBehaviour
 {
-    [SerializeField] private Pawn pawn;
-    [SerializeField] GameObject onHitPrefab;
-    [SerializeField] GameObject onDeathPrefab;
+    [SerializeField] private HealthController healthController;
+    [SerializeField] private MeshRenderer bodyRenderer;
 
-    private static GameObjectPool onHitEffectPool;
-    private static GameObjectPool onDeathEffectPool;
+    [Header("VFX Prefabs")]
+    [SerializeField] private GameObject damageVfx;
+    [SerializeField] private GameObject deathVfx;
+
+    [Header("Color effects")]
+    [Tooltip("The color that the body's material changes to when damaged.")]
+    [SerializeField] private Color damagedColor = Color.red;
+
+    [Tooltip("The default albedo value of the body's material.")]
+    [SerializeField] private Color defaultAlbedo = Color.white;
+
+    [Tooltip("The default emission value of the body's material.")]
+    [SerializeField] private Color defaultEmission = Color.black;
+
+    [Tooltip("The amount of time before the body renderer returns to its original color")]
+    [SerializeField] private float damageColorDuration = 0.75f;
+
+    private static GameObjectPool damageVfxPool;
+    private static GameObjectPool deathVfxPool;
+
+    // Color changing state
+    private float? _damageDealtTime;
 
     private void Awake()
     {
-        onHitEffectPool ??= new GameObjectPool(onHitPrefab);
-        onDeathEffectPool ??= new GameObjectPool(onDeathPrefab);
+        // Initialize effect prefab pools.
+        damageVfxPool ??= new GameObjectPool(damageVfx);
+        deathVfxPool ??= new GameObjectPool(deathVfx);
     }
 
     private void Start()
     {
-        // Subscribe in Start, not Awake: pawn.Health resolves the sibling Health SyncVar, which Pawn.Awake wires
-        // up. Matches PawnColor / DamageIndicator.
-        pawn.Health.OnChange += OnHealthChanged;
+        healthController.OnDamageTaken += OnDamageTaken;
+    }
+
+    private void Update()
+    {
+        // Handle color changing
+        if (_damageDealtTime != null)
+            if (_damageDealtTime <= Time.time + damageColorDuration)
+                ApplyDamageColor();
+            else
+                ResetDamageColor();
     }
 
     private void OnDestroy()
     {
-        if (pawn != null)
-            pawn.Health.OnChange -= OnHealthChanged;
+        healthController.OnDamageTaken -= OnDamageTaken;
     }
 
-    // Spawn only where a CLIENT is running on this peer to render the burst — a headless dedicated server has none
-    // and skips. Gate on IsClientStarted (the client MANAGER is up on this peer), NOT IsClientInitialized (this
-    // object ran OnStartClient): server-driven pawns (bots, scripted) are never client-initialized even on a host,
-    // so an object-level gate would wrongly skip them. Do NOT gate on asServer: for a ServerOnly SyncVar, OnChange
-    // fires exactly ONCE per change on a given peer (asServer==true on the listen-server host, asServer==false on a
-    // remote client — no twin to dedupe), so gating on asServer would suppress the host. Only a decrease is a hit;
-    // a heal or the initial max-HP seed is an increase and is ignored.
-    private void OnHealthChanged(int prev, int next, bool asServer)
+    private void ApplyDamageColor()
     {
-        if (!pawn.IsClientStarted) return;
-        if (next >= prev) return;
+        if (_damageDealtTime == null)
+            return;
 
-        Play(onHitEffectPool);
-        if (next <= 0) Play(onDeathEffectPool);
+        float damageDealtTime = (float) _damageDealtTime;
+        float elapsedTimeSinceDamage = Time.time - damageDealtTime;
+        float damageColorLerpFactor = elapsedTimeSinceDamage / damageColorDuration;
+        
+        Color damageAlbedo = Color.Lerp(damagedColor, defaultAlbedo, damageColorLerpFactor);
+        Color damageEmission = Color.Lerp(damagedColor, defaultEmission, damageColorLerpFactor);
+        
+        SetBodyColors(damageAlbedo, damageEmission);
     }
 
-    private void Play(GameObjectPool pool)
+    private void ResetDamageColor()
     {
-        var effect = pool.Get(pawn.transform.position, Quaternion.identity);
+        SetBodyColors(defaultAlbedo, defaultEmission);
+        _damageDealtTime = null;
+    }
+
+    private void SetBodyColors(Color albedo, Color emission)
+    {
+        bodyRenderer.material.SetColor("_BaseColor", albedo);
+        if (bodyRenderer.material.HasColor("_Emission"))
+            bodyRenderer.material.SetColor("_Emission", emission);
+        else
+            bodyRenderer.material.SetColor("_EmissionColor", emission);
+    }
+
+    private void OnDamageTaken(DamageInfo damageInfo)
+    {
+        PlayVfx(damageVfxPool, damageInfo.HitPoint, damageInfo.Direction);
+        // TODO - test if this works as intended by predicting death
+        // if (healthController.CurrentHealth.Value - damageInfo.Amount <= 0)
+        //     PlayVfx(deathVfxPool);
+        _damageDealtTime = Time.time;
+    }
+
+    private void PlayVfx(GameObjectPool pool, Vector3 atPoint, Vector3 inDirection)
+    {
+        var effect = pool.Get(atPoint, Quaternion.LookRotation(inDirection));
         effect.GetComponent<ParticleSystem>().Play();
         if (effect.TryGetComponent<PooledLifetime>(out var lifetime))
             lifetime.Initialize(pool);

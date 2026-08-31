@@ -1,3 +1,5 @@
+using FishNet.Managing.Timing;
+using FishNet.Object;
 using UnityEngine;
 
 /// <summary>
@@ -12,13 +14,13 @@ public sealed class BotPawnInput : PawnInput
 
     [Tooltip("Maximum upward/downward pitch in degrees.")]
     [SerializeField] private float maxPitch = 60f;
+    public PawnWeaponController weaponController;
 
     // Intents written by BotBrain each frame
     private Vector3 moveIntentWorld = Vector3.zero;
     private Vector3 lookTargetWorld = Vector3.zero;
     private bool hasMoveIntent;
     private bool hasLookTarget;
-    private bool wantsFire;
 
     // Track accumulated pitch so we can compute a delta for CameraInputHandler
     private float currentPitch;
@@ -47,12 +49,11 @@ public sealed class BotPawnInput : PawnInput
 
         currentPitch = lookResult.UpdatedPitch;
 
-        Data = new PawnInputData
+        MovementData = new MovementInputData
         {
             Move = BotInputMath.ComputeMoveInput(moveIntentWorld, transform.rotation),
             Look = lookResult.LookDelta,
             Jump = false,
-            Fire = wantsFire,
         };
     }
 
@@ -78,6 +79,8 @@ public sealed class BotPawnInput : PawnInput
         hasLookTarget = false;
     }
 
-    /// <summary>Sets whether the bot should pull the trigger this frame.</summary>
-    public void SetFiring(bool fire) => wantsFire = fire;
+    public override void FireWeapon(PreciseTick tick)
+    {
+        weaponController.FireWeapon(tick);
+    }
 }

@@ -128,6 +128,7 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 2020105714796687385}
   maxTurnSpeed: 360
   maxPitch: 60
+  weaponController: {fileID: 7361926394180223885}
 --- !u!1001 &8340203707607884727
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -287,15 +288,11 @@ PrefabInstance:
     - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: 'NetworkBehaviours.Array.data[8]'
       value: 
-      objectReference: {fileID: 65906713945292066}
+      objectReference: {fileID: 0}
     - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: 'NetworkBehaviours.Array.data[9]'
       value: 
       objectReference: {fileID: 5332105547455707922}
-    - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
-      propertyPath: 'NetworkBehaviours.Array.data[10]'
-      value: 
-      objectReference: {fileID: 788338303157595734}
     - target: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       propertyPath: 'NetworkBehaviours.Array.data[11]'
       value: 
@@ -365,32 +362,7 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4613304413970483175, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2547182952053290219}
-    - targetCorrespondingSourceObject: {fileID: 4613304413970483175, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 7232410880334241094}
   m_SourcePrefab: {fileID: 100100000, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
---- !u!114 &65906713945292066 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8310406695014145685, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
-  m_PrefabInstance: {fileID: 8340203707607884727}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d6bad650112074c0eb45d7583c6b3ec7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnTemperature
---- !u!114 &788338303157595734 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8741177467162054113, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
-  m_PrefabInstance: {fileID: 8340203707607884727}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 42b4c392f2e4e409a85a22f808574fa0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &2020105714796687385 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8049762553664656302, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}
@@ -461,24 +433,6 @@ MonoBehaviour:
   - {fileID: -339553929967437806, guid: c360b019439d84f7fb4c04b4f695cfd8, type: 3}
   count: 12
   spreadDegrees: 360
---- !u!114 &7232410880334241094
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3727824876307670096}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 147cc15baafca4af3a35c6a2952b934e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PawnActiveAbilities
-  _componentIndexCache: 255
-  _addedNetworkObject: {fileID: 2020105714796687385}
-  _networkObjectCache: {fileID: 0}
-  pawn: {fileID: 6679574468413641677}
-  input: {fileID: 4460883532456950215}
-  aimSource: {fileID: 0}
 --- !u!114 &5332105547455707922 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4197683245214701733, guid: 77b08540ddf664fe080761d5320dd4ce, type: 3}

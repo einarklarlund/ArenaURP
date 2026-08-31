@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using FishNet;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
@@ -19,9 +20,6 @@ public sealed class NetworkPlayer : NetworkBehaviour
     public readonly SyncVar<int> Score = new();
 
     [NonSerialized] public bool IsBot;
-
-    [UnityEngine.Tooltip("The player's passive-ability roster — a sibling component on this root GO (ownership on the player). Wired on the NetworkPlayer prefab.")]
-    public PlayerPassiveLoadout PassiveLoadout;
 
     public Action<NetworkPlayer> OnDespawn;
 
