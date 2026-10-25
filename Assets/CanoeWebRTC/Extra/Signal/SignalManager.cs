@@ -46,9 +46,10 @@ public class SignalManager : MonoBehaviour
 
     /// <summary>
     /// One live trickle route: the session token addressing a peer-connection attempt on the signal
-    /// server, and the buffer holding candidates the server cannot route yet. The server binds the
-    /// session's connection id when it relays the host's offer and <b>silently drops</b> any trickle
-    /// that arrives before that, so candidates gathered ahead of the offer wait in <see cref="buffer"/>.
+    /// server, and the buffer holding candidates gathered before this peer's own description has
+    /// been sent - the host's offer, or the client's answer. Trickled candidates follow the
+    /// description (RFC 8838 §2), and the server <b>silently drops</b> any trickle that arrives before
+    /// the offer has bound the session's connection id, so they wait in <see cref="buffer"/>.
     /// </summary>
     private class TrickleRoute
     {
@@ -256,11 +257,22 @@ public class SignalManager : MonoBehaviour
         if (answerResult.error)
         {
             Debug.Log($"<color=cyan>[Signal]</color> Error when handling offer from server: {answerResult.errorMessage}");
+            trickleRoutes.Remove(clientRouteID);
             LocalUIEvents.OnJoinPhaseChanged?.Invoke(JoinPhase.Failed);
         }
         else
         {
+            //Same rule as the host's offer: the answer goes first, and only then does the route
+            //open (RFC 8838 §2 - trickled candidates follow the description). Gathering began at
+            //SetLocalDescription, several awaits ago, so on a fast network every candidate and the
+            //end-of-candidates marker are already held. Sent ahead of the answer, they can let the
+            //server conclude the session before the answer reaches it, and the answer is dropped.
+            //A browser's own RTCPeerConnection guarantees this order to code that sends straight
+            //after awaiting setLocalDescription (W3C [[EarlyCandidates]]); nothing does here.
             client.Send(sendAnswerSerializer(answerResult, signalID, sessionToken));
+
+            OpenTrickleRoute(clientRouteID);
+
             //Offer in, answer out: negotiation is done and ICE now has to establish the connection.
             LocalUIEvents.OnJoinPhaseChanged?.Invoke(JoinPhase.EstablishingConnection);
         }
@@ -418,15 +430,12 @@ public class SignalManager : MonoBehaviour
                     //we did join -- `0x03 0x01 [tok]`
                     //
                     //The token names the signaling session this attempt owns, and is the only thing
-                    //that addresses our candidates. The route opens immediately: the server binds
-                    //the session's connection id when it relays the host's offer, which is strictly
-                    //before that offer can reach us, and we gather nothing until we answer it.
-                    TrickleRoute ourRoute = new TrickleRoute
+                    //that addresses our candidates. The route stays closed until our answer has
+                    //gone out: see ReceivedOfferFromServer.
+                    trickleRoutes[clientRouteID] = new TrickleRoute
                     {
                         sessionToken = SessionToken.Read(data.Array, data.Offset + 2, out _),
                     };
-                    ourRoute.buffer.Open();
-                    trickleRoutes[clientRouteID] = ourRoute;
 
                     OnRoomJoined?.Invoke(true);
                     Debug.Log("<color=cyan>[Signal]</color> Join Code Valid, waiting for offer from host.");
