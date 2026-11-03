@@ -79,6 +79,10 @@ namespace Arena.LevelGen.Editor
                 if (GUILayout.Button("Check Determinism", GUILayout.Height(28))) CheckDeterminism();
                 if (GUILayout.Button("Clear", GUILayout.Width(60), GUILayout.Height(28))) ClearPreview();
             }
+            using (new EditorGUI.DisabledScope(_lastDescription == null))
+                if (GUILayout.Button(new GUIContent("Save as Prefab…",
+                        "Saves the last generated level, in the current theme and decal setting, as a self-contained prefab.")))
+                    SaveAsPrefab();
 
             if (_trace?.Partition != null)
             {
@@ -310,6 +314,33 @@ namespace Arena.LevelGen.Editor
                 if (go.name == PreviewRootName && go.transform.parent == null && !EditorUtility.IsPersistent(go))
                     roots.Add(go);
             return roots;
+        }
+
+        /// <summary>Saves a fresh build of the last level (the preview stays as it is, stage view included).</summary>
+        private void SaveAsPrefab()
+        {
+            if (_lastDescription == null) return;
+            string name = $"Level {_lastDescription.Seed}";
+            string path = EditorUtility.SaveFilePanelInProject("Save level as prefab", name, "prefab",
+                "Meshes, materials and terrain textures are stored inside the prefab.");
+            if (string.IsNullOrEmpty(path)) return;
+
+            var root = LevelBuilder.Build(_lastDescription, null, name, theme, config != null ? config.props : null, showDecals);
+            try
+            {
+                var prefab = LevelPrefabSaver.Save(root, path);
+                if (prefab == null)
+                {
+                    SetStatus($"Couldn't save '{path}'.", MessageType.Error);
+                    return;
+                }
+                SetStatus($"Saved seed {_lastDescription.Seed} to '{path}'.", MessageType.Info);
+                EditorGUIUtility.PingObject(prefab);
+            }
+            finally
+            {
+                LevelBuilder.Teardown(root);
+            }
         }
 
         private static GameObject FindPreviewRoot()

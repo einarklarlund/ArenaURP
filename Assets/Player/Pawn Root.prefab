@@ -109,7 +109,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 8400000, guid: 62ba092e569964c30975b28901cdc1a9, type: 2}
+  m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 1
@@ -126,7 +126,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3015136927240068084}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!114 &6254141354047242925
 MonoBehaviour:
   m_ObjectHideFlags: 0

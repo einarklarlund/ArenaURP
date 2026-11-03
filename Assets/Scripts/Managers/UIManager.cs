@@ -73,6 +73,8 @@ public sealed class UIManager : MonoBehaviour
         LocalUIEvents.OnCharacterSelectClosed -= ShowPreviousView;
         LocalUIEvents.OnLevelLoadStarted -= HandleLevelLoadStarted;
         LocalUIEvents.OnLevelLoadFinished -= HandleLevelLoadFinished;
+
+        CameraDirector.Release(menuCamera);
     }
 
     private void HandleClientConnectionChanged(bool connected)
@@ -166,8 +168,7 @@ public sealed class UIManager : MonoBehaviour
 
     private void Show<T>() where T : View
     {
-        bool shouldShowMenuCamera = typeof(T) != typeof(MainView);
-        menuCamera.gameObject.SetActive(shouldShowMenuCamera);
+        RequestMenuCamera(typeof(T) != typeof(MainView));
         previousView = currentView;
         foreach(var view in views)
         {
@@ -181,9 +182,16 @@ public sealed class UIManager : MonoBehaviour
         }
     }
 
+    // A menu takes the screen from the pawn. Under MainView the menu camera stays claimed as the fallback, so a screen
+    // camera is always live to draw the overlay UI.
+    private void RequestMenuCamera(bool menuShowing)
+    {
+        CameraDirector.Request(menuCamera, menuShowing ? CameraDirector.Priority.Menu : CameraDirector.Priority.Fallback);
+    }
+
     private void ShowView(View target)
     {
-        menuCamera.gameObject.SetActive(target is not MainView);
+        RequestMenuCamera(target is not MainView);
         previousView = currentView;
         foreach (var view in views)
         {

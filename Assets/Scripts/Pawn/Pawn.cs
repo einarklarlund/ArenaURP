@@ -60,6 +60,7 @@ public class Pawn : NetworkBehaviour
     [SerializeField] private Transform characterControllerTransform;
     
     [SerializeField] Transform cameraTransform;
+    private Camera PawnCamera => cameraTransform.GetComponent<Camera>();
 
     // VFX events (predicted client-side)
     public event Action<DamageInfo> OnDamageTaken;
@@ -331,20 +332,13 @@ public class Pawn : NetworkBehaviour
             InputManager.PawnControls.Enable();
 
             Cursor.lockState = CursorLockMode.Locked;
-            if(cameraTransform.TryGetComponent<Camera>(out var cam)) cam.enabled = true;
-            if(cameraTransform.TryGetComponent<AudioListener>(out var listener)) listener.enabled = true;
-            cameraTransform.tag = "MainCamera";
+            CameraDirector.Request(PawnCamera, CameraDirector.Priority.Pawn);
 
             // Spawned goes first: the view it brings up subscribes to health during this call.
             NetworkUIEvents.OnLocalPawnSpawned?.Invoke(this);
             CurrentHealth.OnChange += ClientOnHealthChanged;
             NetworkUIEvents.OnLocalHealthChanged?.Invoke(CurrentHealth.Value);
             NetworkUIEvents.OnLocalWeaponsChanged?.Invoke(PrimaryWeapon, StowedWeapon);
-        }
-        else
-        {
-            if(cameraTransform.TryGetComponent<Camera>(out var cam)) cam.enabled = false;
-            if(cameraTransform.TryGetComponent<AudioListener>(out var listener)) listener.enabled = false;
         }
 
         // NetworkTransform's CharacterController configuration disables the CharacterController on observers :/
@@ -386,6 +380,9 @@ public class Pawn : NetworkBehaviour
         LocalUIEvents.OnPause -= OnPause;
         LocalUIEvents.OnUnpause -= OnUnpause;
         _isPaused = false;
+
+        // Pooled pawns come back for other players, so this one gives the screen up now.
+        CameraDirector.Release(PawnCamera);
 
         // FishNet sends a despawning object's pending SyncVars before the despawn, so a pawn that died gets here
         // with no health; one despawned for any other reason (match end, new level, its player left) has some.
