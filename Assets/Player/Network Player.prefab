@@ -52,7 +52,7 @@ MonoBehaviour:
   ammoCapacities:
   - type: 0
     max: 255
-    starting: 100
+    starting: 32
   - type: 1
     max: 55
     starting: 0
@@ -98,7 +98,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584090168505967428
+  _initializedTimestamp: -8584078706714155018
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -117,7 +117,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 13
+  <PrefabId>k__BackingField: 10
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 4457330789184536761
   SceneId: 0

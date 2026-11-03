@@ -29,7 +29,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Aspect: 1.7777778
+    - _Aspect: 2.4552352
     - _ColorMask: 15
     - _Stencil: 0
     - _StencilComp: 8
@@ -37,7 +37,7 @@ Material:
     - _StencilReadMask: 255
     - _StencilWriteMask: 255
     - _UseUIAlphaClip: 0
-    - _Width: 0.00081307255
+    - _Width: 0.00027988106
     m_Colors:
     - _Color: {r: 0.1, g: 1, b: 0.15, a: 0.55}
   m_BuildTextureStacks: []

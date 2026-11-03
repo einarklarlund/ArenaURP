@@ -4,38 +4,55 @@ using Arena.LevelGen;
 using UnityEngine;
 
 /// <summary>
-/// Picks one of level generation's chest sites for a player's next chest or capsule: a free site in a room next to
-/// the player's room, never in it. It doesn't find sites: SiteStage does that from the level's features. Plain C#,
+/// Picks one of level generation's chest sites for a spawn: a room drawn at random by <see cref="SiteScorer"/>'s
+/// weights, then a free site in it. It doesn't find sites: SiteStage does that from the level's features. Plain C#,
 /// so the directors and the tests use the same rules. See chest-director-design.md.
 /// </summary>
 public static class SitePicker
 {
     /// <summary>
-    /// A free site in a random room adjacent to <paramref name="playerRoom"/>, skipping <paramref name="avoidRooms"/>.
-    /// If no adjacent room has one and <paramref name="twoStepsOut"/>, a room two steps out. Upper floors and
-    /// balconies come first within a room. False when the player is outside every room or nothing is free.
+    /// A free site in a room drawn by <paramref name="roomWeights"/> (rooms weighing 0 never come up), skipping
+    /// <paramref name="avoidRooms"/> and rooms with no free site. Upper floors and balconies come first within a room.
+    /// False when nothing is left to draw.
     /// </summary>
-    public static bool TryPick(RoomGraph rooms, int playerRoom, ICollection<int> avoidRooms, Func<ChestSite, bool> isFree,
-        System.Random random, out ChestSite site, bool twoStepsOut = true)
+    public static bool TryPick(RoomGraph rooms, IReadOnlyList<float> roomWeights, ICollection<int> avoidRooms,
+        Func<ChestSite, bool> isFree, System.Random random, out ChestSite site)
     {
         site = default;
-        if (rooms == null || playerRoom < 0) return false;
+        if (rooms == null) return false;
 
-        var near = new List<int>();
-        foreach (int room in rooms.Adjacent(playerRoom))
-            if (room != playerRoom && !near.Contains(room)) near.Add(room);
+        var candidates = new List<int>();
+        var candidateWeights = new List<float>();
+        for (int room = 0; room < roomWeights.Count; room++)
+        {
+            if (roomWeights[room] <= 0f || (avoidRooms != null && avoidRooms.Contains(room))) continue;
+            if (!HasFreeSite(rooms.ChestSitesIn(room), isFree)) continue;
+            candidates.Add(room);
+            candidateWeights.Add(roomWeights[room]);
+        }
 
-        if (TryPickIn(rooms, Allowed(near, avoidRooms), isFree, random, out site))
-            return true;
-        if (!twoStepsOut)
-            return false;
+        int drawn = Draw(candidateWeights, random);
+        return drawn >= 0 && TryPickSite(rooms.ChestSitesIn(candidates[drawn]), isFree, random, out site);
+    }
 
-        var far = new List<int>();
-        foreach (int room in near)
-            foreach (int next in rooms.Adjacent(room))
-                if (next != playerRoom && !near.Contains(next) && !far.Contains(next)) far.Add(next);
+    /// <summary>An index drawn at random in proportion to <paramref name="weights"/>; -1 when they're all 0 or empty.</summary>
+    public static int Draw(IReadOnlyList<float> weights, System.Random random)
+    {
+        float total = 0f;
+        foreach (float weight in weights)
+            total += Mathf.Max(0f, weight);
+        if (total <= 0f) return -1;
 
-        return TryPickIn(rooms, Allowed(far, avoidRooms), isFree, random, out site);
+        float pick = (float)random.NextDouble() * total;
+        int last = -1;
+        for (int i = 0; i < weights.Count; i++)
+        {
+            if (weights[i] <= 0f) continue;
+            last = i;
+            pick -= weights[i];
+            if (pick < 0f) return i;
+        }
+        return last;
     }
 
     /// <summary>
@@ -75,21 +92,10 @@ public static class SitePicker
         return footprint;
     }
 
-    private static List<int> Allowed(List<int> rooms, ICollection<int> avoidRooms)
+    private static bool HasFreeSite(IReadOnlyList<ChestSite> sites, Func<ChestSite, bool> isFree)
     {
-        if (avoidRooms == null || avoidRooms.Count == 0) return rooms;
-        return rooms.FindAll(room => !avoidRooms.Contains(room));
-    }
-
-    private static bool TryPickIn(RoomGraph rooms, List<int> candidates, Func<ChestSite, bool> isFree,
-        System.Random random, out ChestSite site)
-    {
-        Shuffle(candidates, random);
-        foreach (int room in candidates)
-            if (TryPickSite(rooms.ChestSitesIn(room), isFree, random, out site))
-                return true;
-
-        site = default;
+        foreach (ChestSite candidate in sites)
+            if (isFree(candidate)) return true;
         return false;
     }
 
@@ -111,14 +117,5 @@ public static class SitePicker
         List<ChestSite> pool = preferred.Count > 0 ? preferred : other;
         site = pool.Count > 0 ? pool[random.Next(pool.Count)] : default;
         return pool.Count > 0;
-    }
-
-    private static void Shuffle(List<int> list, System.Random random)
-    {
-        for (int i = list.Count - 1; i > 0; i--)
-        {
-            int j = random.Next(i + 1);
-            (list[i], list[j]) = (list[j], list[i]);
-        }
     }
 }

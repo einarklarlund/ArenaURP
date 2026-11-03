@@ -326,11 +326,11 @@ MonoBehaviour:
   CurrentHealth:
     NetworkManager: {fileID: 0}
     NetworkBehaviour: {fileID: 0}
-    _value: 21
+    _value: 12
   MaxHealth:
     NetworkManager: {fileID: 0}
     NetworkBehaviour: {fileID: 0}
-    _value: 21
+    _value: 12
   regenDelay: 3
   startingPrimaryWeapon: {fileID: 85172246880445882, guid: f0743866f699a4cc68edafc1215c5acd, type: 3}
   startingSecondaryWeapon: {fileID: 0}
@@ -461,7 +461,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584079347333404048
+  _initializedTimestamp: -8584078690998377778
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -480,7 +480,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 8
+  <PrefabId>k__BackingField: 36
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 11106839490675672403
   SceneId: 0

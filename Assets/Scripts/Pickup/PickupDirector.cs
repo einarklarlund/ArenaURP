@@ -7,7 +7,8 @@ using UnityEngine;
 /// <summary>
 /// Keeps the level stocked with small health and ammo pickups during a match: a few in one room, and one line along
 /// one of the level's pickup-line sites. When either's pickups are all taken, it comes back after a delay somewhere
-/// picked afresh. The server picks where pickups go and when a group refills; every peer then makes its own local
+/// picked afresh, drawn by <see cref="SiteScorer.LobbyWeights"/>: near players who aren't leading, away from the
+/// leaders. The server picks where pickups go and when a group refills; every peer then makes its own local
 /// copies, and each
 /// copy decides by itself who claims it (see <see cref="Pickup"/>). A refill replaces the group's copies on every
 /// peer, so any disagreement between peers ends there.
@@ -33,6 +34,8 @@ public sealed class PickupDirector : NetworkBehaviour
     // ── Server-only state ────────────────────────────────────────────────
 
     private RoomGraph stockedRooms;
+    private readonly List<NetworkPlayer> standings = new();
+    private readonly System.Random random = new();
     private bool supplying;
 
     private double Now => TimeManager.TicksToTime();
@@ -151,25 +154,29 @@ public sealed class PickupDirector : NetworkBehaviour
     // ═════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Pickups near a random room's chest sites, offset roughly towards the room's middle (the way a site faces).
+    /// Pickups near a drawn room's chest sites, offset roughly towards the room's middle (the way a site faces).
     /// </summary>
     [Server]
     private void ServerFillRoom(RoomGraph rooms)
     {
+        float[] lobby = LobbyWeights(rooms);
         List<int> stocked = new();
+        List<float> weights = new();
         for (int room = 0; room < rooms.RoomCount; room++)
         {
-            if (rooms.ChestSitesIn(room).Count > 0)
-                stocked.Add(room);
+            if (rooms.ChestSitesIn(room).Count == 0) continue;
+            stocked.Add(room);
+            weights.Add(lobby[room]);
         }
 
-        if (stocked.Count == 0)
+        int drawn = DrawOrAny(weights);
+        if (drawn < 0)
         {
             ServerRetryLater(RoomGroup);
             return;
         }
 
-        List<ChestSite> shuffled = new(rooms.ChestSitesIn(stocked[Random.Range(0, stocked.Count)]));
+        List<ChestSite> shuffled = new(rooms.ChestSitesIn(stocked[drawn]));
         Shuffle(shuffled);
 
         Vector3[] positions = new Vector3[settings.pickupsPerRoom];
@@ -185,23 +192,43 @@ public sealed class PickupDirector : NetworkBehaviour
         ServerFill(RoomGroup, positions, MixedKinds(positions.Length));
     }
 
-    /// <summary>One pickup per point of a random line site.</summary>
+    /// <summary>One pickup per point of a line site drawn by its room's weight.</summary>
     [Server]
     private void ServerFillLine(RoomGraph rooms)
     {
         IReadOnlyList<PickupLine> lines = rooms.Level.PickupLines;
-        if (lines.Count == 0)
+        float[] lobby = LobbyWeights(rooms);
+        List<float> weights = new();
+        foreach (PickupLine line in lines)
+            weights.Add(line.Room >= 0 && line.Room < lobby.Length ? lobby[line.Room] : 0f);
+
+        int drawn = DrawOrAny(weights);
+        if (drawn < 0)
         {
             ServerRetryLater(LineGroup);
             return;
         }
 
-        List<Vector3> points = lines[Random.Range(0, lines.Count)].Points;
+        List<Vector3> points = lines[drawn].Points;
         Vector3[] positions = new Vector3[points.Count];
         for (int i = 0; i < positions.Length; i++)
             positions[i] = points[i] + Vector3.up * settings.hoverHeight;
 
         ServerFill(LineGroup, positions, SameKinds(positions.Length));
+    }
+
+    [Server]
+    private float[] LobbyWeights(RoomGraph rooms) =>
+        MatchStandings.Scorer(MatchManager.Instance, rooms, settings.siteWeights, standings).LobbyWeights();
+
+    /// <summary>An index drawn by <paramref name="weights"/>; when they're all 0 (every room is occupied or out of
+    /// reach), any index at all, so the level still gets pickups. -1 when empty.</summary>
+    private int DrawOrAny(List<float> weights)
+    {
+        int drawn = SitePicker.Draw(weights, random);
+        if (drawn < 0 && weights.Count > 0)
+            drawn = random.Next(weights.Count);
+        return drawn;
     }
 
     /// <summary>No site for the group: try again a refill later.</summary>

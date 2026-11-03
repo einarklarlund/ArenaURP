@@ -5,8 +5,9 @@ using UnityEngine;
 
 /// <summary>
 /// Keeps every player stocked with supply and weapon chests during a match. Each player has a few
-/// slots per chest kind; an empty slot refills after a short delay, on a free chest site in a room
-/// next to its player's room. Server only. See chest-director-design.md.
+/// slots per chest kind; an empty slot refills after a short delay, on a free chest site drawn by
+/// <see cref="SiteScorer"/>: near its player and away from the leader, or, for the leader, away from everyone.
+/// Server only. See chest-director-design.md.
 /// A player's upgrades push extra slots into their <see cref="PlayerRecord"/>; the player resets it when its
 /// upgrades clear.
 /// </summary>
@@ -47,6 +48,7 @@ public sealed class ChestDirector : NetworkBehaviour
     [SerializeField] private float lifetime = 20f;
     [Tooltip("Seconds an empty slot waits before it refills, picked at random in [x, y]. A slot with no free site also waits this long.")]
     [SerializeField] private Vector2 respawnDelay = new(1f, 4f);
+    [SerializeField] private SiteWeights siteWeights = new();
 
     // ── Server-only state ────────────────────────────────────────────────
 
@@ -55,6 +57,7 @@ public sealed class ChestDirector : NetworkBehaviour
     // Every chest this spawned, including those whose player has left: they all go when the match ends.
     private readonly List<ChestTimer> chests = new();
     private readonly List<NetworkPlayer> departed = new();
+    private readonly List<NetworkPlayer> standings = new();
     private readonly System.Random random = new();
     private Bounds supplyFootprint;
     private Bounds weaponFootprint;
@@ -224,7 +227,9 @@ public sealed class ChestDirector : NetworkBehaviour
         if (rooms == null)
             return false;
 
-        if (!SitePicker.TryPick(rooms, rooms.RoomAt(pawn.transform.position), null, SiteClaims.IsFree, random, out ChestSite site))
+        SiteScorer scorer = MatchStandings.Scorer(MatchManager.Instance, rooms, siteWeights, standings);
+        int contender = standings.IndexOf(player);
+        if (contender < 0 || !SitePicker.TryPick(rooms, scorer.WeightsFor(contender), null, SiteClaims.IsFree, random, out ChestSite site))
             return false;
 
         bool supply = slot.Kind == ChestKind.Supply;

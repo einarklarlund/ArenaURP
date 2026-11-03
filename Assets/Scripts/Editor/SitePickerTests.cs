@@ -5,8 +5,8 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// <see cref="SitePicker"/> on a hand-built level: four 10 × 10 rooms in a row along X. Rooms 0–1–2 link both ways,
-/// and 2 drops into 3 down a cliff (2 → 3 only). Picks are random, so each test tries many seeds.
+/// <see cref="SitePicker"/> on a hand-built level: four 10 × 10 rooms in a row along X, two sites each. Picks are
+/// random, so each test tries many seeds. Which rooms weigh what is <see cref="SiteScorerTests"/>' job.
 /// </summary>
 public class SitePickerTests
 {
@@ -29,60 +29,47 @@ public class SitePickerTests
             level.ChestSites.Add(Site(i, ChestSiteKind.OpenGround, 3f));
             level.ChestSites.Add(Site(i, ChestSiteKind.Hilltop, 7f));
         }
-        level.RoomLinks.Add(new RoomLink { RoomA = 0, RoomB = 1, AToB = true, BToA = true });
-        level.RoomLinks.Add(new RoomLink { RoomA = 1, RoomB = 2, AToB = true, BToA = true });
-        level.RoomLinks.Add(new RoomLink { RoomA = 2, RoomB = 3, AToB = true, BToA = false });
         rooms = new RoomGraph(level);
     }
 
     // -------------------- TESTS --------------------
 
     [Test]
-    public void PicksOnlyAdjacentRooms_NeverThePlayersOwn()
+    public void PicksOnlyRoomsWithWeight()
     {
-        var picked = PickRooms(1, null, _ => true);
-        CollectionAssert.IsSubsetOf(picked, new[] { 0, 2 });
-        CollectionAssert.AreEquivalent(new[] { 0, 2 }, picked, "both neighbours come up over the seeds");
+        var picked = PickRooms(new[] { 1f, 0f, 1f, 0f }, null, _ => true);
+        CollectionAssert.AreEquivalent(new[] { 0, 2 }, picked, "both weighted rooms come up over the seeds, nothing else");
     }
 
     [Test]
-    public void OneWayCliff_OnlyTheDownhillSideCounts()
+    public void HeavierRooms_ComeUpMoreOften()
     {
-        CollectionAssert.IsSubsetOf(PickRooms(2, null, _ => true), new[] { 1, 3 });
-        // From the cliff's foot, room 2 isn't reachable, and room 3 has no other neighbour.
-        Assert.IsFalse(SitePicker.TryPick(rooms, 3, null, _ => true, new System.Random(0), out _));
+        int heavy = 0;
+        for (int seed = 0; seed < 400; seed++)
+        {
+            Assert.IsTrue(SitePicker.TryPick(rooms, new[] { 0.2f, 0f, 1f, 0f }, null, _ => true, new System.Random(seed), out ChestSite site));
+            if (site.Room == 2) heavy++;
+        }
+        Assert.That(heavy, Is.InRange(300, 370), "about 5 in 6");
     }
 
     [Test]
     public void AvoidedRooms_AreSkipped()
     {
-        CollectionAssert.AreEquivalent(new[] { 2 }, PickRooms(1, new[] { 0 }, _ => true));
+        CollectionAssert.AreEquivalent(new[] { 2 }, PickRooms(Even, new[] { 0, 1, 3 }, _ => true));
     }
 
     [Test]
     public void TakenSites_AreSkipped()
     {
-        CollectionAssert.AreEquivalent(new[] { 2 }, PickRooms(1, null, site => site.Room != 0));
+        CollectionAssert.AreEquivalent(new[] { 2 }, PickRooms(Even, null, site => site.Room == 2));
     }
 
     [Test]
-    public void NoFreeNeighbour_FallsBackToTwoRoomsOut()
+    public void NothingFree_OrNoWeight_PicksNothing()
     {
-        // From room 0, its only neighbour (1) is full: room 2 is next, never 0 itself.
-        CollectionAssert.AreEquivalent(new[] { 2 }, PickRooms(0, null, site => site.Room != 1));
-    }
-
-    [Test]
-    public void AdjacentOnly_DoesNotFallBack()
-    {
-        Assert.IsFalse(SitePicker.TryPick(rooms, 0, null, site => site.Room != 1, new System.Random(0), out _, twoStepsOut: false));
-    }
-
-    [Test]
-    public void NothingFree_OrOutsideTheLevel_PicksNothing()
-    {
-        Assert.IsFalse(SitePicker.TryPick(rooms, 1, null, site => site.Room == 1, new System.Random(0), out _));
-        Assert.IsFalse(SitePicker.TryPick(rooms, -1, null, _ => true, new System.Random(0), out _));
+        Assert.IsFalse(SitePicker.TryPick(rooms, new[] { 0f, 1f, 0f, 0f }, null, site => site.Room != 1, new System.Random(0), out _));
+        Assert.IsFalse(SitePicker.TryPick(rooms, new float[4], null, _ => true, new System.Random(0), out _));
     }
 
     [Test]
@@ -94,7 +81,7 @@ public class SitePickerTests
 
         for (int seed = 0; seed < Seeds; seed++)
         {
-            Assert.IsTrue(SitePicker.TryPick(rooms, 1, new[] { 2 }, _ => true, new System.Random(seed), out ChestSite site));
+            Assert.IsTrue(SitePicker.TryPick(rooms, new[] { 1f, 0f, 0f, 0f }, null, _ => true, new System.Random(seed), out ChestSite site));
             Assert.AreEqual(ChestSiteKind.Balcony, site.Kind, $"seed {seed}");
         }
     }
@@ -131,13 +118,14 @@ public class SitePickerTests
         new() { Kind = kind, Room = room, Position = new Vector3(room * 10f + 5f, 0f, z) };
 
     /// <summary>The distinct rooms picked over every seed; fails if any seed picks nothing.</summary>
-    private List<int> PickRooms(int playerRoom, ICollection<int> avoid, System.Func<ChestSite, bool> isFree)
+    private static readonly float[] Even = { 1f, 1f, 1f, 1f };
+
+    private List<int> PickRooms(float[] weights, ICollection<int> avoid, System.Func<ChestSite, bool> isFree)
     {
         var picked = new List<int>();
         for (int seed = 0; seed < Seeds; seed++)
         {
-            Assert.IsTrue(SitePicker.TryPick(rooms, playerRoom, avoid, isFree, new System.Random(seed), out ChestSite site), $"seed {seed}");
-            Assert.AreNotEqual(playerRoom, site.Room, $"seed {seed}");
+            Assert.IsTrue(SitePicker.TryPick(rooms, weights, avoid, isFree, new System.Random(seed), out ChestSite site), $"seed {seed}");
             if (!picked.Contains(site.Room)) picked.Add(site.Room);
         }
         return picked;

@@ -11,6 +11,8 @@ public sealed class UIManager : MonoBehaviour
 {
     [SerializeField] private List<View> views;
     [SerializeField] private Camera menuCamera;
+    [Tooltip("What the menu camera orbits. Moved to the middle of each generated level.")]
+    [SerializeField] private Transform menuCameraPivot;
 
     private View previousView;
     private View currentView;
@@ -98,6 +100,7 @@ public sealed class UIManager : MonoBehaviour
 
     private void HandleLevelLoadFinished()
     {
+        CenterMenuCameraPivot();
         if (!levelLoading) return;
         levelLoading = false;
         if (pendingShow != null)
@@ -106,6 +109,15 @@ public sealed class UIManager : MonoBehaviour
             ShowView(viewBeforeLoad);
         pendingShow = null;
         viewBeforeLoad = null;
+    }
+
+    // Levels are built in level space, from the world origin to their size on x and z.
+    private void CenterMenuCameraPivot()
+    {
+        var level = LevelSync.Instance != null ? LevelSync.Instance.Level : null;
+        if (level == null || menuCameraPivot == null) return;
+        var position = menuCameraPivot.position;
+        menuCameraPivot.position = new Vector3(level.Size.x * 0.5f, position.y, level.Size.z * 0.5f);
     }
 
     /// <summary>Whether to hold <paramref name="show"/> until the level load finishes.</summary>
@@ -168,7 +180,7 @@ public sealed class UIManager : MonoBehaviour
 
     private void Show<T>() where T : View
     {
-        RequestMenuCamera(typeof(T) != typeof(MainView));
+        RequestMenuCamera(!ShowsPawnCamera(views.Find(view => view is T)));
         previousView = currentView;
         foreach(var view in views)
         {
@@ -189,9 +201,14 @@ public sealed class UIManager : MonoBehaviour
         CameraDirector.Request(menuCamera, menuShowing ? CameraDirector.Priority.Menu : CameraDirector.Priority.Fallback);
     }
 
+    // The pause menu, and the settings or debug view opened from it, draw over the pawn's camera.
+    private bool ShowsPawnCamera(View target) =>
+        target is MainView or PauseView
+        || (target is SettingsView or DebugView && currentView != null && ShowsPawnCamera(currentView));
+
     private void ShowView(View target)
     {
-        RequestMenuCamera(target is not MainView);
+        RequestMenuCamera(!ShowsPawnCamera(target));
         previousView = currentView;
         foreach (var view in views)
         {

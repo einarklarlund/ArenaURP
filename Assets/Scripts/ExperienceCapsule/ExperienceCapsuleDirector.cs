@@ -5,8 +5,8 @@ using UnityEngine;
 
 /// <summary>
 /// Puts experience capsules near every player during a match. When a player's pawn first appears (in a match, or
-/// on a new level), they get a few capsules, each in a different room next to theirs. When one of their capsules
-/// breaks, another appears in a different room next to the one they're in now. Capsules have no timer. Capsules
+/// on a new level), they get a few capsules, each in a different room drawn by <see cref="SiteScorer"/>. When one of
+/// their capsules breaks, another is drawn from where they are now. Capsules have no timer. Capsules
 /// take chest sites, shared with <see cref="ChestDirector"/>. Server only. See chest-director-design.md.
 /// A player's upgrades push extra capsules into their <see cref="PlayerRecord"/>; the player resets it when its
 /// upgrades clear.
@@ -44,6 +44,7 @@ public sealed class ExperienceCapsuleDirector : NetworkBehaviour
     [SerializeField] private int capsulesPerPlayer = 2;
     [Tooltip("Seconds an owed capsule with no free site waits before it tries again, picked at random in [x, y].")]
     [SerializeField] private Vector2 retryDelay = new(1f, 4f);
+    [SerializeField] private SiteWeights siteWeights = new();
 
     // ── Server-only state ────────────────────────────────────────────────
 
@@ -52,6 +53,7 @@ public sealed class ExperienceCapsuleDirector : NetworkBehaviour
     private readonly List<ExperienceCapsule> capsules = new();
     private readonly List<NetworkPlayer> departed = new();
     private readonly List<int> avoid = new();
+    private readonly List<NetworkPlayer> standings = new();
     private readonly System.Random random = new();
     private float lift;
     private bool supplying;
@@ -187,30 +189,41 @@ public sealed class ExperienceCapsuleDirector : NetworkBehaviour
         state.Owed = Mathf.Max(0, CountFor(player) - state.Live.Count);
 
         if (state.Owed > 0 && Now >= state.NextTryTime)
-            ServerSpawnOwed(pawn, state);
+            ServerSpawnOwed(player, state);
     }
 
     [Server]
-    private void ServerSpawnOwed(Pawn pawn, PlayerCapsules state)
+    private void ServerSpawnOwed(NetworkPlayer player, PlayerCapsules state)
     {
         RoomGraph rooms = LevelSync.Instance != null ? LevelSync.Instance.Rooms : null;
-        int playerRoom = rooms != null ? rooms.RoomAt(pawn.transform.position) : -1;
+        float[] weights = null;
+        if (rooms != null)
+        {
+            SiteScorer scorer = MatchStandings.Scorer(MatchManager.Instance, rooms, siteWeights, standings);
+            int contender = standings.IndexOf(player);
+            if (contender >= 0)
+                weights = scorer.WeightsFor(contender);
+        }
+        if (weights == null)
+        {
+            state.NextTryTime = Now + Random.Range(retryDelay.x, retryDelay.y);
+            return;
+        }
 
         while (state.Owed > 0)
         {
-            // Never two of a player's capsules in one room. An adjacent room comes first, then one that isn't where a
-            // capsule just broke: with too few neighbours, the broken capsule's room is used again before a room two
-            // steps out.
+            // Never two of a player's capsules in one room. A room where a capsule just broke is used again only
+            // when no other room is free.
             avoid.Clear();
             foreach (Capsule live in state.Live)
                 avoid.Add(live.Room);
             int liveRooms = avoid.Count;
             avoid.AddRange(state.Broken);
 
-            if (!SitePicker.TryPick(rooms, playerRoom, avoid, SiteClaims.IsFree, random, out ChestSite site, twoStepsOut: false))
+            if (!SitePicker.TryPick(rooms, weights, avoid, SiteClaims.IsFree, random, out ChestSite site))
             {
                 avoid.RemoveRange(liveRooms, avoid.Count - liveRooms);
-                if (!SitePicker.TryPick(rooms, playerRoom, avoid, SiteClaims.IsFree, random, out site))
+                if (!SitePicker.TryPick(rooms, weights, avoid, SiteClaims.IsFree, random, out site))
                 {
                     state.NextTryTime = Now + Random.Range(retryDelay.x, retryDelay.y);
                     return;

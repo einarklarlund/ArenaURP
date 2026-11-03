@@ -83,9 +83,9 @@ public class Weapon : NetworkBehaviour
     [SerializeField] private AmmoReward[] pickupAmmo =
     {
         new() { type = AmmoType.Bullet, amount = 32 },
-        new() { type = AmmoType.Shell, amount = 8 },
-        new() { type = AmmoType.Bolt, amount = 7 },
-        new() { type = AmmoType.Explosive, amount = 6 },
+        new() { type = AmmoType.Shell, amount = 10 },
+        new() { type = AmmoType.Bolt, amount = 9 },
+        new() { type = AmmoType.Explosive, amount = 8 },
         new() { type = AmmoType.Energy, amount = 10 },
     };
 
