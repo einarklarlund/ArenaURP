@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5344f6a22ae4240febc7035284045ab0, type: 3}
+  m_Name: PickupDirectorSettings
+  m_EditorClassIdentifier: Assembly-CSharp::PickupDirectorSettings
+  healthPickup: {fileID: 3788328176922819227, guid: e232d54508a3e4b399e0f6fa4658e2d1, type: 3}
+  ammoPickup: {fileID: 3788328176922819227, guid: 9f7fd3401262446e48355029c60bcf44, type: 3}
+  pickupsPerRoom: 4
+  siteOffset: 1.5
+  refillDelay: 10
+  hoverHeight: 0.5
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 1

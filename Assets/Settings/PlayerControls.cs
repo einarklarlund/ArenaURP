@@ -120,6 +120,24 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
+                    ""name"": ""SecondaryAttack"",
+                    ""type"": ""Button"",
+                    ""id"": ""18b088a0-bd54-4a80-a64e-c7f98833076d"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Ability"",
+                    ""type"": ""Button"",
+                    ""id"": ""8ffc90a3-cde5-4f80-b0b7-eedbc2948817"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
                     ""name"": ""Interact"",
                     ""type"": ""Button"",
                     ""id"": ""852140f2-7766-474d-8707-702459ba45f3"",
@@ -183,31 +201,22 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""CycleAbilityPrev"",
+                    ""name"": ""Reload"",
                     ""type"": ""Button"",
-                    ""id"": ""19d943db-afee-45ec-8630-a78a667d8e8d"",
+                    ""id"": ""315fb97a-49f8-48db-8327-584a21a74a76"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""CycleAbilityNext"",
-                    ""type"": ""Button"",
-                    ""id"": ""552856d4-0d66-4f05-9558-c26928dc45e8"",
-                    ""expectedControlType"": """",
+                    ""name"": ""WeaponScroll"",
+                    ""type"": ""Value"",
+                    ""id"": ""45a6892a-45aa-46f2-a5b0-be12fd5e2905"",
+                    ""expectedControlType"": ""Axis"",
                     ""processors"": """",
                     ""interactions"": """",
-                    ""initialStateCheck"": false
-                },
-                {
-                    ""name"": ""UseAbility"",
-                    ""type"": ""Button"",
-                    ""id"": ""1e443703-1235-4d66-8abb-07b1830809aa"",
-                    ""expectedControlType"": """",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -532,17 +541,6 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""1534dc16-a6aa-499d-9c3a-22b47347b52a"",
-                    ""path"": ""<Keyboard>/1"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": ""Keyboard&Mouse"",
-                    ""action"": ""Previous"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
                     ""id"": ""25060bbd-a3a6-476e-8fba-45ae484aad05"",
                     ""path"": ""<Gamepad>/dpad/left"",
                     ""interactions"": """",
@@ -620,34 +618,115 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""322abfd7-468e-476e-893a-a6944d4f570c"",
+                    ""id"": ""e4358f66-5c85-475d-9976-dedc583d3d70"",
+                    ""path"": ""<Keyboard>/r"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Reload"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""47180b94-000d-4cc5-b017-80cac4847183"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""SecondaryAttack"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9b4bbd21-7e06-4af0-bc48-920943082932"",
+                    ""path"": ""<Keyboard>/f"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Ability"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""45d9bbb3-abdd-4372-a474-39481f56a2c9"",
                     ""path"": ""<Keyboard>/q"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": ""Keyboard&Mouse"",
-                    ""action"": ""CycleAbilityPrev"",
+                    ""action"": ""Previous"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
                 {
                     ""name"": """",
-                    ""id"": ""aaa80466-aaba-4277-b664-8c350327d7da"",
+                    ""id"": ""b99e9cd1-c73a-4567-b8a0-7908ef99af10"",
                     ""path"": ""<Keyboard>/e"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": ""Keyboard&Mouse"",
-                    ""action"": ""CycleAbilityNext"",
+                    ""action"": ""Next"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
                 {
                     ""name"": """",
-                    ""id"": ""43266ae4-a8f8-42a7-825b-6d7c3819e35b"",
-                    ""path"": ""<Keyboard>/f"",
+                    ""id"": ""4c863861-bf2f-4c17-be53-2d5620432b54"",
+                    ""path"": ""<Mouse>/scroll/y"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": ""Keyboard&Mouse"",
-                    ""action"": ""UseAbility"",
+                    ""action"": ""WeaponScroll"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                }
+            ]
+        },
+        {
+            ""name"": ""ProgressionControls"",
+            ""id"": ""9ee01ffc-0be1-4f37-abc5-3ec05318aa4b"",
+            ""actions"": [
+                {
+                    ""name"": ""UpgradeChoice1"",
+                    ""type"": ""Button"",
+                    ""id"": ""036833c8-a232-4651-822f-126b5c2fd5df"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""UpgradeChoice2"",
+                    ""type"": ""Button"",
+                    ""id"": ""ca6a439c-846a-4323-8f01-6acf6373478d"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                }
+            ],
+            ""bindings"": [
+                {
+                    ""name"": """",
+                    ""id"": ""a2ea0502-5598-4c95-95e6-032d88e54e5b"",
+                    ""path"": ""<Keyboard>/1"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""UpgradeChoice1"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9cef38ef-bacd-4569-b528-33f99d7d879b"",
+                    ""path"": ""<Keyboard>/2"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""UpgradeChoice2"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1238,6 +1317,8 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         m_PawnControls_Move = m_PawnControls.FindAction("Move", throwIfNotFound: true);
         m_PawnControls_Look = m_PawnControls.FindAction("Look", throwIfNotFound: true);
         m_PawnControls_Attack = m_PawnControls.FindAction("Attack", throwIfNotFound: true);
+        m_PawnControls_SecondaryAttack = m_PawnControls.FindAction("SecondaryAttack", throwIfNotFound: true);
+        m_PawnControls_Ability = m_PawnControls.FindAction("Ability", throwIfNotFound: true);
         m_PawnControls_Interact = m_PawnControls.FindAction("Interact", throwIfNotFound: true);
         m_PawnControls_Crouch = m_PawnControls.FindAction("Crouch", throwIfNotFound: true);
         m_PawnControls_Jump = m_PawnControls.FindAction("Jump", throwIfNotFound: true);
@@ -1245,9 +1326,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         m_PawnControls_Next = m_PawnControls.FindAction("Next", throwIfNotFound: true);
         m_PawnControls_Sprint = m_PawnControls.FindAction("Sprint", throwIfNotFound: true);
         m_PawnControls_Pause = m_PawnControls.FindAction("Pause", throwIfNotFound: true);
-        m_PawnControls_CycleAbilityPrev = m_PawnControls.FindAction("CycleAbilityPrev", throwIfNotFound: true);
-        m_PawnControls_CycleAbilityNext = m_PawnControls.FindAction("CycleAbilityNext", throwIfNotFound: true);
-        m_PawnControls_UseAbility = m_PawnControls.FindAction("UseAbility", throwIfNotFound: true);
+        m_PawnControls_Reload = m_PawnControls.FindAction("Reload", throwIfNotFound: true);
+        m_PawnControls_WeaponScroll = m_PawnControls.FindAction("WeaponScroll", throwIfNotFound: true);
+        // ProgressionControls
+        m_ProgressionControls = asset.FindActionMap("ProgressionControls", throwIfNotFound: true);
+        m_ProgressionControls_UpgradeChoice1 = m_ProgressionControls.FindAction("UpgradeChoice1", throwIfNotFound: true);
+        m_ProgressionControls_UpgradeChoice2 = m_ProgressionControls.FindAction("UpgradeChoice2", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1265,6 +1349,7 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     ~@PlayerControls()
     {
         UnityEngine.Debug.Assert(!m_PawnControls.enabled, "This will cause a leak and performance issues, PlayerControls.PawnControls.Disable() has not been called.");
+        UnityEngine.Debug.Assert(!m_ProgressionControls.enabled, "This will cause a leak and performance issues, PlayerControls.ProgressionControls.Disable() has not been called.");
         UnityEngine.Debug.Assert(!m_UI.enabled, "This will cause a leak and performance issues, PlayerControls.UI.Disable() has not been called.");
     }
 
@@ -1344,6 +1429,8 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_PawnControls_Move;
     private readonly InputAction m_PawnControls_Look;
     private readonly InputAction m_PawnControls_Attack;
+    private readonly InputAction m_PawnControls_SecondaryAttack;
+    private readonly InputAction m_PawnControls_Ability;
     private readonly InputAction m_PawnControls_Interact;
     private readonly InputAction m_PawnControls_Crouch;
     private readonly InputAction m_PawnControls_Jump;
@@ -1351,9 +1438,8 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_PawnControls_Next;
     private readonly InputAction m_PawnControls_Sprint;
     private readonly InputAction m_PawnControls_Pause;
-    private readonly InputAction m_PawnControls_CycleAbilityPrev;
-    private readonly InputAction m_PawnControls_CycleAbilityNext;
-    private readonly InputAction m_PawnControls_UseAbility;
+    private readonly InputAction m_PawnControls_Reload;
+    private readonly InputAction m_PawnControls_WeaponScroll;
     /// <summary>
     /// Provides access to input actions defined in input action map "PawnControls".
     /// </summary>
@@ -1377,6 +1463,14 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "PawnControls/Attack".
         /// </summary>
         public InputAction @Attack => m_Wrapper.m_PawnControls_Attack;
+        /// <summary>
+        /// Provides access to the underlying input action "PawnControls/SecondaryAttack".
+        /// </summary>
+        public InputAction @SecondaryAttack => m_Wrapper.m_PawnControls_SecondaryAttack;
+        /// <summary>
+        /// Provides access to the underlying input action "PawnControls/Ability".
+        /// </summary>
+        public InputAction @Ability => m_Wrapper.m_PawnControls_Ability;
         /// <summary>
         /// Provides access to the underlying input action "PawnControls/Interact".
         /// </summary>
@@ -1406,17 +1500,13 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @Pause => m_Wrapper.m_PawnControls_Pause;
         /// <summary>
-        /// Provides access to the underlying input action "PawnControls/CycleAbilityPrev".
+        /// Provides access to the underlying input action "PawnControls/Reload".
         /// </summary>
-        public InputAction @CycleAbilityPrev => m_Wrapper.m_PawnControls_CycleAbilityPrev;
+        public InputAction @Reload => m_Wrapper.m_PawnControls_Reload;
         /// <summary>
-        /// Provides access to the underlying input action "PawnControls/CycleAbilityNext".
+        /// Provides access to the underlying input action "PawnControls/WeaponScroll".
         /// </summary>
-        public InputAction @CycleAbilityNext => m_Wrapper.m_PawnControls_CycleAbilityNext;
-        /// <summary>
-        /// Provides access to the underlying input action "PawnControls/UseAbility".
-        /// </summary>
-        public InputAction @UseAbility => m_Wrapper.m_PawnControls_UseAbility;
+        public InputAction @WeaponScroll => m_Wrapper.m_PawnControls_WeaponScroll;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -1452,6 +1542,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Attack.started += instance.OnAttack;
             @Attack.performed += instance.OnAttack;
             @Attack.canceled += instance.OnAttack;
+            @SecondaryAttack.started += instance.OnSecondaryAttack;
+            @SecondaryAttack.performed += instance.OnSecondaryAttack;
+            @SecondaryAttack.canceled += instance.OnSecondaryAttack;
+            @Ability.started += instance.OnAbility;
+            @Ability.performed += instance.OnAbility;
+            @Ability.canceled += instance.OnAbility;
             @Interact.started += instance.OnInteract;
             @Interact.performed += instance.OnInteract;
             @Interact.canceled += instance.OnInteract;
@@ -1473,15 +1569,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Pause.started += instance.OnPause;
             @Pause.performed += instance.OnPause;
             @Pause.canceled += instance.OnPause;
-            @CycleAbilityPrev.started += instance.OnCycleAbilityPrev;
-            @CycleAbilityPrev.performed += instance.OnCycleAbilityPrev;
-            @CycleAbilityPrev.canceled += instance.OnCycleAbilityPrev;
-            @CycleAbilityNext.started += instance.OnCycleAbilityNext;
-            @CycleAbilityNext.performed += instance.OnCycleAbilityNext;
-            @CycleAbilityNext.canceled += instance.OnCycleAbilityNext;
-            @UseAbility.started += instance.OnUseAbility;
-            @UseAbility.performed += instance.OnUseAbility;
-            @UseAbility.canceled += instance.OnUseAbility;
+            @Reload.started += instance.OnReload;
+            @Reload.performed += instance.OnReload;
+            @Reload.canceled += instance.OnReload;
+            @WeaponScroll.started += instance.OnWeaponScroll;
+            @WeaponScroll.performed += instance.OnWeaponScroll;
+            @WeaponScroll.canceled += instance.OnWeaponScroll;
         }
 
         /// <summary>
@@ -1502,6 +1595,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Attack.started -= instance.OnAttack;
             @Attack.performed -= instance.OnAttack;
             @Attack.canceled -= instance.OnAttack;
+            @SecondaryAttack.started -= instance.OnSecondaryAttack;
+            @SecondaryAttack.performed -= instance.OnSecondaryAttack;
+            @SecondaryAttack.canceled -= instance.OnSecondaryAttack;
+            @Ability.started -= instance.OnAbility;
+            @Ability.performed -= instance.OnAbility;
+            @Ability.canceled -= instance.OnAbility;
             @Interact.started -= instance.OnInteract;
             @Interact.performed -= instance.OnInteract;
             @Interact.canceled -= instance.OnInteract;
@@ -1523,15 +1622,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Pause.started -= instance.OnPause;
             @Pause.performed -= instance.OnPause;
             @Pause.canceled -= instance.OnPause;
-            @CycleAbilityPrev.started -= instance.OnCycleAbilityPrev;
-            @CycleAbilityPrev.performed -= instance.OnCycleAbilityPrev;
-            @CycleAbilityPrev.canceled -= instance.OnCycleAbilityPrev;
-            @CycleAbilityNext.started -= instance.OnCycleAbilityNext;
-            @CycleAbilityNext.performed -= instance.OnCycleAbilityNext;
-            @CycleAbilityNext.canceled -= instance.OnCycleAbilityNext;
-            @UseAbility.started -= instance.OnUseAbility;
-            @UseAbility.performed -= instance.OnUseAbility;
-            @UseAbility.canceled -= instance.OnUseAbility;
+            @Reload.started -= instance.OnReload;
+            @Reload.performed -= instance.OnReload;
+            @Reload.canceled -= instance.OnReload;
+            @WeaponScroll.started -= instance.OnWeaponScroll;
+            @WeaponScroll.performed -= instance.OnWeaponScroll;
+            @WeaponScroll.canceled -= instance.OnWeaponScroll;
         }
 
         /// <summary>
@@ -1565,6 +1661,113 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     /// Provides a new <see cref="PawnControlsActions" /> instance referencing this action map.
     /// </summary>
     public PawnControlsActions @PawnControls => new PawnControlsActions(this);
+
+    // ProgressionControls
+    private readonly InputActionMap m_ProgressionControls;
+    private List<IProgressionControlsActions> m_ProgressionControlsActionsCallbackInterfaces = new List<IProgressionControlsActions>();
+    private readonly InputAction m_ProgressionControls_UpgradeChoice1;
+    private readonly InputAction m_ProgressionControls_UpgradeChoice2;
+    /// <summary>
+    /// Provides access to input actions defined in input action map "ProgressionControls".
+    /// </summary>
+    public struct ProgressionControlsActions
+    {
+        private @PlayerControls m_Wrapper;
+
+        /// <summary>
+        /// Construct a new instance of the input action map wrapper class.
+        /// </summary>
+        public ProgressionControlsActions(@PlayerControls wrapper) { m_Wrapper = wrapper; }
+        /// <summary>
+        /// Provides access to the underlying input action "ProgressionControls/UpgradeChoice1".
+        /// </summary>
+        public InputAction @UpgradeChoice1 => m_Wrapper.m_ProgressionControls_UpgradeChoice1;
+        /// <summary>
+        /// Provides access to the underlying input action "ProgressionControls/UpgradeChoice2".
+        /// </summary>
+        public InputAction @UpgradeChoice2 => m_Wrapper.m_ProgressionControls_UpgradeChoice2;
+        /// <summary>
+        /// Provides access to the underlying input action map instance.
+        /// </summary>
+        public InputActionMap Get() { return m_Wrapper.m_ProgressionControls; }
+        /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Enable()" />
+        public void Enable() { Get().Enable(); }
+        /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Disable()" />
+        public void Disable() { Get().Disable(); }
+        /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.enabled" />
+        public bool enabled => Get().enabled;
+        /// <summary>
+        /// Implicitly converts an <see ref="ProgressionControlsActions" /> to an <see ref="InputActionMap" /> instance.
+        /// </summary>
+        public static implicit operator InputActionMap(ProgressionControlsActions set) { return set.Get(); }
+        /// <summary>
+        /// Adds <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
+        /// </summary>
+        /// <param name="instance">Callback instance.</param>
+        /// <remarks>
+        /// If <paramref name="instance" /> is <c>null</c> or <paramref name="instance"/> have already been added this method does nothing.
+        /// </remarks>
+        /// <seealso cref="ProgressionControlsActions" />
+        public void AddCallbacks(IProgressionControlsActions instance)
+        {
+            if (instance == null || m_Wrapper.m_ProgressionControlsActionsCallbackInterfaces.Contains(instance)) return;
+            m_Wrapper.m_ProgressionControlsActionsCallbackInterfaces.Add(instance);
+            @UpgradeChoice1.started += instance.OnUpgradeChoice1;
+            @UpgradeChoice1.performed += instance.OnUpgradeChoice1;
+            @UpgradeChoice1.canceled += instance.OnUpgradeChoice1;
+            @UpgradeChoice2.started += instance.OnUpgradeChoice2;
+            @UpgradeChoice2.performed += instance.OnUpgradeChoice2;
+            @UpgradeChoice2.canceled += instance.OnUpgradeChoice2;
+        }
+
+        /// <summary>
+        /// Removes <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
+        /// </summary>
+        /// <remarks>
+        /// Calling this method when <paramref name="instance" /> have not previously been registered has no side-effects.
+        /// </remarks>
+        /// <seealso cref="ProgressionControlsActions" />
+        private void UnregisterCallbacks(IProgressionControlsActions instance)
+        {
+            @UpgradeChoice1.started -= instance.OnUpgradeChoice1;
+            @UpgradeChoice1.performed -= instance.OnUpgradeChoice1;
+            @UpgradeChoice1.canceled -= instance.OnUpgradeChoice1;
+            @UpgradeChoice2.started -= instance.OnUpgradeChoice2;
+            @UpgradeChoice2.performed -= instance.OnUpgradeChoice2;
+            @UpgradeChoice2.canceled -= instance.OnUpgradeChoice2;
+        }
+
+        /// <summary>
+        /// Unregisters <param cref="instance" /> and unregisters all input action callbacks via <see cref="ProgressionControlsActions.UnregisterCallbacks(IProgressionControlsActions)" />.
+        /// </summary>
+        /// <seealso cref="ProgressionControlsActions.UnregisterCallbacks(IProgressionControlsActions)" />
+        public void RemoveCallbacks(IProgressionControlsActions instance)
+        {
+            if (m_Wrapper.m_ProgressionControlsActionsCallbackInterfaces.Remove(instance))
+                UnregisterCallbacks(instance);
+        }
+
+        /// <summary>
+        /// Replaces all existing callback instances and previously registered input action callbacks associated with them with callbacks provided via <param cref="instance" />.
+        /// </summary>
+        /// <remarks>
+        /// If <paramref name="instance" /> is <c>null</c>, calling this method will only unregister all existing callbacks but not register any new callbacks.
+        /// </remarks>
+        /// <seealso cref="ProgressionControlsActions.AddCallbacks(IProgressionControlsActions)" />
+        /// <seealso cref="ProgressionControlsActions.RemoveCallbacks(IProgressionControlsActions)" />
+        /// <seealso cref="ProgressionControlsActions.UnregisterCallbacks(IProgressionControlsActions)" />
+        public void SetCallbacks(IProgressionControlsActions instance)
+        {
+            foreach (var item in m_Wrapper.m_ProgressionControlsActionsCallbackInterfaces)
+                UnregisterCallbacks(item);
+            m_Wrapper.m_ProgressionControlsActionsCallbackInterfaces.Clear();
+            AddCallbacks(instance);
+        }
+    }
+    /// <summary>
+    /// Provides a new <see cref="ProgressionControlsActions" /> instance referencing this action map.
+    /// </summary>
+    public ProgressionControlsActions @ProgressionControls => new ProgressionControlsActions(this);
 
     // UI
     private readonly InputActionMap m_UI;
@@ -1854,6 +2057,20 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnAttack(InputAction.CallbackContext context);
         /// <summary>
+        /// Method invoked when associated input action "SecondaryAttack" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnSecondaryAttack(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Ability" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnAbility(InputAction.CallbackContext context);
+        /// <summary>
         /// Method invoked when associated input action "Interact" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
@@ -1903,26 +2120,41 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnPause(InputAction.CallbackContext context);
         /// <summary>
-        /// Method invoked when associated input action "CycleAbilityPrev" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// Method invoked when associated input action "Reload" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnCycleAbilityPrev(InputAction.CallbackContext context);
+        void OnReload(InputAction.CallbackContext context);
         /// <summary>
-        /// Method invoked when associated input action "CycleAbilityNext" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// Method invoked when associated input action "WeaponScroll" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnCycleAbilityNext(InputAction.CallbackContext context);
+        void OnWeaponScroll(InputAction.CallbackContext context);
+    }
+    /// <summary>
+    /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "ProgressionControls" which allows adding and removing callbacks.
+    /// </summary>
+    /// <seealso cref="ProgressionControlsActions.AddCallbacks(IProgressionControlsActions)" />
+    /// <seealso cref="ProgressionControlsActions.RemoveCallbacks(IProgressionControlsActions)" />
+    public interface IProgressionControlsActions
+    {
         /// <summary>
-        /// Method invoked when associated input action "UseAbility" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// Method invoked when associated input action "UpgradeChoice1" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnUseAbility(InputAction.CallbackContext context);
+        void OnUpgradeChoice1(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "UpgradeChoice2" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnUpgradeChoice2(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

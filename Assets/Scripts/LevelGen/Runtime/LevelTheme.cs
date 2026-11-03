@@ -1,0 +1,229 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Arena.LevelGen
+{
+    /// <summary>
+    /// One building's materials. The builder draws one profile per building (<see cref="ArtDraws.ProfileIndex"/>), so
+    /// a building's faces all come from the same profile.
+    /// </summary>
+    [Serializable]
+    public class BuildingMaterialProfile
+    {
+        public string name = "Profile";
+        [Tooltip("Tops of floor slabs inside.")] public Material floor;
+        [Tooltip("Undersides of floor and roof slabs.")] public Material ceiling;
+        public Material outerWallOutside;
+        public Material outerWallInside;
+        [Tooltip("Both faces of floor-plan walls.")] public Material interiorWall;
+        [Tooltip("Exposed edges of floor slabs. Falls back to outer wall, outside.")] public Material slabEdge;
+        [Tooltip("Balcony and porch slabs, all faces.")] public Material balcony;
+        [Tooltip("Railings and roof parapets.")] public Material railing;
+        [Tooltip("Top of the roof slab.")] public Material roof;
+        [Tooltip("Stair cores, exterior flights and porch steps.")] public Material stairs;
+        [Tooltip("A raised first floor's plinth.")] public Material plinth;
+        [Tooltip("Pillars under a building on stilts.")] public Material stilts;
+
+        [Header("Decals")]
+        public Material doorFrame;
+        public Material windowFrame;
+        [Tooltip("Along the top of every inside wall, where it meets the ceiling.")] public Material wallToCeiling;
+        [Tooltip("Outside, where the outer walls meet the roof.")] public Material roofline;
+        public Material wallCorner;
+        [Tooltip("On the floor along the foot of every inside wall.")] public Material floorSkirting;
+        [Tooltip("On the ground round the building.")] public Material groundSkirting;
+
+        public Material DecalMaterial(DecalType type) => type switch
+        {
+            DecalType.DoorFrame => doorFrame,
+            DecalType.WindowFrame => windowFrame,
+            DecalType.WallToCeiling => wallToCeiling,
+            DecalType.Roofline => roofline,
+            DecalType.WallCorner => wallCorner,
+            DecalType.FloorSkirting => floorSkirting,
+            DecalType.GroundSkirting => groundSkirting,
+            _ => null,
+        };
+
+        public Material Resolve(SurfaceTag tag) => tag switch
+        {
+            SurfaceTag.BuildingFloor => floor,
+            SurfaceTag.BuildingCeiling => ceiling,
+            SurfaceTag.OuterWallOutside => outerWallOutside,
+            SurfaceTag.OuterWallInside => outerWallInside,
+            SurfaceTag.InteriorWall => interiorWall,
+            SurfaceTag.SlabEdge => slabEdge != null ? slabEdge : outerWallOutside,
+            SurfaceTag.Balcony => balcony,
+            SurfaceTag.Railing => railing,
+            SurfaceTag.Roof => roof,
+            SurfaceTag.Stairs => stairs,
+            SurfaceTag.Plinth => plinth,
+            SurfaceTag.Stilts => stilts,
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// The level's look: a material per level surface and a list of building profiles. It is visual only: a theme
+    /// never changes geometry, colliders or the description's hash, so a built level can switch themes without
+    /// regenerating.
+    /// </summary>
+    [CreateAssetMenu(menuName = "Arena/Level Theme", fileName = "LevelTheme")]
+    public class LevelTheme : ScriptableObject
+    {
+        [Header("Level")]
+        [Tooltip("Ground near its room's original plane.")] public Material ground;
+        [InspectorName("Hill Material"), Tooltip("Hill material: ground raised above its room's original plane.")] public Material groundMound;
+        [InspectorName("Valley Material"), Tooltip("Valley material: ground lowered below its room's original plane.")] public Material groundDip;
+        public Material groundSinkhole;
+        [Tooltip("Every vertical ground face: cliffs, ledges, blocked segments and sinkhole rims.")] public Material cliffFace;
+        [Tooltip("Ramp tops.")] public Material ramp;
+        [Tooltip("Ramp and bank sides and flares. Falls back to the cliff face.")] public Material rampSide;
+        [Tooltip("Bank tops.")] public Material bank;
+        public Material boundaryWall;
+        [Tooltip("Props whose variant has no prefab.")] public Material propPlaceholder;
+
+        [Header("Blended ground")]
+        [Tooltip("A material with the Arena/Level Terrain shader. When set, every ground top is drawn with it, blending " +
+                 "ground, hills and valleys by height, plus the existing sinkhole and rim layers; ramp and bank tops, " +
+                 "their sides and flares, and cliff faces are drawn with it too, and blend into the ground where they " +
+                 "meet. Textures, tiling, colour and smoothness come from each layer's material above (Simple Lit or " +
+                 "Lit). The dip and mound edge decals and the sinkhole rim and ledge decals are then left out. Empty: " +
+                 "each surface is drawn with its own material.")]
+        public Material terrain;
+        [Tooltip("The higher ground round a sinkhole. Falls back to the ground.")] public Material groundRim;
+        [Min(0f), Tooltip("How far out from a sinkhole the rim blends into the ground.")]
+        public float rimBlendWidth = 0.4f;
+        [Min(0.0001f), Tooltip("Height above the original room plane at which the hill material is fully applied.")]
+        public float hillHeightThreshold = 0.5f;
+        [Min(0.0001f), Tooltip("Depth below the original room plane at which the valley material is fully applied.")]
+        public float valleyHeightThreshold = 0.5f;
+        [UnityEngine.Serialization.FormerlySerializedAs("moundBlendWidth")]
+        [Min(0f), Tooltip("Vertical height range fading from ground to hill, ending at the hill threshold. Clamped to that threshold.")]
+        public float hillBlendWidth = 0.25f;
+        [UnityEngine.Serialization.FormerlySerializedAs("dipBlendWidth")]
+        [Min(0f), Tooltip("Vertical depth range fading from ground to valley, ending at the valley threshold. Clamped to that threshold.")]
+        public float valleyBlendWidth = 0.25f;
+        [Min(0f), Tooltip("How far in from a ramp's or bank's top edge, foot and sides its top fades into the ground and " +
+                          "its sides (ramp side material).")]
+        public float slopeEdgeBlendWidth = 0.5f;
+        [Min(0f), Tooltip("How far back from a ledge's or cliff's top edge the ground fades into the cliff face material. " +
+                          "Replaces the ledge decal on ledge and cliff transitions.")]
+        public float cliffLipWidth = 0.4f;
+
+        [Header("Buildings")]
+        [Tooltip("One is drawn per building from the level's seed.")]
+        public List<BuildingMaterialProfile> buildingProfiles = new();
+
+        [Header("Decals")]
+        [Tooltip("Expected to be alpha-blended or alpha-clipped, with a depth offset. A decal whose material is empty " +
+                 "is left out; building decals take theirs from the building's profile.")]
+        public Material ledge;
+        public Material treeBase;
+        public Material carSurround;
+        public Material dipEdge;
+        public Material moundEdge;
+        [Tooltip("Ledge decals on cliff tops as well as on ledges and sinkhole rims.")]
+        public bool cliffTopLedges;
+        public float treeBaseSize = 1.6f;
+        [Tooltip("How far outside a car's footprint its surround starts.")]
+        public float carMargin = 0.3f;
+        [Tooltip("Width per decal type, in DecalType order (the tree base's is ignored: it is treeBaseSize).")]
+        public float[] decalWidths = (float[])DecalSettings.Default.Widths.Clone();
+
+        [Header("Lights")]
+        [Tooltip("Glowing (emissive) material for light fixtures without a prefab. Empty: an emissive placeholder in " +
+                 "each light's colour.")]
+        public Material lightFixture;
+        [Tooltip("Ceiling lights in rooms.")] public Color roomLight = DefaultLightColour(LightSlot.Room);
+        [Tooltip("Wall lamps beside entrances.")] public Color entranceLight = DefaultLightColour(LightSlot.Entrance);
+        [Tooltip("Wall lamps over porches.")] public Color porchLight = DefaultLightColour(LightSlot.Porch);
+        [Min(0f)] public float lightIntensity = LevelBuilder.DefaultLightIntensity;
+        [Min(0), Tooltip("Fixtures that get a real point light (no shadows), highest priority first: room lights by " +
+                         "area, then entrance lamps, then porch lamps. The rest only glow.")]
+        public int maxRealLights = LevelBuilder.DefaultMaxRealLights;
+
+        public Color LightColour(LightSlot slot) => slot switch
+        {
+            LightSlot.Entrance => entranceLight,
+            LightSlot.Porch => porchLight,
+            _ => roomLight,
+        };
+
+        public static Color DefaultLightColour(LightSlot slot) => slot switch
+        {
+            LightSlot.Entrance => new Color(1f, 0.85f, 0.6f),
+            LightSlot.Porch => new Color(1f, 0.8f, 0.55f),
+            _ => new Color(1f, 0.95f, 0.85f),
+        };
+
+        public Material DecalMaterial(DecalType type) => type switch
+        {
+            DecalType.Ledge => ledge,
+            DecalType.TreeBase => treeBase,
+            DecalType.CarSurround => carSurround,
+            DecalType.DipEdge => dipEdge,
+            DecalType.MoundEdge => moundEdge,
+            _ => null,
+        };
+
+        public DecalSettings Decals()
+        {
+            var widths = (float[])DecalSettings.Default.Widths.Clone();
+            if (decalWidths != null)
+                for (int i = 0; i < Mathf.Min(widths.Length, decalWidths.Length); i++) widths[i] = decalWidths[i];
+            return new DecalSettings
+            {
+                Widths = widths, CliffTops = cliffTopLedges, TreeBaseSize = treeBaseSize, CarMargin = carMargin,
+                BlendedGround = terrain != null,
+            };
+        }
+
+        public TerrainBlendSettings TerrainBlend() =>
+            new()
+            {
+                HillThreshold = hillHeightThreshold, ValleyThreshold = valleyHeightThreshold,
+                HillBlendWidth = hillBlendWidth, ValleyBlendWidth = valleyBlendWidth, RimWidth = rimBlendWidth,
+                SlopeEdgeWidth = slopeEdgeBlendWidth, LipWidth = cliffLipWidth,
+            };
+
+        /// <summary>The material a blended-ground layer takes its textures from, or null.</summary>
+        public Material LayerMaterial(TerrainLayer layer) => layer switch
+        {
+            TerrainLayer.Ground => ground,
+            TerrainLayer.Mound => groundMound != null ? groundMound : ground,
+            TerrainLayer.Dip => groundDip != null ? groundDip : ground,
+            TerrainLayer.Sinkhole => groundSinkhole != null ? groundSinkhole : ground,
+            TerrainLayer.Rim => groundRim != null ? groundRim : ground,
+            TerrainLayer.Ramp => ramp != null ? ramp : ground,
+            TerrainLayer.Bank => bank != null ? bank : ground,
+            TerrainLayer.RampSide => rampSide != null ? rampSide : cliffFace != null ? cliffFace : ground,
+            TerrainLayer.Cliff => cliffFace != null ? cliffFace : ground,
+            _ => null,
+        };
+
+        /// <summary>A level surface's material, or null when its slot is empty (or the tag is a building's).</summary>
+        public Material Resolve(SurfaceTag tag) => tag switch
+        {
+            SurfaceTag.Ground => ground,
+            SurfaceTag.GroundMound => groundMound,
+            SurfaceTag.GroundDip => groundDip,
+            SurfaceTag.GroundSinkhole => groundSinkhole,
+            SurfaceTag.CliffFace => cliffFace,
+            SurfaceTag.Ramp => ramp,
+            SurfaceTag.RampSide => rampSide != null ? rampSide : cliffFace,
+            SurfaceTag.Bank => bank,
+            SurfaceTag.BoundaryWall => boundaryWall,
+            SurfaceTag.PropPlaceholder => propPlaceholder,
+            _ => null,
+        };
+
+        /// <summary>The profile drawn for a building of a level generated from <paramref name="seed"/>, or null.</summary>
+        public BuildingMaterialProfile ProfileFor(ulong seed, int buildingId)
+        {
+            int index = ArtDraws.ProfileIndex(seed, buildingId, buildingProfiles.Count);
+            return index < 0 ? null : buildingProfiles[index];
+        }
+    }
+}

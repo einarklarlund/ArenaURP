@@ -1,4 +1,3 @@
-using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using TMPro;
 using UnityEngine;
@@ -16,12 +15,12 @@ public sealed class LobbyView : View
     [Header("Lobby Controls")]
     [SerializeField] private TMP_InputField usernameInput;
     [SerializeField] private Toggle readyToggle;
+    [SerializeField] private Button characterSelectButton;
 
     [Header("Player List")]
     [SerializeField] private PlayerListEntry playerListEntryPrefab;
     [SerializeField] private Transform playerListContainer;
 
-    private NetworkPlayerManager playerManager;
     private readonly Dictionary<NetworkPlayer, PlayerListEntry> entries = new();
 
     public override void Show()
@@ -29,19 +28,17 @@ public sealed class LobbyView : View
         readyToggle.isOn = false;
         readyToggle.onValueChanged.AddListener(OnToggleClicked);
         usernameInput.onValueChanged.AddListener(OnUsernameChanged);
+        characterSelectButton.onClick.AddListener(OnCharacterSelectClicked);
 
-        playerManager = FindAnyObjectByType<NetworkPlayerManager>();
+        if (MatchManager.Instance != null)
+            MatchManager.Instance.ActivePlayers.OnChange += HandleActivePlayersChanged;
 
-        if (playerManager != null)
-        {
-            playerManager.ActivePlayers.OnChange += HandleActivePlayersChanged;
-
-            // Build initial list from players already present
-            foreach (var player in playerManager.ActivePlayers)
+        // Build initial list from players already present
+        if (MatchManager.Instance != null)
+            foreach (var player in MatchManager.Instance.ActivePlayers)
             {
                 AddEntry(player);
             }
-        }
 
         base.Show();
     }
@@ -50,12 +47,10 @@ public sealed class LobbyView : View
     {
         readyToggle.onValueChanged.RemoveListener(OnToggleClicked);
         usernameInput.onValueChanged.RemoveListener(OnUsernameChanged);
+        characterSelectButton.onClick.RemoveListener(OnCharacterSelectClicked);
 
-        if (playerManager != null)
-        {
-            playerManager.ActivePlayers.OnChange -= HandleActivePlayersChanged;
-            playerManager = null;
-        }
+        if (MatchManager.Instance != null)
+            MatchManager.Instance.ActivePlayers.OnChange -= HandleActivePlayersChanged;
 
         ClearAllEntries();
 
@@ -115,8 +110,7 @@ public sealed class LobbyView : View
     {
         ClearAllEntries();
 
-        if (playerManager == null) return;
-        foreach (var player in playerManager.ActivePlayers)
+        foreach (var player in MatchManager.Instance.ActivePlayers)
         {
             AddEntry(player);
         }
@@ -130,5 +124,10 @@ public sealed class LobbyView : View
     private void OnToggleClicked(bool val)
     {
         NetworkPlayer.LocalInstance.ServerSetIsReady(val);
+    }
+
+    private void OnCharacterSelectClicked()
+    {
+        LocalUIEvents.OnCharacterSelectOpened?.Invoke();
     }
 }

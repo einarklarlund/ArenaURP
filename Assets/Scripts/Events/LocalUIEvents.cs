@@ -8,7 +8,6 @@ public enum JoinPhase
 {
     ContactingSignal,
     Negotiating,
-    /// This is the phase that can legitimately last the full 39.5s signal timeout.
     EstablishingConnection,
     Connected,
     Failed,
@@ -37,6 +36,13 @@ public static class LocalUIEvents
     public static Action OnDebugViewOpened;
     public static Action OnDebugViewClosed;
 
+    public static Action OnCharacterSelectOpened;
+    public static Action OnCharacterSelectClosed;
+
+    /// <summary>This peer started or finished generating, downloading or building a level (LevelSync).</summary>
+    public static Action OnLevelLoadStarted;
+    public static Action OnLevelLoadFinished;
+
     public static void Reset()
     {
         OnPause = null;
@@ -54,5 +60,9 @@ public static class LocalUIEvents
         OnJoinCancelled = null;
         OnDebugViewOpened = null;
         OnDebugViewClosed = null;
+        OnCharacterSelectOpened = null;
+        OnCharacterSelectClosed = null;
+        OnLevelLoadStarted = null;
+        OnLevelLoadFinished = null;
     }
 }

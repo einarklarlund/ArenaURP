@@ -1,0 +1,9 @@
+Textures from rubberduck, "50 free textures 4 - normalmaps" and "50 free textures 5 - with normalmaps",
+OpenGameArt.org, CC0 1.0:
+https://opengameart.org/content/50-free-textures-4-normalmaps
+https://opengameart.org/content/50-free-textures-5-with-normalmaps
+The number in each file name is the texture number in its pack.
+
+Tree Row.png and Tree Row Normal.png are built by texture-builders/tree_row.py from rubberduck,
+"High-res tree textures" (trees_2K.zip), OpenGameArt.org, CC0 1.0:
+https://opengameart.org/content/high-res-tree-textures

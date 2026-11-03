@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 public class PawnDamageVfx : MonoBehaviour
 {
-    [SerializeField] private HealthController healthController;
+    public Pawn pawn;
     [SerializeField] private MeshRenderer bodyRenderer;
 
     [Header("VFX Prefabs")]
@@ -41,7 +41,7 @@ public class PawnDamageVfx : MonoBehaviour
 
     private void Start()
     {
-        healthController.OnDamageTaken += OnDamageTaken;
+        pawn.OnDamageTaken += OnDamageTaken;
     }
 
     private void Update()
@@ -56,7 +56,7 @@ public class PawnDamageVfx : MonoBehaviour
 
     private void OnDestroy()
     {
-        healthController.OnDamageTaken -= OnDamageTaken;
+        pawn.OnDamageTaken -= OnDamageTaken;
     }
 
     private void ApplyDamageColor()
@@ -67,10 +67,10 @@ public class PawnDamageVfx : MonoBehaviour
         float damageDealtTime = (float) _damageDealtTime;
         float elapsedTimeSinceDamage = Time.time - damageDealtTime;
         float damageColorLerpFactor = elapsedTimeSinceDamage / damageColorDuration;
-        
+
         Color damageAlbedo = Color.Lerp(damagedColor, defaultAlbedo, damageColorLerpFactor);
         Color damageEmission = Color.Lerp(damagedColor, defaultEmission, damageColorLerpFactor);
-        
+
         SetBodyColors(damageAlbedo, damageEmission);
     }
 

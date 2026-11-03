@@ -18,6 +18,7 @@ public class RoomManager : MonoBehaviour
     {
         SignalManager.OnRoomCreated += HandleRoomCreated;
         SignalManager.OnRoomJoined += HandleRoomJoined;
+        InstanceFinder.ClientManager.OnClientConnectionState += PublishClientConnectionState;
         Instance = this;
     }
 
@@ -27,7 +28,10 @@ public class RoomManager : MonoBehaviour
             InstanceFinder.ServerManager.OnServerConnectionState -= HandleServerConnectionState;
 
         if (InstanceFinder.ClientManager != null)
+        {
             InstanceFinder.ClientManager.OnClientConnectionState -= HandleClientConnectionState;
+            InstanceFinder.ClientManager.OnClientConnectionState -= PublishClientConnectionState;
+        }
 
         SignalManager.OnRoomCreated -= HandleRoomCreated;
         SignalManager.OnRoomJoined -= HandleRoomJoined;
@@ -71,13 +75,32 @@ public class RoomManager : MonoBehaviour
     /// </summary>
     public void CancelJoin()
     {
+        StopNetworking();
+        LocalUIEvents.OnJoinCancelled?.Invoke();
+    }
+
+    /// <summary>
+    /// Leaves the match this peer is in. The stopped client takes the UI back to the menu and
+    /// DefaultScene back to the offline scene; a host's leaving ends the match for everyone.
+    /// </summary>
+    public void Leave()
+    {
+        StopNetworking();
+    }
+
+    private void StopNetworking()
+    {
         // Cleared first: the stop below is deliberate, not a failure, and must not report one.
         joinInFlight = false;
+        // Read before the client stops, which clears it.
+        bool inRoom = !string.IsNullOrEmpty(CurrentRoom);
 
         var transport = InstanceFinder.TransportManager != null
             ? InstanceFinder.TransportManager.Transport
             : null;
 
+        // Client before server: DefaultScene loads the offline scene once the last of them stops,
+        // and a client stopping after its server would queue that load a second time.
         if (transport != null && transport.GetConnectionState(false) != LocalConnectionState.Stopped)
             InstanceFinder.ClientManager.StopConnection();
 
@@ -87,11 +110,34 @@ public class RoomManager : MonoBehaviour
             InstanceFinder.ServerManager.OnServerConnectionState -= HandleServerConnectionState;
 
             if (transport != null && transport.GetConnectionState(true) != LocalConnectionState.Stopped)
+            {
                 InstanceFinder.ServerManager.StopConnection(true);
+                // The signal server takes a room down only when its host's socket closes.
+                if (inRoom && SignalManager.Instance != null)
+                    SignalManager.Instance.Reconnect();
+            }
         }
 
         SetCurrentRoom("");
-        LocalUIEvents.OnJoinCancelled?.Invoke();
+    }
+
+    /// <summary>
+    /// Settled connection changes only. A join still in flight reports its outcome through
+    /// <see cref="LocalUIEvents.OnJoinPhaseChanged"/> instead, and the transient Starting/Stopping
+    /// states would otherwise read as a disconnect and pull the loading screen back to the menu.
+    /// </summary>
+    private void PublishClientConnectionState(ClientConnectionStateArgs args)
+    {
+        if (joinInFlight) return;
+
+        if (args.ConnectionState == LocalConnectionState.Started)
+            NetworkUIEvents.OnClientConnectionChanged?.Invoke(true);
+        else if (args.ConnectionState == LocalConnectionState.Stopped)
+        {
+            // However the connection ended - leaving, or the host going away - this peer is in no room now.
+            SetCurrentRoom("");
+            NetworkUIEvents.OnClientConnectionChanged?.Invoke(false);
+        }
     }
 
     private void HandleClientConnectionState(ClientConnectionStateArgs args)

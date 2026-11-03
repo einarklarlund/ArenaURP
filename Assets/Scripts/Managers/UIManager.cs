@@ -4,7 +4,8 @@ using UnityEngine;
 
 /// <summary>
 /// The central orchestrator for UI visibility and transitions. Exactly one primary View is
-/// displayed at a time; showing one hides every other.
+/// displayed at a time; showing one hides every other. While a level loads, LoadingView stays up: the view a match-state,
+/// spawn or death event asks for meanwhile is shown once the load finishes.
 /// </summary>
 public sealed class UIManager : MonoBehaviour
 {
@@ -14,12 +15,17 @@ public sealed class UIManager : MonoBehaviour
     private View previousView;
     private View currentView;
 
+    private bool levelLoading;
+    private View viewBeforeLoad;
+    private System.Action pendingShow;
+
     private void OnEnable()
     {
         NetworkUIEvents.OnClientConnectionChanged += HandleClientConnectionChanged;
         NetworkUIEvents.OnMatchStateChanged += HandleMatchStateChanged;
         NetworkUIEvents.OnLocalPawnSpawned += HandleLocalSpawn;
         NetworkUIEvents.OnLocalDeath += HandleLocalDeath;
+        NetworkUIEvents.OnRespawnTimerStarted += HandleRespawnTimerStarted;
 
         LocalUIEvents.OnHostInitiated += Show<LoadingView>;
         LocalUIEvents.OnJoinInitiated += Show<LoadingView>;
@@ -34,6 +40,10 @@ public sealed class UIManager : MonoBehaviour
         LocalUIEvents.OnHostOptionsClosed += ShowPreviousView;
         LocalUIEvents.OnDebugViewOpened += Show<DebugView>;
         LocalUIEvents.OnDebugViewClosed += ShowPreviousView;
+        LocalUIEvents.OnCharacterSelectOpened += Show<CharacterSelectorView>;
+        LocalUIEvents.OnCharacterSelectClosed += ShowPreviousView;
+        LocalUIEvents.OnLevelLoadStarted += HandleLevelLoadStarted;
+        LocalUIEvents.OnLevelLoadFinished += HandleLevelLoadFinished;
 
         Show<MainMenuView>();
     }
@@ -44,6 +54,7 @@ public sealed class UIManager : MonoBehaviour
         NetworkUIEvents.OnMatchStateChanged -= HandleMatchStateChanged;
         NetworkUIEvents.OnLocalPawnSpawned -= HandleLocalSpawn;
         NetworkUIEvents.OnLocalDeath -= HandleLocalDeath;
+        NetworkUIEvents.OnRespawnTimerStarted -= HandleRespawnTimerStarted;
 
         LocalUIEvents.OnHostInitiated -= Show<LoadingView>;
         LocalUIEvents.OnJoinInitiated -= Show<LoadingView>;
@@ -58,32 +69,73 @@ public sealed class UIManager : MonoBehaviour
         LocalUIEvents.OnHostOptionsClosed -= ShowPreviousView;
         LocalUIEvents.OnDebugViewOpened -= Show<DebugView>;
         LocalUIEvents.OnDebugViewClosed -= ShowPreviousView;
+        LocalUIEvents.OnCharacterSelectOpened -= Show<CharacterSelectorView>;
+        LocalUIEvents.OnCharacterSelectClosed -= ShowPreviousView;
+        LocalUIEvents.OnLevelLoadStarted -= HandleLevelLoadStarted;
+        LocalUIEvents.OnLevelLoadFinished -= HandleLevelLoadFinished;
     }
 
     private void HandleClientConnectionChanged(bool connected)
     {
-        if(!connected)
+        if (!connected)
+        {
+            levelLoading = false;
+            pendingShow = null;
             Show<MainMenuView>();
+        }
+    }
+
+    private void HandleLevelLoadStarted()
+    {
+        if (levelLoading) return;
+        levelLoading = true;
+        viewBeforeLoad = currentView;
+        pendingShow = null;
+        Show<LoadingView>();
+    }
+
+    private void HandleLevelLoadFinished()
+    {
+        if (!levelLoading) return;
+        levelLoading = false;
+        if (pendingShow != null)
+            pendingShow();
+        else if (viewBeforeLoad != null && viewBeforeLoad is not LoadingView)
+            ShowView(viewBeforeLoad);
+        pendingShow = null;
+        viewBeforeLoad = null;
+    }
+
+    /// <summary>Whether to hold <paramref name="show"/> until the level load finishes.</summary>
+    private bool DeferWhileLoading(System.Action show)
+    {
+        if (!levelLoading) return false;
+        pendingShow = show;
+        return true;
     }
 
     private void HandleMatchStateChanged(MatchState state)
     {
-        var viewKind = UIStateMapper.MatchStateToViewKind(ToUIMatchState(state));
-        switch (viewKind)
+        if (DeferWhileLoading(() => HandleMatchStateChanged(state))) return;
+        switch (state)
         {
-            case UIStateMapper.ViewKind.Lobby:
+            case MatchState.Pregame:
                 Show<LobbyView>();
                 break;
-            case UIStateMapper.ViewKind.PregameCountdown:
+            case MatchState.PregameCountdown:
                 Show<PregameCountdownView>();
                 break;
-            case UIStateMapper.ViewKind.PostgameCountdown:
+            case MatchState.PostgameCountdown:
                 Show<PostgameCountdownView>();
                 break;
-            case UIStateMapper.ViewKind.Main:
-                Show<MainView>();
+            case MatchState.During:
+                // Every player picks upgrades before their first spawn, so there may be no pawn yet.
+                NetworkPlayer local = NetworkPlayer.LocalInstance;
+                if (local != null && local.ControlledPawn.Value == null)
+                    Show<FirstSpawnView>();
+                else
+                    Show<MainView>();
                 break;
-            case UIStateMapper.ViewKind.None:
             default:
                 // No view change for this match state (e.g. During / Postgame are
                 // driven by pawn-spawn / death events instead).
@@ -91,40 +143,51 @@ public sealed class UIManager : MonoBehaviour
         }
     }
 
-    // Deliberately a switch expression with NO default arm: an unmapped MatchState
-    // throws SwitchExpressionException at runtime and emits the CS8509
-    // non-exhaustive warning. (Unity ignores .editorconfig diagnostic severity, so
-    // that warning is not a build error.) This side lives in Assembly-CSharp, not
-    // Arena.*.Core, so it is not covered by the EditMode completeness test; the
-    // switch's runtime throw is its guard. Adding a MatchState value also forces a
-    // new UIMatchState arm, which MatchStateToViewKind_IsTotal does catch.
-    private static UIStateMapper.UIMatchState ToUIMatchState(MatchState state) => state switch
-    {
-        MatchState.Pregame           => UIStateMapper.UIMatchState.Pregame,
-        MatchState.PregameCountdown  => UIStateMapper.UIMatchState.PregameCountdown,
-        MatchState.During            => UIStateMapper.UIMatchState.During,
-        MatchState.PostgameCountdown => UIStateMapper.UIMatchState.PostgameCountdown,
-        MatchState.Postgame          => UIStateMapper.UIMatchState.Postgame,
-    };
-
     private void HandleLocalDeath()
     {
+        if (DeferWhileLoading(Show<DeathView>)) return;
         Show<DeathView>();
+    }
+
+    // Picking upgrades before a spawn. After a death DeathView is the pick screen (the death and the pick timer
+    // arrive in either order); otherwise this is the first spawn of the match.
+    private void HandleRespawnTimerStarted(double endTime)
+    {
+        if (currentView is DeathView) return;
+        if (DeferWhileLoading(Show<FirstSpawnView>)) return;
+        Show<FirstSpawnView>();
     }
 
     private void HandleLocalSpawn(Pawn pawn)
     {
+        if (DeferWhileLoading(Show<MainView>)) return;
         Show<MainView>();
     }
 
     private void Show<T>() where T : View
     {
-        var viewKind = ViewTypeToViewKind(typeof(T));
-        menuCamera.gameObject.SetActive(UIStateMapper.ShouldActivateMenuCamera(viewKind));
+        bool shouldShowMenuCamera = typeof(T) != typeof(MainView);
+        menuCamera.gameObject.SetActive(shouldShowMenuCamera);
         previousView = currentView;
         foreach(var view in views)
         {
             if (view is T)
+            {
+                currentView = view;
+                view.Show();
+            }
+            else
+                view.Hide();
+        }
+    }
+
+    private void ShowView(View target)
+    {
+        menuCamera.gameObject.SetActive(target is not MainView);
+        previousView = currentView;
+        foreach (var view in views)
+        {
+            if (view == target)
             {
                 currentView = view;
                 view.Show();
@@ -139,14 +202,5 @@ public sealed class UIManager : MonoBehaviour
         currentView.Hide();
         previousView.Show();
         (previousView, currentView) = (currentView, previousView);
-    }
-
-    private static UIStateMapper.ViewKind ViewTypeToViewKind(System.Type viewType)
-    {
-        if (viewType == typeof(MainView))               return UIStateMapper.ViewKind.Main;
-        if (viewType == typeof(LobbyView))              return UIStateMapper.ViewKind.Lobby;
-        if (viewType == typeof(PregameCountdownView))   return UIStateMapper.ViewKind.PregameCountdown;
-        if (viewType == typeof(PostgameCountdownView))  return UIStateMapper.ViewKind.PostgameCountdown;
-        return UIStateMapper.ViewKind.None;
     }
 }

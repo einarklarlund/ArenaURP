@@ -1,0 +1,14 @@
+{
+  "name": "Arena.LevelGen.Core",
+  "rootNamespace": "Arena.LevelGen",
+  "references": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

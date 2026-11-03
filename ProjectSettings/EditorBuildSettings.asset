@@ -20,6 +20,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Debug.unity
     guid: ed6c44337e5dd40c8a937923c6e2b650
+  - enabled: 1
+    path: Assets/Scenes/LevelGenSandbox.unity
+    guid: 83723b32483854a16a681eebae722379
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

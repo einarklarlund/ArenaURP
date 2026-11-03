@@ -115,3 +115,13 @@ InitTestScene*.unity*
 # Profiler captures
 ProfilerCaptures/*.claude/.cs-dirty
 .claude/.habit-count
+
+# Level gen tests run outside Unity (Tools/LevelGenTests)
+!Tools/LevelGenTests/*.csproj
+Tools/LevelGenTests/bin/
+Tools/LevelGenTests/obj/
+
+# Level gen profiling outside Unity (Tools/LevelGenProfile)
+!Tools/LevelGenProfile/*.csproj
+Tools/LevelGenProfile/bin/
+Tools/LevelGenProfile/obj/

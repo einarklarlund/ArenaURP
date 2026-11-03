@@ -38,6 +38,9 @@ public struct MovementConfig
     [Tooltip("Gravitational acceleration (negative value, e.g. -9.81).")]
     public float Gravity;
 
+    [Header("Ground")]
+    public LayerMask GroundMask;
+
     /// <summary>
     /// Returns a config matching the original PawnMovementHandler default serialized values.
     /// </summary>

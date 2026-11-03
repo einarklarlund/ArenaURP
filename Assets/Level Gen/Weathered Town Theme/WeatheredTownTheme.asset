@@ -1,0 +1,111 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94c210263073344c3abc363a2f842993, type: 3}
+  m_Name: WeatheredTownTheme
+  m_EditorClassIdentifier: Arena.LevelGen::Arena.LevelGen.LevelTheme
+  ground: {fileID: 2100000, guid: ae48c2978968544ed84b92c56ff61e75, type: 2}
+  groundMound: {fileID: 2100000, guid: a8bbbf270adf64ad4aa81bfc99e05373, type: 2}
+  groundDip: {fileID: 2100000, guid: 4a0b744ec6b3d413199709ad11469d2e, type: 2}
+  groundSinkhole: {fileID: 2100000, guid: e6f10c5878c3f46d3a58be612ae901be, type: 2}
+  cliffFace: {fileID: 2100000, guid: 92eb9bad09c1d45ed850059188d044cf, type: 2}
+  ramp: {fileID: 2100000, guid: 06964a45ce7204600a8c533bc23ac7d9, type: 2}
+  rampSide: {fileID: 2100000, guid: d40227528462b472dac9a432f05078e3, type: 2}
+  bank: {fileID: 2100000, guid: c501810146b52474ebc3227fca8a635f, type: 2}
+  boundaryWall: {fileID: 2100000, guid: 85ec26d9cbfc040e2954cf4c95c20dbf, type: 2}
+  propPlaceholder: {fileID: 2100000, guid: 81f09c45ea0f446a88d04297440496bc, type: 2}
+  terrain: {fileID: 2100000, guid: 9da0d1dd7b3d2415881823559a12df25, type: 2}
+  groundRim: {fileID: 2100000, guid: 79c19f9ffb80041bd9f7500823f6bb46, type: 2}
+  moundBlendWidth: 0.6
+  dipBlendWidth: 0.6
+  rimBlendWidth: 0.4
+  buildingProfiles:
+  - name: Brick
+    floor: {fileID: 2100000, guid: 3f03e8af7942a4128b0e9d4e2b15a4a5, type: 2}
+    ceiling: {fileID: 2100000, guid: 3eca10a64e7ef4cd8802bea2e73f46e1, type: 2}
+    outerWallOutside: {fileID: 2100000, guid: 227ac07861504446683a66f389da53c5, type: 2}
+    outerWallInside: {fileID: 2100000, guid: 38ff697c81574426daaa2af36a7c7482, type: 2}
+    interiorWall: {fileID: 2100000, guid: 33ec303f772634ab18d2d4166265323c, type: 2}
+    slabEdge: {fileID: 2100000, guid: 0a3a0065342eb43e5942ed06721ae022, type: 2}
+    balcony: {fileID: 2100000, guid: c8ce03a98427142b38c7cb4adcb15ec4, type: 2}
+    railing: {fileID: 2100000, guid: 17a0af70caa1e492884899287006fb04, type: 2}
+    roof: {fileID: 2100000, guid: 1d847e9f2cf634441996335dfe4f0c34, type: 2}
+    stairs: {fileID: 2100000, guid: abe6b469c18a64dfb81d19999dba9980, type: 2}
+    plinth: {fileID: 2100000, guid: 55b03d35066ee47709ff853f9a291a09, type: 2}
+    stilts: {fileID: 2100000, guid: d545a608e9d864dc8862ab9c2fc59bb5, type: 2}
+    doorFrame: {fileID: 2100000, guid: ad528339304a34881a2738704e4f51f2, type: 2}
+    windowFrame: {fileID: 2100000, guid: 607b8ebe0cde04a9c91c21323adf1d2a, type: 2}
+    wallToCeiling: {fileID: 2100000, guid: 43bd67f424b294b2986028fa0ded345b, type: 2}
+    roofline: {fileID: 2100000, guid: acc0963d7063547aa8dd200abf67e7cb, type: 2}
+    wallCorner: {fileID: 2100000, guid: 782d604b1a430434caa1e613b5f62aff, type: 2}
+    floorSkirting: {fileID: 2100000, guid: 9c6e0d5a3c3bf40dfaff4fda0f97f1c9, type: 2}
+    groundSkirting: {fileID: 2100000, guid: 5e8182910359342a6849a5af6731b95a, type: 2}
+  - name: Concrete
+    floor: {fileID: 2100000, guid: 583ccc49fd1bc4d629c6634c17efab24, type: 2}
+    ceiling: {fileID: 2100000, guid: 10b3095a9cae6432ebc83adfe828f52f, type: 2}
+    outerWallOutside: {fileID: 2100000, guid: 8e724f2d362864319adea158326c806f, type: 2}
+    outerWallInside: {fileID: 2100000, guid: b1a23a55d6dc04da9baba60eaaf0f1de, type: 2}
+    interiorWall: {fileID: 2100000, guid: 53a15e51af0ea4d1dadf426b2902f816, type: 2}
+    slabEdge: {fileID: 2100000, guid: cf914f74050964e72bead8a4ff14bfd5, type: 2}
+    balcony: {fileID: 2100000, guid: 00d2ea233cb3b481085050bc930f614f, type: 2}
+    railing: {fileID: 2100000, guid: f7045b07f030446519620c372dab1d4a, type: 2}
+    roof: {fileID: 2100000, guid: 899b0a10062bb4de29c21c73e8119ab0, type: 2}
+    stairs: {fileID: 2100000, guid: c706b144c8c05475e94a4a4add11abcd, type: 2}
+    plinth: {fileID: 2100000, guid: 1a7af7d3cdf1c42e6ac337e2d0c41c90, type: 2}
+    stilts: {fileID: 2100000, guid: 6a42d0527d4ee4bb89afa6e34094ac56, type: 2}
+    doorFrame: {fileID: 2100000, guid: da2ca1d86f62043109b136d9a82f4ce2, type: 2}
+    windowFrame: {fileID: 2100000, guid: be9a2501c69d04332b6429771a61427b, type: 2}
+    wallToCeiling: {fileID: 2100000, guid: 82380d197a81f450b97994da0040bf15, type: 2}
+    roofline: {fileID: 2100000, guid: f129d57f1189d46b8a78b7ddd99ef377, type: 2}
+    wallCorner: {fileID: 2100000, guid: cf1fb018f70ef40ac8bfd43f4081f962, type: 2}
+    floorSkirting: {fileID: 2100000, guid: 0b55ea92eb45a4fe29f693096fd0d232, type: 2}
+    groundSkirting: {fileID: 2100000, guid: 15085095be3804131b9c23d5e367b604, type: 2}
+  - name: Industrial
+    floor: {fileID: 2100000, guid: 4d3a155ef55044d3687ff4d8f3a33638, type: 2}
+    ceiling: {fileID: 2100000, guid: f182cc7e648f94cfe94a0f49aea6c3d2, type: 2}
+    outerWallOutside: {fileID: 2100000, guid: 9c5f20f23ec0e45908bb350fcd4d0d18, type: 2}
+    outerWallInside: {fileID: 2100000, guid: 729662b1cf9144421a6b475b5b485454, type: 2}
+    interiorWall: {fileID: 2100000, guid: cdb1f9a7b4f5142f996a1dd273c5c1f9, type: 2}
+    slabEdge: {fileID: 2100000, guid: 143a24f65f7bc46e2bf90a35d8926d26, type: 2}
+    balcony: {fileID: 2100000, guid: 82a06933f44d943bfbabba1afeafc2cf, type: 2}
+    railing: {fileID: 2100000, guid: b8d2bd404046c42309d79206bad8e837, type: 2}
+    roof: {fileID: 2100000, guid: 43d884b88ed12476fae0af9511dd354b, type: 2}
+    stairs: {fileID: 2100000, guid: 47b5999a83308471ea0edbec38bb9ff0, type: 2}
+    plinth: {fileID: 2100000, guid: 4147d860aa43844fdb3ba3b0c0512ed9, type: 2}
+    stilts: {fileID: 2100000, guid: 1fb5b91c338a34baf9c3f2f6496c63b9, type: 2}
+    doorFrame: {fileID: 2100000, guid: 2e61a19563ec94234a9456e69503efd2, type: 2}
+    windowFrame: {fileID: 2100000, guid: a92a11f610dce4644808a0d490d24a9d, type: 2}
+    wallToCeiling: {fileID: 2100000, guid: 9e0f281cc5b1345ee89e88f154f4b92e, type: 2}
+    roofline: {fileID: 2100000, guid: 0cdfbfb51dcba4754af458a3a789b31a, type: 2}
+    wallCorner: {fileID: 2100000, guid: 772d71877bdfe468dbe557b84ea7e71b, type: 2}
+    floorSkirting: {fileID: 2100000, guid: 5227546792fcf4b679871421e4f06ffa, type: 2}
+    groundSkirting: {fileID: 2100000, guid: 8f8d48d76c2444dc782b38c818f40861, type: 2}
+  ledge: {fileID: 2100000, guid: 3201c3c212e524355b39ed9f0cb9a14e, type: 2}
+  treeBase: {fileID: 2100000, guid: 7a486cbedb928418885b53271e8ccd21, type: 2}
+  carSurround: {fileID: 2100000, guid: acba4169463424d2ea207de2800ad6be, type: 2}
+  dipEdge: {fileID: 2100000, guid: a79b0ea715f1f48e9b6a96b8426bea2e, type: 2}
+  moundEdge: {fileID: 2100000, guid: be9b25f9924eb46158aae2d1a4d7a065, type: 2}
+  cliffTopLedges: 0
+  treeBaseSize: 1.6
+  carMargin: 0.3
+  decalWidths:
+  - 0.3
+  - 0.15
+  - 0.12
+  - 0.2
+  - 0.3
+  - 0.2
+  - 0.12
+  - 0.4
+  - 0
+  - 0.25
+  - 0.3
+  - 0.3

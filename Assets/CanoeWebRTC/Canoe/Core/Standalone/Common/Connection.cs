@@ -111,18 +111,8 @@ namespace FishNet.Transporting.CanoeWebRTC
             //unreliableDataChannel.OnClose = () => Debug.Log($"unreliable channel CLOSED on {ID}");
 
 
-            reliableDataChannel.OnError = (e) =>
-            {
-                InstanceFinder.NetworkManager.LogError($"{debugHeader} ERROR - Local Reliable Channel\nType:{e.errorType} Message:{e.message}");
-                if (!closing)
-                    RemoteChannelsClosed();
-            };
-            unreliableDataChannel.OnError = (e) =>
-            {
-                InstanceFinder.NetworkManager.LogError($"{debugHeader} ERROR - Local Unreliable Channel\nType:{e.errorType} Message:{e.message}");
-                if (!closing)
-                    RemoteChannelsClosed();
-            };
+            reliableDataChannel.OnError = (e) => HandleChannelError("Local Reliable", e);
+            unreliableDataChannel.OnError = (e) => HandleChannelError("Local Unreliable", e);
 
 
             // Set up the remote connection to handle incoming data channels
@@ -134,12 +124,7 @@ namespace FishNet.Transporting.CanoeWebRTC
                     InstanceFinder.NetworkManager.Log($"{debugHeader} Remote Unreliable Channel received");
                     REMOTE_unreliableDataChannel = channel;
                     channel.OnMessage = ReceiveUnreliableMessage;
-                    channel.OnError = (e) =>
-                    {
-                        InstanceFinder.NetworkManager.LogError($"{debugHeader} Error... Remote Unreliable Channel\nType:{e.errorType} Message:{e.message}");
-                        if (!closing)
-                            RemoteChannelsClosed();
-                    };
+                    channel.OnError = (e) => HandleChannelError("Remote Unreliable", e);
 
                     channel.OnOpen = () =>
                     {
@@ -157,12 +142,7 @@ namespace FishNet.Transporting.CanoeWebRTC
                     InstanceFinder.NetworkManager.Log($"{debugHeader} Remote Reliable Channel received");
                     REMOTE_reliableDataChannel = channel;
                     channel.OnMessage = ReceiveReliableMessage;
-                    channel.OnError = (e) =>
-                    {
-                        InstanceFinder.NetworkManager.LogError($"{debugHeader} Error... Remote Reliable Channel\nType:{e.errorType} Message:{e.message}");
-                        if (!closing)
-                            RemoteChannelsClosed();
-                    };
+                    channel.OnError = (e) => HandleChannelError("Remote Reliable", e);
 
                     //these never go off for some reason.. but I guess it makes sense? its opening remotely so yea
                     channel.OnOpen = () =>
@@ -231,6 +211,24 @@ namespace FishNet.Transporting.CanoeWebRTC
             };
 
 
+        }
+
+
+        /// <summary>
+        /// Every data channel error ends the connection. The peer closing its end is one too: it
+        /// aborts the SCTP association, and libwebrtc reports that on this end's channels as a
+        /// "User-Initiated Abort". That is how a graceful leave looks from here, not a fault.
+        /// </summary>
+        private void HandleChannelError(string channel, RTCError e)
+        {
+            string text = $"{debugHeader} {channel} Channel closed\nType:{e.errorType} Message:{e.message}";
+            if (e.message != null && e.message.Contains("User-Initiated Abort"))
+                InstanceFinder.NetworkManager.Log(text);
+            else
+                InstanceFinder.NetworkManager.LogError(text);
+
+            if (!closing)
+                RemoteChannelsClosed();
         }
 
 

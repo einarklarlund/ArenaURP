@@ -1,20 +1,17 @@
 ﻿<Solution>
+  <Project Path="Arena.LevelGen.Core.csproj" />
   <Project Path="FishNet.Codegen.Cecil.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="FishNet.Runtime.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="GameKit.Dependencies.csproj" />
   <Project Path="SimpleWebTransport.csproj" />
+  <Project Path="Arena.LevelGen.Tests.csproj" />
   <Project Path="Unity.FishNet.Codegen.csproj" />
-  <Project Path="Arena.NetworkedMotion.Core.csproj" />
-  <Project Path="FishNet.Demos.csproj" />
   <Project Path="Arena.Movement.Core.csproj" />
+  <Project Path="Arena.LevelGen.csproj" />
+  <Project Path="FishNet.Demos.csproj" />
   <Project Path="ParrelSync.csproj" />
   <Project Path="CanoeWebRTC.csproj" />
-  <Project Path="Arena.Bot.Core.csproj" />
-  <Project Path="Arena.MatchTimer.Core.csproj" />
-  <Project Path="Arena.MatchCountdown.Core.csproj" />
-  <Project Path="Arena.Weapon.Core.csproj" />
-  <Project Path="Arena.Respawn.Core.csproj" />
-  <Project Path="Arena.UIFlow.Core.csproj" />
+  <Project Path="Arena.LevelGen.Editor.csproj" />
 </Solution>

@@ -6,6 +6,7 @@ public sealed class PauseView : View
 {
     [SerializeField] private Button settingsButton;
     [SerializeField] private Button unpauseButton;
+    [SerializeField] private Button disconnectButton;
     [SerializeField] private SignalStatusDisplay signalStatusDisplay;
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
@@ -16,6 +17,7 @@ public sealed class PauseView : View
     {
         settingsButton.onClick.AddListener(HandleSettingsClicked);
         unpauseButton.onClick.AddListener(HandleUnpauseButtonClicked);
+        disconnectButton.onClick.AddListener(HandleDisconnectClicked);
         signalStatusDisplay.Initialize(SignalManager.Instance.ClientState);
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
@@ -30,6 +32,7 @@ public sealed class PauseView : View
     {
         settingsButton.onClick.RemoveListener(HandleSettingsClicked);
         unpauseButton.onClick.RemoveListener(HandleUnpauseButtonClicked);
+        disconnectButton.onClick.RemoveListener(HandleDisconnectClicked);
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
         debugButton.onClick.RemoveListener(HandleDebugClicked);
@@ -46,6 +49,11 @@ public sealed class PauseView : View
     private void HandleUnpauseButtonClicked()
     {
         LocalUIEvents.OnUnpause?.Invoke();
+    }
+
+    private void HandleDisconnectClicked()
+    {
+        RoomManager.Instance.Leave();
     }
 
 #if DEVELOPMENT_BUILD || UNITY_EDITOR

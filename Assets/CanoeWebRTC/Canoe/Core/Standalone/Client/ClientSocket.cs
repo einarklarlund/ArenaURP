@@ -40,7 +40,7 @@ namespace FishNet.Transporting.CanoeWebRTC.Client
         {
             base.SetConnectionState(LocalConnectionState.Stopping, false);
 
-            connectionWithServer.CloseAll();
+            connectionWithServer?.CloseAll();
             connectionWithServer = null;
 
             ResetQueues();
@@ -101,6 +101,15 @@ namespace FishNet.Transporting.CanoeWebRTC.Client
             while (_localConnectionStates.TryDequeue(out LocalConnectionState result))
             {
                 InstanceFinder.NetworkManager.Log($"<color=#77DD77>[Client]</color> Local connection state set to <b><i><color=#DDA0DD>{result}</color></i></b>");
+
+                //The connection reports its own end (a failed or closed channel), and StopClient never
+                //runs after it. Left open, the peer connection recovers once the network does, and the
+                //host keeps a player whose client has already gone back to the menu.
+                if (result == LocalConnectionState.Stopped && connectionWithServer != null)
+                {
+                    connectionWithServer.CloseAll();
+                    connectionWithServer = null;
+                }
 
                 base.SetConnectionState(result, false);
             }

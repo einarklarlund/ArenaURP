@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8aed8a6b1935d4d4aa55c287c6e7b688, type: 3}
+  m_Name: Weapon Kick Settings
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponKickSettings
+  intervalExponent: 0.6
+  projectileExponent: 0.35
+  sizeExponent: 0.5
+  weakestRawKick: 0.1
+  strongestRawKick: 2
+  backDistance:
+    weakest: 0.045
+    strongest: 0.85
+  verticalOffset:
+    weakest: 0.04
+    strongest: -0.12
+  pitch:
+    weakest: 2
+    strongest: 27
+  dip:
+    weakest: 2
+    strongest: 0
+  attackTime:
+    weakest: 0.016666668
+    strongest: 0.016666668
+  holdTime:
+    weakest: 0
+    strongest: 0.05
+  pitchPeakTime:
+    weakest: 0.083
+    strongest: 0.133
+  duration:
+    weakest: 0.217
+    strongest: 0.333
+  randomizeBelowInterval: 0.25
+  fullyRandomAtInterval: 0.06
+  burstRandomness: 0.75
+  lateralFraction: 0.7
+  yawFraction: 1
+  strengthJitter: 0.25
+  flashScale:
+    weakest: 0.7
+    strongest: 3
+  flashJitter: 0.2

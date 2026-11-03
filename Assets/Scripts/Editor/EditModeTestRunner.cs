@@ -30,6 +30,54 @@ public static class EditModeTestRunner
         Debug.Log($"[EditModeTestRunner] Filtered run started ({groupRegex}); results -> " + ResultsPath);
     }
 
+    /// <summary>
+    /// Runs one fixture's [Test] methods right here, by reflection, and returns a report. The Test
+    /// Runner asks to save the open scenes first, which blocks a run from the CLI:
+    /// <c>unity command script eval 'return EditModeTestRunner.RunInline("ChestPlacementTests");'</c>.
+    /// Plain [Test] methods with [SetUp]/[TearDown] only: no [TestCase] or [UnityTest].
+    /// </summary>
+    public static string RunInline(string fixtureTypeName)
+    {
+        var type = System.Type.GetType(fixtureTypeName + ", Assembly-CSharp-Editor");
+        if (type == null) return fixtureTypeName + " not found in Assembly-CSharp-Editor";
+
+        System.Reflection.MethodInfo setUp = null, tearDown = null;
+        var tests = new System.Collections.Generic.List<System.Reflection.MethodInfo>();
+        foreach (var method in type.GetMethods())
+        {
+            if (method.IsDefined(typeof(NUnit.Framework.SetUpAttribute), false)) setUp = method;
+            else if (method.IsDefined(typeof(NUnit.Framework.TearDownAttribute), false)) tearDown = method;
+            else if (method.IsDefined(typeof(NUnit.Framework.TestAttribute), false)) tests.Add(method);
+        }
+
+        var report = new StringBuilder();
+        int passed = 0;
+        foreach (var test in tests)
+        {
+            var fixture = System.Activator.CreateInstance(type);
+            try
+            {
+                setUp?.Invoke(fixture, null);
+                try
+                {
+                    test.Invoke(fixture, null);
+                    passed++;
+                    report.AppendLine("PASS " + test.Name);
+                }
+                finally
+                {
+                    tearDown?.Invoke(fixture, null);
+                }
+            }
+            catch (System.Reflection.TargetInvocationException e)
+            {
+                report.AppendLine("FAIL " + test.Name + ": " + e.InnerException?.Message.Trim());
+            }
+        }
+
+        return $"{passed}/{tests.Count} passed\n" + report;
+    }
+
     private sealed class ResultCollector : ICallbacks
     {
         private int _passed;

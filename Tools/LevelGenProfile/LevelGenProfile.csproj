@@ -1,0 +1,54 @@
+<Project>
+  <!--
+    Times the level generator stage by stage outside the Editor (see README.md). Like Tools/LevelGenTests it builds
+    against the Editor's Mono profile and runs on the Editor's Mono with float32 maths off, so it times the very levels
+    Unity makes. LEVELGEN_PROFILE turns on the core's StageProfiler calls.
+  -->
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <UnityVersion Condition="'$(UnityVersion)' == ''">$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../../ProjectSettings/ProjectVersion.txt')), 'm_EditorVersion: (\S+)').Groups[1].Value)</UnityVersion>
+    <UnityEditorApp Condition="'$(UnityEditorApp)' == ''">/Applications/Unity/Hub/Editor/$(UnityVersion)/Unity.app</UnityEditorApp>
+    <UnityMono>$(UnityEditorApp)/Contents/Resources/Scripting/MonoBleedingEdge</UnityMono>
+    <UnityProfile>$(UnityMono)/lib/mono/unityjit-macos</UnityProfile>
+
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <Optimize>true</Optimize>
+    <DefineConstants Condition="'$(NoProfile)' != 'true'">$(DefineConstants);LEVELGEN_PROFILE</DefineConstants>
+    <IsPackable>false</IsPackable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoStdLib>true</NoStdLib>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+    <FrameworkPathOverride>$(UnityProfile)</FrameworkPathOverride>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>false</GenerateBindingRedirectsOutputType>
+    <NoWarn>CS0618;CS0162;CS0219;CS0414;CS0168;CS8632;NUnit1032;NUnit2005;MSB3277</NoWarn>
+    <LevelGen>$(MSBuildThisFileDirectory)../../Assets/Scripts/LevelGen/</LevelGen>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(UnityProfile)/mscorlib.dll" />
+    <Reference Include="$(UnityProfile)/System.dll" />
+    <Reference Include="$(UnityProfile)/System.Core.dll" />
+    <Reference Include="$(UnityProfile)/Facades/netstandard.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Main.cs" />
+    <Compile Include="../LevelGenTests/UnityEngineStub.cs" />
+    <Compile Include="$(LevelGen)Core/**/*.cs" />
+  </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+  <!-- `dotnet build -t:Profile`: runs the profile on the Editor's Mono. Pass its options with -p:ProfileArgs="...". -->
+  <Target Name="Profile" DependsOnTargets="Build">
+    <Error Condition="!Exists('$(UnityMono)/bin/mono')" Text="Unity's Mono not found at $(UnityMono). Install Unity $(UnityVersion), or pass -p:UnityEditorApp=/path/to/Unity.app." />
+    <Exec Command="DYLD_FALLBACK_LIBRARY_PATH=&quot;$(UnityEditorApp)/Contents/Frameworks&quot; &quot;$(UnityMono)/bin/mono&quot; -O=-float32 &quot;$(TargetPath)&quot; $(ProfileArgs)"
+          EnvironmentVariables="MONO_PATH=$(UnityProfile)" WorkingDirectory="$(MSBuildThisFileDirectory)" />
+  </Target>
+</Project>

@@ -1,0 +1,60 @@
+<Project>
+  <!--
+    Runs the level generator's tests without the Unity Editor (see README.md). It builds against the Editor's own Mono
+    profile (unityjit) and runs NUnitLite on the Editor's own Mono, with float32 maths off as in the Editor, so the
+    generator makes the very levels Unity makes: under .NET's JIT, float rounding differs and every seed comes out
+    a little different.
+  -->
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <UnityVersion Condition="'$(UnityVersion)' == ''">$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../../ProjectSettings/ProjectVersion.txt')), 'm_EditorVersion: (\S+)').Groups[1].Value)</UnityVersion>
+    <UnityEditorApp Condition="'$(UnityEditorApp)' == ''">/Applications/Unity/Hub/Editor/$(UnityVersion)/Unity.app</UnityEditorApp>
+    <UnityMono>$(UnityEditorApp)/Contents/Resources/Scripting/MonoBleedingEdge</UnityMono>
+    <UnityProfile>$(UnityMono)/lib/mono/unityjit-macos</UnityProfile>
+
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <Optimize>true</Optimize>
+    <IsPackable>false</IsPackable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoStdLib>true</NoStdLib>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+    <FrameworkPathOverride>$(UnityProfile)</FrameworkPathOverride>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>false</GenerateBindingRedirectsOutputType>
+    <NoWarn>CS0618;CS0162;CS0219;CS0414;CS0168;CS8632;NUnit1032;NUnit2005;MSB3277</NoWarn>
+    <LevelGen>$(MSBuildThisFileDirectory)../../Assets/Scripts/LevelGen/</LevelGen>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(UnityProfile)/mscorlib.dll" />
+    <Reference Include="$(UnityProfile)/System.dll" />
+    <Reference Include="$(UnityProfile)/System.Core.dll" />
+    <Reference Include="$(UnityProfile)/Facades/netstandard.dll" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnitLite" Version="3.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Main.cs" />
+    <Compile Include="UnityEngineStub.cs" />
+    <Compile Include="$(LevelGen)Core/**/*.cs" />
+    <!-- Tests/Unity/ needs real GameObjects and materials: only the Unity Test Runner runs it. -->
+    <Compile Include="$(LevelGen)Tests/**/*.cs" Exclude="$(LevelGen)Tests/Unity/**" />
+  </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+  <!-- `dotnet test` runs this target: NUnitLite on the Editor's Mono. Pass NUnitLite options with -p:TestArgs="...". -->
+  <Target Name="VSTest" DependsOnTargets="Build">
+    <Error Condition="!Exists('$(UnityMono)/bin/mono')" Text="Unity's Mono not found at $(UnityMono). Install Unity $(UnityVersion), or pass -p:UnityEditorApp=/path/to/Unity.app." />
+    <!-- DYLD_* is set in the command, not in EnvironmentVariables: macOS strips it from /bin/sh, which runs Exec. The
+         Frameworks folder has libMonoPosixHelper, which DeflateStream (the share codes) needs. -->
+    <Exec Command="DYLD_FALLBACK_LIBRARY_PATH=&quot;$(UnityEditorApp)/Contents/Frameworks&quot; &quot;$(UnityMono)/bin/mono&quot; -O=-float32 &quot;$(TargetPath)&quot; --noresult --where &quot;cat != UnityOnly&quot; $(TestArgs)"
+          EnvironmentVariables="MONO_PATH=$(UnityProfile)" WorkingDirectory="$(OutDir)" />
+  </Target>
+</Project>

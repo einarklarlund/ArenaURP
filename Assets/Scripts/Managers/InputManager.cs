@@ -10,12 +10,19 @@ public class InputManager : MonoBehaviour
 
     public static PlayerControls.PawnControlsActions PawnControls => instance.pawnControls;
 
+    /// <summary>Upgrade picks. Always enabled: picks are made while alive and while waiting to respawn,
+    /// when PawnControls is off. Readers check their own panel is showing.</summary>
+    public static PlayerControls.ProgressionControlsActions ProgressionControls => instance.progressionControls;
+
     private PlayerControls.PawnControlsActions pawnControls;
+    private PlayerControls.ProgressionControlsActions progressionControls;
 
     void Awake()
     {
         var playerControls = new PlayerControls();
         pawnControls = playerControls.PawnControls;
+        progressionControls = playerControls.ProgressionControls;
+        progressionControls.Enable();
 
         instance = this;
     }

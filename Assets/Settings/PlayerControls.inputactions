@@ -34,6 +34,24 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "SecondaryAttack",
+                    "type": "Button",
+                    "id": "18b088a0-bd54-4a80-a64e-c7f98833076d",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Ability",
+                    "type": "Button",
+                    "id": "8ffc90a3-cde5-4f80-b0b7-eedbc2948817",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "Interact",
                     "type": "Button",
                     "id": "852140f2-7766-474d-8707-702459ba45f3",
@@ -97,31 +115,22 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "CycleAbilityPrev",
+                    "name": "Reload",
                     "type": "Button",
-                    "id": "19d943db-afee-45ec-8630-a78a667d8e8d",
+                    "id": "315fb97a-49f8-48db-8327-584a21a74a76",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
                 },
                 {
-                    "name": "CycleAbilityNext",
-                    "type": "Button",
-                    "id": "552856d4-0d66-4f05-9558-c26928dc45e8",
-                    "expectedControlType": "",
+                    "name": "WeaponScroll",
+                    "type": "Value",
+                    "id": "45a6892a-45aa-46f2-a5b0-be12fd5e2905",
+                    "expectedControlType": "Axis",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "UseAbility",
-                    "type": "Button",
-                    "id": "1e443703-1235-4d66-8abb-07b1830809aa",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": true
                 }
             ],
             "bindings": [
@@ -446,17 +455,6 @@
                 },
                 {
                     "name": "",
-                    "id": "1534dc16-a6aa-499d-9c3a-22b47347b52a",
-                    "path": "<Keyboard>/1",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "Previous",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "25060bbd-a3a6-476e-8fba-45ae484aad05",
                     "path": "<Gamepad>/dpad/left",
                     "interactions": "",
@@ -534,34 +532,115 @@
                 },
                 {
                     "name": "",
-                    "id": "322abfd7-468e-476e-893a-a6944d4f570c",
+                    "id": "e4358f66-5c85-475d-9976-dedc583d3d70",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Reload",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "47180b94-000d-4cc5-b017-80cac4847183",
+                    "path": "<Mouse>/rightButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "SecondaryAttack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "9b4bbd21-7e06-4af0-bc48-920943082932",
+                    "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "Ability",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "45d9bbb3-abdd-4372-a474-39481f56a2c9",
                     "path": "<Keyboard>/q",
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "CycleAbilityPrev",
+                    "action": "Previous",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "",
-                    "id": "aaa80466-aaba-4277-b664-8c350327d7da",
+                    "id": "b99e9cd1-c73a-4567-b8a0-7908ef99af10",
                     "path": "<Keyboard>/e",
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "CycleAbilityNext",
+                    "action": "Next",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "",
-                    "id": "43266ae4-a8f8-42a7-825b-6d7c3819e35b",
-                    "path": "<Keyboard>/f",
+                    "id": "4c863861-bf2f-4c17-be53-2d5620432b54",
+                    "path": "<Mouse>/scroll/y",
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "UseAbility",
+                    "action": "WeaponScroll",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "ProgressionControls",
+            "id": "9ee01ffc-0be1-4f37-abc5-3ec05318aa4b",
+            "actions": [
+                {
+                    "name": "UpgradeChoice1",
+                    "type": "Button",
+                    "id": "036833c8-a232-4651-822f-126b5c2fd5df",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "UpgradeChoice2",
+                    "type": "Button",
+                    "id": "ca6a439c-846a-4323-8f01-6acf6373478d",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "a2ea0502-5598-4c95-95e6-032d88e54e5b",
+                    "path": "<Keyboard>/1",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "UpgradeChoice1",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "9cef38ef-bacd-4569-b528-33f99d7d879b",
+                    "path": "<Keyboard>/2",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "UpgradeChoice2",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

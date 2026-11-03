@@ -1,0 +1,217 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87e85cf1473fe4c21ac361780f58c49c, type: 3}
+  m_Name: LevelGenConfig
+  m_EditorClassIdentifier: Arena.LevelGen::Arena.LevelGen.LevelGenConfig
+  seed: 0
+  settings:
+    Width: 100
+    Depth: 100
+    PlotCount: 6
+    MaxHeight: 12
+    CellSize: 0.5
+    Plots:
+      SizeSpread: 0.5
+      Regularity: 0.5
+      MinPlotSide: 8
+      MinSharedEdge: 4
+      HeightStep: 0.5
+    ElevationRange:
+      Target: 0.2
+      Spread: 0.3
+      Skew: 0
+      Tolerance: 0.05
+      Weight: 1
+    ElevationFrequency:
+      Target: 0.3
+      Spread: 0.3
+      Skew: 0
+      Tolerance: 0.05
+      Weight: 1
+    PathStretch:
+      Target: 1.3
+      Tolerance: 0.1
+      Weight: 1
+    LevelElevationRange:
+      Target: 0.3
+      Tolerance: 0.05
+      Weight: 1
+    TransitionWeights:
+      Flat: 1
+      Ledge: 1
+      Cliff: 0.5
+      Ramp: 1
+      Bank: 1
+    TransitionSizes:
+      RampWidth: 3
+      RampMaxSlopeDegrees: 30
+      StairRiserHeight: 0.25
+      CurveFraction: 0.6
+      CurveSegments: 6
+      FlareSlopeDegrees: 40
+    Buildings:
+      MinFloors: 2
+      MaxFloors: 3
+      BigFloorHeight: 5
+      SmallFloorHeight: 4
+      RaisedGroundOdds: 0.3
+      FullPlotOdds: 0.3
+      RoofAccessOdds: 0.5
+      DoorWidth: 2
+      DoorHeight: 2.5
+      WindowSill: 0.9
+      WindowHeight: 2.2
+      MinWindowWidth: 1.5
+      MaxWindowWidth: 2.5
+      BalconyDepth: 2
+      RailingHeight: 1.1
+      SpineWidth: 3
+      MaxInteriorWalls: 3
+      FloorResizeMin: 0.1
+      FloorResizeMax: 0.5
+      FloorGrowOdds: 0.25
+      MinRoomArea: 12
+      MinRoomWidth: 3
+      RoomOffsetOdds: 0.5
+      MinRoomOffset: 0.5
+      MaxRoomOffset: 1.5
+      WallEdgeWeight: 33
+      OpenEdgeWeight: 33
+      RailingEdgeWeight: 34
+    Terrain:
+      SubRoomArea: 35
+      MinOperations: 25
+      MaxOperations: 40
+      MinHeightChange: 1.5
+      MaxHeightChange: 3
+      MinTiltDegrees: 30
+      MaxTiltDegrees: 60
+      MaxGradeDegrees: 120
+      SinkholeDepth: 1.4
+      RaiseWeight: 1
+      TiltWeight: 1
+      RaiseAndTiltWeight: 1
+      SinkholeWeight: 0.5
+      NothingWeight: 0.5
+    Props:
+      Density: 3
+      CarWeight: 1
+      TreeWeight: 1
+      FencedRoomOdds: 0.209
+      MinFencedSides: 1
+      MaxFencedSides: 3
+      FenceMargin: 1.5
+      OldFenceOdds: 0.35
+      MinOldGaps: 1
+      MaxOldGaps: 3
+      MinOldGapWidth: 0.6
+      MaxOldGapWidth: 1.2
+      BuildingFenceOdds: 0.75
+      BuildingFenceMargin: 2
+      EnclosedRoomOdds: 0.3
+      SinkholeFenceOdds: 0.4
+      SinkholeFenceMargin: 0.75
+      MinSinkholeGaps: 2
+      MaxSinkholeGaps: 4
+      BoundaryCarOdds: 0.5
+      CarWallGap: 0.5
+      MinCarSpacing: 1
+      MaxCarSpacing: 3
+      CarSkipOdds: 0.25
+      InteriorPropDensity: 1
+      TableWeight: 1
+      ShelfWeight: 1
+      CrateWeight: 1
+      LampRange: 6
+    Boundary:
+      WallHeight: 50
+      Thickness: 1
+    SpawnPoints: 16
+    SearchBudget:
+      ImproveIterations: 200
+      RetriesPerPlot: 4
+      RetriesPerLevel: 4
+    Player:
+      StepHeight: 0.3
+      JumpHeight: 1
+      EyeHeight: 1.877
+      PlayerHeight: 2
+      MaxSafeDrop: 4
+  props:
+    fences:
+    - prefab: {fileID: 7055473779763800538, guid: af3c1f40415c84355825c335ffff6892, type: 3}
+      shape:
+        Weight: 1
+        Length: 2
+        Width: 0.12
+        Height: 1.2
+        CanopyLength: 0
+        CanopyWidth: 0
+        CanopyBottom: 0
+        CanopyHeight: 0
+    - prefab: {fileID: 8758973499692094823, guid: 83ee117336d794384be3ac12acc6f020, type: 3}
+      shape:
+        Weight: 1
+        Length: 3
+        Width: 0.3
+        Height: 1
+        CanopyLength: 0
+        CanopyWidth: 0
+        CanopyBottom: 0
+        CanopyHeight: 0
+    cars:
+    - prefab: {fileID: 2460944937041697702, guid: be63fc131e95f4a1cabca2076f72e930, type: 3}
+      shape:
+        Weight: 1
+        Length: 4.4
+        Width: 1.8
+        Height: 1.6
+        CanopyLength: 0
+        CanopyWidth: 0
+        CanopyBottom: 0
+        CanopyHeight: 0
+    - prefab: {fileID: 6809199818504418781, guid: 32142f6b837674ad5b7aef464bfe5673, type: 3}
+      shape:
+        Weight: 1
+        Length: 5
+        Width: 2
+        Height: 2.3
+        CanopyLength: 0
+        CanopyWidth: 0
+        CanopyBottom: 0
+        CanopyHeight: 0
+    trees:
+    - prefab: {fileID: 1475811375651016636, guid: 261229298c45242e1a7ccd057ecbf726, type: 3}
+      shape:
+        Weight: 1
+        Length: 0.4
+        Width: 0.4
+        Height: 3.2
+        CanopyLength: 2.8
+        CanopyWidth: 2.8
+        CanopyBottom: 3.2999992
+        CanopyHeight: 2.6000004
+    - prefab: {fileID: 9158603787156750337, guid: 138f756a5f60e46519e178351d2d41ef, type: 3}
+      shape:
+        Weight: 1
+        Length: 0.35
+        Width: 0.35
+        Height: 3.4
+        CanopyLength: 3.11127
+        CanopyWidth: 3.11127
+        CanopyBottom: 3.4
+        CanopyHeight: 2.5
+    tables: []
+    shelves: []
+    crates: []
+    ceilingLights: []
+    wallLights: []

@@ -1,0 +1,19 @@
+{
+  "name": "Arena.LevelGen.Editor",
+  "rootNamespace": "Arena.LevelGen.Editor",
+  "references": [
+    "Arena.LevelGen.Core",
+    "Arena.LevelGen"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

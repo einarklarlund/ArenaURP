@@ -123,6 +123,22 @@ public class SignalManager : MonoBehaviour
         client.Connect(new Uri(SignalAddress));
     }
 
+    /// <summary>
+    /// Replaces the signal socket with a fresh one. The protocol has no message that closes a room:
+    /// the server drops a host's room, and every session routed through it, only when that host's
+    /// socket closes. A host that stops hosting calls this, or its room stays listed and joinable.
+    /// </summary>
+    public void Reconnect()
+    {
+        // Disconnecting does not raise the old client's events: they fire from its message queue,
+        // which is never processed again once `client` points at the new one.
+        client.Disconnect();
+        roomCode = "";
+        trickleRoutes.Clear();
+        pendingSessionTokens.Clear();
+        StartSignalClient();
+    }
+
     private void OnDestroy()
     {
         CanoeWebRTC.OnLocalIceCandidate -= HandleLocalIceCandidate;
