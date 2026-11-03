@@ -6,6 +6,8 @@ namespace Arena.LevelGen
 {
     public enum DecalType : byte
     {
+        // Ledge, DipEdge and MoundEdge are no longer drawn (the blended ground draws those edges); they keep their
+        // values so the themes' per-type decal widths stay in place.
         Ledge = 0,
         DoorFrame = 1,
         WindowFrame = 2,
@@ -35,14 +37,9 @@ namespace Arena.LevelGen
         /// <summary>Width per <see cref="DecalType"/>. A type with width 0 makes no strips. A tree base's width is
         /// <see cref="TreeBaseSize"/>.</summary>
         public float[] Widths;
-        /// <summary>Ledge decals on cliff tops too, not just on ledges and sinkhole rims.</summary>
-        public bool CliffTops;
         public float TreeBaseSize;
         /// <summary>How far outside a car's footprint its surround starts.</summary>
         public float CarMargin;
-        /// <summary>The ground is drawn blended (<see cref="TerrainBlendStage"/>), which makes the dip and mound edges,
-        /// the sinkhole rims and the ledge and cliff lips: they get no strips.</summary>
-        public bool BlendedGround;
 
         public float Width(DecalType t) =>
             t == DecalType.TreeBase ? TreeBaseSize : Widths != null && (int)t < Widths.Length ? Widths[(int)t] : 0f;
@@ -50,7 +47,6 @@ namespace Arena.LevelGen
         public static DecalSettings Default => new()
         {
             Widths = new[] { 0.3f, 0.15f, 0.12f, 0.2f, 0.3f, 0.2f, 0.12f, 0.4f, 0f, 0.25f, 0.3f, 0.3f },
-            CliffTops = false,
             TreeBaseSize = 1.6f,
             CarMargin = 0.3f,
         };
@@ -96,8 +92,6 @@ namespace Arena.LevelGen
             var ground = new GroundSampler(level);
             var context = new Context { Level = level, Ground = ground, Strips = strips, Settings = settings };
 
-            Ledges(context);
-            SubRoomEdges(context);
             foreach (var building in level.Buildings) BuildingDecals(context, building);
             PropDecals(context);
             return strips;
@@ -114,79 +108,6 @@ namespace Arena.LevelGen
         }
 
         // ---------------------------------------------------------------- outdoor ground
-
-        /// <summary>The top edge of every ledge (and cliff, with <c>cliffTops</c>), on the higher plot.</summary>
-        private static void Ledges(Context c)
-        {
-            float w = c.Width(DecalType.Ledge);
-            // Blended ground draws every edge here as a layer instead: ledge and cliff lips, and sinkhole rims.
-            if (w <= 0f || c.Settings.BlendedGround) return;
-            foreach (var t in c.Level.Transitions)
-            {
-                if (!(t.Type == TransitionType.Ledge || (c.Settings.CliffTops && t.Type == TransitionType.Cliff))) continue;
-                var dir = (t.To - t.From).normalized;
-                var normal = new Vector2(-dir.y, dir.x);
-                float Rise(Vector2 at, float off = 0.3f) => c.Ground.Height(at + normal * off) - c.Ground.Height(at - normal * off);
-                // A sloped plot or a ramp beside the ledge can swap which side is higher along it: split it where they
-                // cross, so each piece lies on its own higher side.
-                // Close to the ledge, so a steep ramp beside it puts the cut where the two sides actually meet.
-                float RiseAt(float f) => Rise(Vector2.Lerp(t.From, t.To, f), 0.05f);
-                int samples = Mathf.Max(2, Mathf.CeilToInt((t.To - t.From).magnitude / GroundStep));
-                var cuts = new List<float> { 0f };
-                float last = RiseAt(0.5f / samples);
-                for (int i = 1; i < samples; i++)
-                {
-                    float f = (i + 0.5f) / samples, rise = RiseAt(f);
-                    if (last * rise < 0f)
-                    {
-                        float lo = f - 1f / samples, hi = f;
-                        for (int k = 0; k < 12; k++)
-                        {
-                            float m = (lo + hi) * 0.5f;
-                            if (RiseAt(m) * last < 0f) hi = m;
-                            else lo = m;
-                        }
-                        cuts.Add((lo + hi) * 0.5f);
-                    }
-                    if (!float.IsNaN(rise)) last = rise;
-                }
-                cuts.Add(1f);
-                for (int i = 0; i + 1 < cuts.Count; i++)
-                {
-                    var from = Vector2.Lerp(t.From, t.To, cuts[i]);
-                    var to = Vector2.Lerp(t.From, t.To, cuts[i + 1]);
-                    float rise = Rise((from + to) * 0.5f);
-                    if (float.IsNaN(rise)) continue;
-                    var up = rise >= 0f ? normal : -normal;
-                    GroundBand(c, DecalType.Ledge, -1, w, from, to, from + up * w, to + up * w);
-                }
-            }
-            // Sinkhole rims: round each sinkhole's outline, on the higher ground outside it.
-            foreach (var room in c.Level.SubRooms)
-                if (room.Surface == SurfaceTag.GroundSinkhole)
-                    GroundLoop(c, DecalType.Ledge, -1, w, c.Level.Polygons[room.Polygon], 0f, w);
-        }
-
-        /// <summary>Just inside every dip's and mound's outline.</summary>
-        private static void SubRoomEdges(Context c)
-        {
-            if (c.Settings.BlendedGround) return;
-            foreach (var room in c.Level.SubRooms)
-            {
-                var type = room.Surface switch
-                {
-                    SurfaceTag.GroundDip => DecalType.DipEdge,
-                    SurfaceTag.GroundMound => DecalType.MoundEdge,
-                    _ => (DecalType)255,
-                };
-                if ((int)type == 255) continue;
-                var outline = c.Level.Polygons[room.Polygon];
-                // No wider than a fifth of the sub-room, so the inner edge never crosses itself.
-                float w = Mathf.Min(c.Width(type), 0.2f * Polygon.MinWidth(outline));
-                if (w <= 0f) continue;
-                GroundLoop(c, type, -1, w, outline, 0f, -w);
-            }
-        }
 
         private static void PropDecals(Context c)
         {

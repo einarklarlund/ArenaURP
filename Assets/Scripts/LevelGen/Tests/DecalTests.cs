@@ -13,19 +13,12 @@ namespace Arena.LevelGen.Tests
             return result.Level;
         }
 
-        private static DecalSettings WithCliffTops()
-        {
-            var s = DecalSettings.Default;
-            s.CliffTops = true;
-            return s;
-        }
-
         [Test]
         public void EveryType_Appears_AndEveryStripIsWellFormed()
         {
             var seen = new HashSet<DecalType>();
             for (ulong seed = 0; seed < 6; seed++)
-                foreach (var strip in DecalStage.Build(Generate(seed), WithCliffTops()))
+                foreach (var strip in DecalStage.Build(Generate(seed), DecalSettings.Default))
                 {
                     seen.Add(strip.Type);
                     Assert.GreaterOrEqual(strip.Points.Count, 2);
@@ -36,7 +29,12 @@ namespace Arena.LevelGen.Tests
                     Assert.AreEqual(DecalTypes.IsBuilding(strip.Type), strip.Building >= 0, $"{strip.Type} names its building");
                     foreach (var p in strip.Left) Assert.IsFalse(float.IsNaN(p.y) || float.IsInfinity(p.y));
                 }
-            for (int t = 0; t < DecalTypes.Count; t++) Assert.IsTrue(seen.Contains((DecalType)t), $"{(DecalType)t} appears");
+            for (int t = 0; t < DecalTypes.Count; t++)
+            {
+                // The blended ground draws ledges and sub-room edges itself.
+                bool drawn = (DecalType)t is not (DecalType.Ledge or DecalType.DipEdge or DecalType.MoundEdge);
+                Assert.AreEqual(drawn, seen.Contains((DecalType)t), $"{(DecalType)t} {(drawn ? "appears" : "doesn't appear")}");
+            }
         }
 
         [Test]
@@ -110,56 +108,6 @@ namespace Arena.LevelGen.Tests
                             }
                     }
                 }
-        }
-
-        [Test]
-        public void Ledges_LieOnTheHigherPlot()
-        {
-            int checkedPoints = 0;
-            for (ulong seed = 0; seed < 6; seed++)
-            {
-                var level = Generate(seed);
-                foreach (var strip in DecalStage.Build(level, DecalSettings.Default))
-                {
-                    if (strip.Type != DecalType.Ledge) continue;
-                    // The ledge the strip runs along: one that touches it only at an end (two ledges meeting at a
-                    // corner) is another ledge's.
-                    foreach (var t in level.Transitions)
-                    {
-                        if (t.Type != TransitionType.Ledge
-                            || !strip.Left.TrueForAll(p => Distance(new Vector2(p.x, p.z), t.From, t.To) <= 1e-3f)) continue;
-                        foreach (var p in strip.Left)
-                        {
-                            var xz = new Vector2(p.x, p.z);
-                            // The higher side's ground: its plot's plane, or a ramp or bank beside the ledge.
-                            var normal = (t.To - t.From).normalized;
-                            normal = new Vector2(-normal.y, normal.x) * 0.05f;
-                            float high = Mathf.Max(GroundAt(level, xz + normal), GroundAt(level, xz - normal));
-                            Assert.AreEqual(high, p.y, 0.02f, "a ledge decal lies on the higher plot");
-                            checkedPoints++;
-                        }
-                    }
-                }
-            }
-            Assert.Greater(checkedPoints, 0);
-        }
-
-        /// <summary>The top of the plot and slope prisms over a point (the ground decals are draped on).</summary>
-        private static float GroundAt(LevelDescription level, Vector2 p)
-        {
-            float best = float.NegativeInfinity;
-            foreach (var prim in level.Primitives)
-                if (prim.Shape == PrimitiveShape.Prism && prim.OwnerKind is OwnerKind.Plot or OwnerKind.Transition
-                    && Polygon.Contains(level.Polygons[prim.Polygon], p))
-                    best = Mathf.Max(best, prim.PrismTop(p.x, p.y));
-            return best;
-        }
-
-        private static float Distance(Vector2 p, Vector2 a, Vector2 b)
-        {
-            var ab = b - a;
-            float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / ab.sqrMagnitude);
-            return (a + ab * t - p).magnitude;
         }
     }
 }

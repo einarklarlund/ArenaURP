@@ -258,31 +258,6 @@ namespace Arena.LevelGen.Tests
         }
 
         [Test]
-        public void BlendedGround_LeavesOutEdgeAndRimDecals()
-        {
-            var level = Generate(2);
-            var settings = DecalSettings.Default;
-            settings.BlendedGround = true;
-            var plain = DecalStage.Build(level, DecalSettings.Default);
-            var blended = DecalStage.Build(level, settings);
-            Assert.IsTrue(plain.Exists(s => s.Type is DecalType.DipEdge or DecalType.MoundEdge));
-            Assert.IsFalse(blended.Exists(s => s.Type is DecalType.DipEdge or DecalType.MoundEdge));
-            Assert.Less(blended.FindAll(s => s.Type == DecalType.Ledge).Count, plain.FindAll(s => s.Type == DecalType.Ledge).Count,
-                "no sinkhole rims");
-        }
-
-        [Test]
-        public void Plan_UsesHeightMaterialsWithoutTheBlendShader()
-        {
-            var level = HeightFixture(0f, Vector2.right);
-            var keys = BuildPlan.Create(level, new BuildOptions { BuildDecals = false }).Groups[0].Mesh.Keys;
-            CollectionAssert.Contains(keys, SurfaceKey.Of(SurfaceTag.Ground, default));
-            CollectionAssert.Contains(keys, SurfaceKey.Of(SurfaceTag.GroundMound, default));
-            CollectionAssert.Contains(keys, SurfaceKey.Of(SurfaceTag.GroundDip, default));
-            CollectionAssert.DoesNotContain(keys, SurfaceKey.BlendedGround);
-        }
-
-        [Test]
         public void Plan_ThemeThresholdsAndBlendingNeverChangeCollisionGeometry()
         {
             var level = HeightFixture(0f, Vector2.right);
@@ -291,12 +266,12 @@ namespace Arena.LevelGen.Tests
             var originalNormals = new List<Vector3>();
             var originalTriangles = new List<int>();
             PrimitiveMesher.Append(level.Primitives[0], level, originalVertices, originalNormals, originalTriangles);
-            for (int mode = 0; mode < 3; mode++)
+            foreach (bool moved in new[] { false, true })
             {
                 var blend = TerrainBlendSettings.Default;
-                blend.HillThreshold = mode == 2 ? 1.2f : 0.5f;
-                blend.ValleyThreshold = mode == 2 ? 0.8f : 0.5f;
-                var group = BuildPlan.Create(level, new BuildOptions { BlendedGround = mode != 0, Blend = blend, BuildDecals = false }).Groups[0];
+                blend.HillThreshold = moved ? 1.2f : 0.5f;
+                blend.ValleyThreshold = moved ? 0.8f : 0.5f;
+                var group = BuildPlan.Create(level, new BuildOptions { Blend = blend, BuildDecals = false }).Groups[0];
                 Assert.IsNotNull(group.CollisionVertices, "split tops get a collision mesh of their own");
                 CollectionAssert.AreEqual(originalVertices, group.CollisionVertices);
                 CollectionAssert.AreEqual(originalTriangles, group.CollisionTriangles);
@@ -395,7 +370,7 @@ namespace Arena.LevelGen.Tests
         public void Plan_DrawsGroundWithLayers()
         {
             var level = Generate(1);
-            var plan = BuildPlan.Create(level, new BuildOptions { BlendedGround = true, BuildDecals = false });
+            var plan = BuildPlan.Create(level, new BuildOptions { BuildDecals = false });
             int groundTriangles = 0, mixed = 0;
             foreach (var group in plan.Groups)
             {

@@ -1,8 +1,9 @@
 // The generated level's blended ground (see Arena.LevelGen.TerrainMaterial and TerrainBlendStage). Every triangle
 // carries up to three layers in TEXCOORD3 (the same on all three of its vertices) and per-vertex blend weights
 // in its colour. The weights interpolate across each height band or sinkhole rim. A pixel samples the layers' slices of the
-// albedo and normal arrays, one per corner (once when the corners agree), and mixes them by weight, sharpened by each
-// layer's brightness so the edge breaks up along the texture instead of fading evenly. Lit like Simple Lit (Blinn-Phong).
+// albedo and normal arrays (baked by TerrainBake in the Editor), once per distinct layer, and mixes them by weight,
+// sharpened by each layer's brightness so the edge breaks up along the texture instead of fading evenly. Lit like Simple
+// Lit (Blinn-Phong).
 Shader "Arena/Level Terrain"
 {
     Properties
@@ -204,8 +205,12 @@ Shader "Arena/Level Terrain"
                 half smoothness = a.smoothness;
                 [branch] if (any(input.layers.yz != input.layers.xx))
                 {
-                    Layer b = SampleLayer(input.uv, input.layers.y);
-                    Layer c = SampleLayer(input.uv, input.layers.z);
+                    // Many blend triangles carry only two layers: sample each distinct layer once.
+                    Layer b = a;
+                    [branch] if (input.layers.y != input.layers.x) b = SampleLayer(input.uv, input.layers.y);
+                    Layer c = b;
+                    if (input.layers.z == input.layers.x) c = a;
+                    else [branch] if (input.layers.z != input.layers.y) c = SampleLayer(input.uv, input.layers.z);
                     // Height blend: each corner's weight is raised by its texture's brightness, and only what comes
                     // within a contrast-dependent depth of the strongest survives.
                     half3 heights = half3(Luminance(a.albedo.rgb), Luminance(b.albedo.rgb), Luminance(c.albedo.rgb));

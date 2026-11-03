@@ -11,10 +11,7 @@ namespace Arena.LevelGen
     {
         public const int DefaultMaxRealLights = 16;
 
-        /// <summary>Ground tops, slopes and cliff faces share one blended-ground submesh, with each vertex's layers.
-        /// Otherwise each split top piece takes its strongest layer's tag.</summary>
-        public bool BlendedGround;
-        /// <summary>Without <see cref="BlendedGround"/>, its blend widths are taken as 0: hard boundaries.</summary>
+        /// <summary>How the blended ground (ground tops, slopes and cliff faces, in one submesh) fades between layers.</summary>
         public TerrainBlendSettings Blend = TerrainBlendSettings.Default;
         public bool BuildDecals = true;
         public DecalSettings Decals = DecalSettings.Default;

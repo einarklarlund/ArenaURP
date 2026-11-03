@@ -21,7 +21,6 @@ namespace Arena.LevelGen.Tests
         {
             var theme = ScriptableObject.CreateInstance<LevelTheme>();
             var material = new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard")) { color = color };
-            theme.ground = theme.cliffFace = theme.ramp = theme.bank = material;
             for (int i = 0; i < profiles; i++)
                 theme.buildingProfiles.Add(new BuildingMaterialProfile { name = $"P{i}", floor = material, outerWallOutside = material });
             return theme;
@@ -205,31 +204,28 @@ namespace Arena.LevelGen.Tests
         }
 
         [Test]
-        public void Builder_UsesHeightMaterialsWithoutTheBlendShader()
+        public void Builder_DrawsGroundBlended_WithoutABakedTerrain([Values(false, true)] bool themed)
         {
             var level = new LevelDescription();
             int polygon = level.AddPolygon(new[] { new Vector2(10, 20), new Vector2(14, 20), new Vector2(14, 24), new Vector2(10, 24) });
             level.Plots.Add(new PlotDescription { Id = 0, Polygon = polygon, BaseHeight = 3f });
             level.AddPrism(PrimitiveRole.Floor, polygon, -10f, 3f, Vector2.right, OwnerKind.Plot, 0,
                 Surfaces.Of(SurfaceTag.Ground, SurfaceTag.CliffFace, SurfaceTag.CliffFace));
-            var theme = ScriptableObject.CreateInstance<LevelTheme>();
-            var shader = Shader.Find("Universal Render Pipeline/Simple Lit");
-            theme.ground = new Material(shader);
-            theme.groundMound = new Material(shader);
-            theme.groundDip = new Material(shader);
-            var root = LevelBuilder.Build(level, null, "Height materials", theme, decals: false);
+            var theme = themed ? ScriptableObject.CreateInstance<LevelTheme>() : null;
+            var root = LevelBuilder.Build(level, null, "Placeholder terrain", theme, decals: false);
             try
             {
                 var materials = root.GetComponentInChildren<MeshRenderer>().sharedMaterials;
-                CollectionAssert.Contains(materials, theme.ground);
-                CollectionAssert.Contains(materials, theme.groundMound);
-                CollectionAssert.Contains(materials, theme.groundDip);
+                var terrain = System.Array.Find(materials, m => m != null && m.shader.name == "Arena/Level Terrain");
+                Assert.IsNotNull(terrain, "ground and cliffs are always blended");
+                Assert.AreEqual(1, materials.Length, "nothing else on a plain plot");
+                Assert.AreEqual(TerrainLayers.Count, ((Texture2DArray)terrain.GetTexture("_AlbedoArray")).depth,
+                    "a placeholder colour per layer");
             }
             finally
             {
                 LevelBuilder.Teardown(root);
-                Object.DestroyImmediate(theme.ground); Object.DestroyImmediate(theme.groundMound);
-                Object.DestroyImmediate(theme.groundDip); Object.DestroyImmediate(theme);
+                if (theme != null) Object.DestroyImmediate(theme);
             }
         }
     }

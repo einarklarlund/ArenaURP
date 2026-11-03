@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94c210263073344c3abc363a2f842993, type: 3}
   m_Name: Weathered Town 128
   m_EditorClassIdentifier: Arena.LevelGen::Arena.LevelGen.LevelTheme
-  ground: {fileID: 2100000, guid: 80762bff4f6ab4d8da798bf8ef235865, type: 2}
-  groundMound: {fileID: 2100000, guid: 6705d299bd7304449ab0143db4368214, type: 2}
-  groundDip: {fileID: 2100000, guid: d7ef1f1db676943e099d603719711271, type: 2}
-  groundSinkhole: {fileID: 2100000, guid: d0c345d597b9b4e8d8bfcfcad8fc9ffa, type: 2}
-  cliffFace: {fileID: 2100000, guid: 45219edd5056249c98499d244e111364, type: 2}
-  ramp: {fileID: 2100000, guid: 04e1564b29cb543e39cf52be904f466c, type: 2}
-  rampSide: {fileID: 2100000, guid: 46049caea00fb433c99ad5bc50c7aa3f, type: 2}
-  bank: {fileID: 2100000, guid: dc4016350cf5d437b95ff30e087f0e72, type: 2}
   boundaryWall: {fileID: 2100000, guid: 74eb2c10b97734019800dbfe962e3bff, type: 2}
   propPlaceholder: {fileID: 2100000, guid: e49e0bc4837124ecbbc2f8b095c776c4, type: 2}
+  terrain: {fileID: 2100000, guid: da82c8e4ef912405b87f5bb0c9526741, type: 2}
+  rimBlendWidth: 0.4
+  hillHeightThreshold: 0.5
+  valleyHeightThreshold: 0.5
+  hillBlendWidth: 0.25
+  valleyBlendWidth: 0.25
+  slopeEdgeBlendWidth: 0.5
+  cliffLipWidth: 0.4
   buildingProfiles:
   - name: Brick
     floor: {fileID: 2100000, guid: 3bbc5e2b6a00946649b00b1df63e883b, type: 2}
@@ -83,12 +83,8 @@ MonoBehaviour:
     wallCorner: {fileID: 2100000, guid: ff92b715eccec4a2da5733cc332f3f10, type: 2}
     floorSkirting: {fileID: 2100000, guid: 8aad21b222a2a49ea99e8716cf474f10, type: 2}
     groundSkirting: {fileID: 2100000, guid: 87fcbd766292d4cb9a5612afdc13c836, type: 2}
-  ledge: {fileID: 2100000, guid: fa906911c69254637aab1846bab26b27, type: 2}
   treeBase: {fileID: 2100000, guid: 8319df4d2a3804ebbbfb974a5535e4d7, type: 2}
   carSurround: {fileID: 2100000, guid: 897f721b3f7d04fa1a7db41f113dbb12, type: 2}
-  dipEdge: {fileID: 2100000, guid: 2f21dca30815449c4b9ad0326ba0e26c, type: 2}
-  moundEdge: {fileID: 2100000, guid: 528d15682c3d54ff0bd2ee770eaf40b2, type: 2}
-  cliffTopLedges: 0
   treeBaseSize: 1.6
   carMargin: 0.3
   decalWidths:
@@ -104,3 +100,9 @@ MonoBehaviour:
   - 0.25
   - 0.3
   - 0.3
+  lightFixture: {fileID: 0}
+  roomLight: {r: 1, g: 0.95, b: 0.85, a: 1}
+  entranceLight: {r: 1, g: 0.85, b: 0.6, a: 1}
+  porchLight: {r: 1, g: 0.8, b: 0.55, a: 1}
+  lightIntensity: 1.5
+  maxRealLights: 16

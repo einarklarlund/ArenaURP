@@ -70,8 +70,6 @@ namespace Arena.LevelGen
         /// <summary>The theme's and catalogue's choices that change what gets built.</summary>
         public static BuildOptions Options(LevelTheme theme, PropCatalogue props, bool decals) => new()
         {
-            // Exactly when TerrainMaterial.For gives a material, without building its texture arrays.
-            BlendedGround = theme != null && theme.terrain != null,
             Blend = theme != null ? theme.TerrainBlend() : TerrainBlendSettings.Default,
             BuildDecals = decals,
             Decals = theme != null ? theme.Decals() : DecalSettings.Default,
@@ -203,7 +201,6 @@ namespace Arena.LevelGen
 
         public static Color DecalColor(DecalType type) => type switch
         {
-            DecalType.Ledge => new Color(0.9f, 0.85f, 0.2f),
             DecalType.DoorFrame => new Color(0.95f, 0.95f, 0.95f),
             DecalType.WindowFrame => new Color(0.2f, 0.3f, 0.9f),
             DecalType.WallToCeiling => new Color(0.9f, 0.4f, 0.1f),
@@ -213,7 +210,6 @@ namespace Arena.LevelGen
             DecalType.GroundSkirting => new Color(0.25f, 0.2f, 0.15f),
             DecalType.TreeBase => new Color(0.35f, 0.22f, 0.1f),
             DecalType.CarSurround => new Color(0.95f, 0.95f, 0.3f),
-            DecalType.DipEdge => new Color(0.1f, 0.35f, 0.5f),
             _ => new Color(0.8f, 0.7f, 0.3f),
         };
 

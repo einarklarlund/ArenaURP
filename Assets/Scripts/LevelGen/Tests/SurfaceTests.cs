@@ -139,18 +139,17 @@ namespace Arena.LevelGen.Tests
             ulong hash = level.ComputeHash();
             List<List<Vector3>> reference = null;
             foreach (int profiles in new[] { 0, 1, 3 })
-                foreach (bool blended in new[] { false, true })
+            {
+                var plan = BuildPlan.Create(level, new BuildOptions { ProfileCount = profiles });
+                Assert.AreEqual(hash, level.ComputeHash(), "planning with a theme leaves the description alone");
+                var colliders = plan.Groups.FindAll(g => g.Mesh != null).ConvertAll(g => g.CollisionVertices ?? g.Mesh.Vertices);
+                if (reference == null) reference = colliders;
+                else
                 {
-                    var plan = BuildPlan.Create(level, new BuildOptions { ProfileCount = profiles, BlendedGround = blended });
-                    Assert.AreEqual(hash, level.ComputeHash(), "planning with a theme leaves the description alone");
-                    var colliders = plan.Groups.FindAll(g => g.Mesh != null).ConvertAll(g => g.CollisionVertices ?? g.Mesh.Vertices);
-                    if (reference == null) reference = colliders;
-                    else
-                    {
-                        Assert.AreEqual(reference.Count, colliders.Count);
-                        for (int i = 0; i < colliders.Count; i++) CollectionAssert.AreEqual(reference[i], colliders[i]);
-                    }
+                    Assert.AreEqual(reference.Count, colliders.Count);
+                    for (int i = 0; i < colliders.Count; i++) CollectionAssert.AreEqual(reference[i], colliders[i]);
                 }
+            }
         }
 
         [Test]

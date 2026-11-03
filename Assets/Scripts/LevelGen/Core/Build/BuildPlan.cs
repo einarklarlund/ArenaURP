@@ -141,14 +141,8 @@ namespace Arena.LevelGen
                 groups[index].primitives.Add(i);
             }
 
-            var blend = options.Blend;
-            // Plain materials use the same thresholds, with hard boundaries instead of shader blends.
-            if (!options.BlendedGround)
-            {
-                blend.HillBlendWidth = 0f; blend.ValleyBlendWidth = 0f; blend.RimWidth = 0f;
-            }
             StageProfiler.Begin("Terrain blend");
-            var split = TerrainBlendStage.Build(description, blend);
+            var split = TerrainBlendStage.Build(description, options.Blend);
             StageProfiler.End();
 
             foreach (var (kind, id, primitives) in groups)
@@ -163,7 +157,7 @@ namespace Arena.LevelGen
                 if (kind == OwnerKind.Building) group.Profile = ArtDraws.ProfileIndex(description.Seed, id, options.ProfileCount);
                 // The boundary walls are 50 tall: their shadows would fall across the whole level.
                 group.CastShadows = kind != OwnerKind.Boundary;
-                MeshGroup(group, primitives, description, split, options.BlendedGround);
+                MeshGroup(group, primitives, description, split);
                 plan.Groups.Add(group);
             }
 
@@ -177,14 +171,14 @@ namespace Arena.LevelGen
             options.Props != null && options.Props.HasPrefab(prop.Kind, prop.Variant);
 
         private static void MeshGroup(PlanGroup group, List<int> primitives, LevelDescription description,
-            Dictionary<int, List<BlendTriangle>> split, bool blended)
+            Dictionary<int, List<BlendTriangle>> split)
         {
             var mesh = group.Mesh = new PlanMesh();
             var vertices = mesh.Vertices;
             var normals = mesh.Normals;
             // Every triangle goes to one index list; its key goes alongside.
             var triangles = mesh.Triangles;
-            // With blended ground, each ground triangle's corners' layers, in triangle order.
+            // Each blended-ground triangle's corners' layers, in triangle order.
             var groundLayers = new List<(int triangle, BlendTriangle layers)>();
             bool replacedTops = false;
 
@@ -195,9 +189,9 @@ namespace Arena.LevelGen
                 bool isSplit = split.TryGetValue(i, out var pieces);
                 PrimitiveMesher.Append(p, description, vertices, normals, tag =>
                 {
-                    // A height-classified top is replaced by its pieces below, including without the blend shader.
+                    // A height-classified top is replaced by its pieces below.
                     if (isSplit && tag == p.Surfaces.Top) return null;
-                    if (!blended || !TerrainLayers.TryOf(tag, out var layer))
+                    if (!TerrainLayers.TryOf(tag, out var layer))
                     {
                         mesh.TriangleKeys.Add(mesh.KeyIndex(SurfaceKey.Of(tag, role)));
                         return triangles;
@@ -208,7 +202,7 @@ namespace Arena.LevelGen
                 });
                 if (!isSplit) continue;
                 replacedTops = true;
-                if (blended) mesh.KeyIndex(SurfaceKey.BlendedGround);
+                mesh.KeyIndex(SurfaceKey.BlendedGround);
                 var up = new Vector3(-p.Slope.x, 1f, -p.Slope.y).normalized;
                 foreach (var piece in pieces)
                 {
@@ -228,19 +222,8 @@ namespace Arena.LevelGen
                     normals.Add(up);
                     normals.Add(up);
                     normals.Add(up);
-                    SurfaceKey key;
-                    if (blended)
-                    {
-                        key = SurfaceKey.BlendedGround;
-                        groundLayers.Add((mesh.TriangleKeys.Count, t));
-                    }
-                    else
-                    {
-                        var w = t.WeightA + t.WeightB + t.WeightC;
-                        var layer = w.y > w.x && w.y >= w.z ? t.Layer1 : w.z > w.x ? t.Layer2 : t.Layer0;
-                        key = SurfaceKey.Of(TerrainLayers.TagOf(layer), role);
-                    }
-                    mesh.TriangleKeys.Add(mesh.KeyIndex(key));
+                    groundLayers.Add((mesh.TriangleKeys.Count, t));
+                    mesh.TriangleKeys.Add(mesh.KeyIndex(SurfaceKey.BlendedGround));
                     triangles.Add(start);
                     triangles.Add(start + 1);
                     triangles.Add(start + 2);
@@ -338,8 +321,6 @@ namespace Arena.LevelGen
             StageProfiler.Begin("Decals");
             Decals = DecalStage.Build(description, options.Decals);
             StageProfiler.End();
-            // Legacy sub-room outlines no longer describe the height-based hill/valley material boundaries.
-            Decals.RemoveAll(strip => strip.Type is DecalType.DipEdge or DecalType.MoundEdge);
             DecalProfiles = new List<int>(Decals.Count);
             foreach (var strip in Decals)
                 DecalProfiles.Add(DecalTypes.IsBuilding(strip.Type)

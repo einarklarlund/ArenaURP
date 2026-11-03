@@ -92,13 +92,12 @@ namespace Arena.LevelGen.Tests
         }
 
         [Test]
-        public void Decals_LeaveOutEdges_AndBuildingStripsCarryTheirProfile()
+        public void Decals_LeaveOutGroundEdges_AndBuildingStripsCarryTheirProfile()
         {
             var level = Generate(2);
             var plan = BuildPlan.Create(level, new BuildOptions { ProfileCount = 3 });
-            Assert.IsTrue(DecalStage.Build(level, DecalSettings.Default).Exists(s => s.Type is DecalType.DipEdge or DecalType.MoundEdge),
-                "the pass has edges to leave out");
-            Assert.IsFalse(plan.Decals.Exists(s => s.Type is DecalType.DipEdge or DecalType.MoundEdge));
+            Assert.IsFalse(plan.Decals.Exists(s => s.Type is DecalType.Ledge or DecalType.DipEdge or DecalType.MoundEdge),
+                "the blended ground draws ledges and sub-room edges");
             Assert.AreEqual(plan.Decals.Count, plan.DecalProfiles.Count);
             int building = 0;
             for (int i = 0; i < plan.Decals.Count; i++)

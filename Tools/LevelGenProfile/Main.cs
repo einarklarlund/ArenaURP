@@ -188,7 +188,7 @@ public static class Program
 
             timer.Restart();
             StageProfiler.Begin("Build plan");
-            var plan = BuildPlan.Create(level, new BuildOptions { BlendedGround = true });
+            var plan = BuildPlan.Create(level, new BuildOptions());
             StageProfiler.End();
             run.PlanMs = timer.Elapsed.TotalMilliseconds;
             run.PlanHash = PlanHash(plan);

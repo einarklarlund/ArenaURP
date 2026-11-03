@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e088049b405d547efa3a82885dada1a4, type: 3}
+  m_Name: Terrain Bake Source
+  m_EditorClassIdentifier: Arena.LevelGen.Editor::Arena.LevelGen.Editor.TerrainBakeSource
+  theme: {fileID: 11400000, guid: fa7b56785461a4e3ca5e8e1b104cc17c, type: 2}
+  template: {fileID: 2100000, guid: 9da0d1dd7b3d2415881823559a12df25, type: 2}
+  layerSize: 128
+  ground: {fileID: 2100000, guid: 80762bff4f6ab4d8da798bf8ef235865, type: 2}
+  mound: {fileID: 2100000, guid: 6705d299bd7304449ab0143db4368214, type: 2}
+  dip: {fileID: 2100000, guid: d7ef1f1db676943e099d603719711271, type: 2}
+  sinkhole: {fileID: 2100000, guid: d0c345d597b9b4e8d8bfcfcad8fc9ffa, type: 2}
+  rim: {fileID: 0}
+  ramp: {fileID: 2100000, guid: 04e1564b29cb543e39cf52be904f466c, type: 2}
+  bank: {fileID: 2100000, guid: dc4016350cf5d437b95ff30e087f0e72, type: 2}
+  rampSide: {fileID: 2100000, guid: 46049caea00fb433c99ad5bc50c7aa3f, type: 2}
+  cliff: {fileID: 2100000, guid: 45219edd5056249c98499d244e111364, type: 2}
+  bakedHash: 944cc95c82eded159f89153d154ee990
