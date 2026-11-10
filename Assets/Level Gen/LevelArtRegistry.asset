@@ -15,5 +15,5 @@ MonoBehaviour:
   presets:
   - {fileID: 11400000, guid: 5160bfff91f64429a800ade914e1b16d, type: 2}
   themes:
-  - {fileID: 11400000, guid: 29074902e694c47dfa121234eb8492e1, type: 2}
+  - {fileID: 11400000, guid: fa7b56785461a4e3ca5e8e1b104cc17c, type: 2}
   - {fileID: 11400000, guid: 524e73c6ba5e44913ba2debab3a1e9f9, type: 2}
