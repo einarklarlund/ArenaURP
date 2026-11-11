@@ -154,7 +154,7 @@ MonoBehaviour:
   roomManager: {fileID: 1132027635}
   offlineSceneName: Offline
   debugSceneName: Debug
-  EnforceBuildStage: 1
+  EnforceBuildStage: 0
 --- !u!4 &118122607
 Transform:
   m_ObjectHideFlags: 0
@@ -984,6 +984,10 @@ PrefabInstance:
     - target: {fileID: 2759550055670053713, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: targetHeight
       value: 768
+      objectReference: {fileID: 0}
+    - target: {fileID: 3582128505264071028, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
+      propertyPath: WasActiveDuringEdit
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7545244800630251120, guid: 84c3d588af3ce4bf8adc4f3360bf6137, type: 3}
       propertyPath: m_LocalPosition.x

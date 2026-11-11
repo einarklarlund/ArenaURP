@@ -60,7 +60,7 @@ Transform:
   m_GameObject: {fileID: 3015136927240068084}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.877, z: 0}
+  m_LocalPosition: {x: 0, y: 1.7777778, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -156,7 +156,7 @@ MonoBehaviour:
   _clientAuthoritative: 1
   _sendToOwner: 1
   _interval: 1
-  _synchronizePosition: 1
+  _synchronizePosition: 0
   _positionSensitivity: 0.001
   _positionSnapping:
     X: 0
@@ -341,15 +341,37 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 2049
   config:
-    MaxSpeedXZ: 12.5
-    SpeedUpTime: 0.075
-    SlowDownTime: 0.075
-    AirSpeedBonus: 5
-    AirControlDivisor: 12
-    JumpHeight: 1.5
-    MarioJumpTime: 0.2
-    JumpBufferWindow: 0.3
-    Gravity: -20
+    MetersPerUnit: 0.027777778
+    TickInterval: 0.015
+    NormalSpeed: 228
+    SprintSpeed: 384
+    InputSpeed: 450
+    MaxVelocity: 3500
+    Accelerate: 10
+    Friction: 4
+    StopSpeed: 100
+    StepSize: 18
+    MinGroundNormalY: 0.7
+    AirAccelerate: 10
+    AirSpeedCap: 30
+    Gravity: 600
+    JumpSpeed: 240
+    JumpBufferTime: 0.1
+    NonJumpVelocity: 140
+    JumpForwardBoost: 1
+    HullWidth: 32
+    StandHeight: 72
+    CrouchHeight: 36
+    StandEyeHeight: 64
+    CrouchEyeHeight: 28
+    TimeToDuck: 0.4
+    TimeToUnduck: 0.2
+    CrouchSpeedScale: 0.33333334
+    SprintDrainPerSecond: 50
+    JumpEnergyCost: 25
+    SuitChargePerSecond: 25
+    SuitRechargeDelay: 0.25
+    SprintMinPower: 10
     GroundMask:
       serializedVersion: 2
       m_Bits: 1
@@ -461,7 +483,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584078690998377778
+  _initializedTimestamp: -8584072445558223218
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1

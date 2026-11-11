@@ -28,6 +28,7 @@
     <GenerateBindingRedirectsOutputType>false</GenerateBindingRedirectsOutputType>
     <NoWarn>CS0618;CS0162;CS0219;CS0414;CS0168;CS8632;NUnit1032;NUnit2005;MSB3277</NoWarn>
     <LevelGen>$(MSBuildThisFileDirectory)../../Assets/Scripts/LevelGen/</LevelGen>
+    <Movement>$(MSBuildThisFileDirectory)../../Assets/Scripts/Pawn/Movement/</Movement>
   </PropertyGroup>
 
   <ItemGroup>
@@ -45,6 +46,9 @@
     <Compile Include="$(LevelGen)Core/**/*.cs" />
     <!-- Tests/Unity/ needs real GameObjects and materials: only the Unity Test Runner runs it. -->
     <Compile Include="$(LevelGen)Tests/**/*.cs" Exclude="$(LevelGen)Tests/Unity/**" />
+    <!-- The pawn's HL2 movement maths and its tests. CharacterControllerBody needs real physics. -->
+    <Compile Include="$(Movement)Core/**/*.cs" Exclude="$(Movement)Core/CharacterControllerBody.cs" />
+    <Compile Include="$(Movement)Tests/**/*.cs" />
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />

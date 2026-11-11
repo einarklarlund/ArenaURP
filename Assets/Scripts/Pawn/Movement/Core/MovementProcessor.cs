@@ -1,359 +1,334 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Stateless processor that advances movement simulation by one step.
-/// Pure apart from the ground probe against the physics scene.
+/// Advances pawn movement by one fixed tick: Half-Life 2's player movement (Source SDK 2013
+/// CGameMovement::PlayerMove and FullWalkMove, with HL2's sprint and crouch), on an <see cref="IMovementBody"/>.
+/// The order of steps matters and follows Source's: for example, a jump leaves the ground before friction runs, so
+/// jumping again on landing loses no speed to friction.
 /// </summary>
 public static class MovementProcessor
 {
-    // Shrinks the ground probe so it starts clear of the ground it rests on; a cast ignores what it starts inside.
-    private const float ProbeShrink = 0.05f;
-    // How far above resting height the ground still holds the character, and is snapped down to. Deeper drops
-    // are ledges to walk off.
-    private const float MaxSnapDistance = 0.15f;
+    // Main thread only
+    private static readonly List<Vector3> Hits = new();
+    private static readonly List<Vector3> Planes = new();
 
-    /// <summary>
-    /// Advance the movement simulation by one tick.
-    /// </summary>
-    /// <param name="controllerState">The CharacterController as it stands this tick.</param>
-    /// <param name="input">Player controls for this tick.</param>
-    /// <param name="config">Movement tuning parameters.</param>
-    /// <param name="jump">Jump state carried between ticks; updated in place.</param>
-    /// <param name="impulse">Sum of external impulses to apply this tick (added after velocity scaling).</param>
-    /// <param name="speedMultiplier">Scales max speed on the ground and in the air (e.g. 1.125 for +12.5%).
-    /// Acceleration scales with it, so reaching full speed takes as long as before.</param>
-    /// <param name="deltaTime">Time step for this tick.</param>
-    /// <param name="snapVelocity">Extra velocity that pulls the character down onto the ground this tick. It
-    /// isn't momentum: move by it too, and pass it back as <see cref="MovementState.SnapVelocity"/>.</param>
-    /// <returns>The velocity to move the CharacterController at this tick.</returns>
-    public static Vector3 Process(
-        in MovementState controllerState,
+    /// <param name="state">Carried between ticks; updated in place.</param>
+    /// <param name="body">The hull to move.</param>
+    /// <param name="input">Controls for this tick.</param>
+    /// <param name="config">Tuning, in Source units.</param>
+    /// <param name="yaw">Which way the pawn faces.</param>
+    /// <param name="speedMultiplier">Scales max speed (e.g. 1.125 for +12.5%). Acceleration is in proportion to the
+    /// wish speed, so reaching full speed takes as long as before.</param>
+    /// <param name="impulse">Velocity change (m/s) from outside since the last tick, such as knockback.</param>
+    /// <param name="dt">Tick length; <see cref="MovementConfig.TickInterval"/> for HL2's feel.</param>
+    public static void Tick(
+        ref MovementState state,
+        IMovementBody body,
         in MovementInputData input,
         in MovementConfig config,
-        ref JumpState jump,
-        Vector3 impulse,
+        Quaternion yaw,
         float speedMultiplier,
-        float deltaTime,
-        out Vector3 snapVelocity)
+        Vector3 impulse,
+        float dt)
     {
-        MovementState state = controllerState;
-        // Last tick's snap moved the character, but isn't momentum
-        state.Velocity -= state.SnapVelocity;
-        // Nor is what the CharacterController adds on its own, popping up a step or out of a seam; it can only
-        // take vertical speed away (landing, ceilings)
-        state.Velocity.y = Mathf.Min(state.Velocity.y, Mathf.Max(state.RequestedVelocity.y, 0f));
+        float u = config.MetersPerUnit;
 
-        // --- Combine modifiers ---
-        float walkSpeedMult = speedMultiplier;
-        float walkAccelMult = 1f;
-        float jumpMult = 1f;
-        float gravMult = 1f;
-        float preImpulseVelMult = 1f;
-        float effectiveMaxSpeed = config.MaxSpeedXZ * walkSpeedMult;
-        float effectiveAirMaxSpeed = (config.MaxSpeedXZ + config.AirSpeedBonus) * walkSpeedMult;
-
-        // A jump or knockback lasts until the character starts falling
-        if (state.Velocity.y <= 0f)
+        // Game code changed the velocity: see where that leaves us, as PlayerMove does when game code moved the player.
+        // Knocked upward faster than NonJumpVelocity, the pawn leaves the ground.
+        if (impulse != Vector3.zero)
         {
-            jump.IsLaunched = false;
+            state.Velocity += impulse;
+            CategorizePosition(ref state, body, config);
         }
 
-        // --- Ground ---
-        bool isGrounded = TryGetGround(state, config, jump.IsLaunched, out Vector3 groundNormal);
+        UpdateSprint(ref state, input, config, dt);
 
-        // --- Velocity along the ground (the XZ plane in the air) ---
-        float activeMaxSpeedXZ = isGrounded ? effectiveMaxSpeed : effectiveAirMaxSpeed;
-        Vector3 planarVelocity = CalculatePlanarVelocity(
-            state, config, input, isGrounded, groundNormal, deltaTime, activeMaxSpeedXZ, effectiveMaxSpeed, walkAccelMult);
+        float maxSpeed = (state.IsSprinting ? config.SprintSpeed : config.NormalSpeed) * u * speedMultiplier;
+        Vector2 move = SourceMovement.InputMove(input.Move, config.InputSpeed * u * speedMultiplier, maxSpeed);
 
-        // --- Vertical velocity ---
-        float velocityY = CalculateYVelocity(
-            ref jump, state, config, input, isGrounded,
-            deltaTime, jumpMult, gravMult);
+        Duck(ref state, body, input.Crouch, config, dt);
+        // HandleDuckingSpeedCrop
+        if (state.IsDucked && state.IsGrounded)
+            move *= config.CrouchSpeedScale;
 
-        // Jumping: leave the slope plane, or running downhill would cancel the jump
-        if (isGrounded && velocityY > 0f)
+        // --- FullWalkMove ---
+        StartGravity(ref state, config, dt);
+
+        // A fresh press starts the buffer; a buffered press stands in for a fresh one until it runs out
+        if (input.JumpPressed || (input.Jump && !state.JumpWasHeld))
+            state.JumpBuffer = config.JumpBufferTime;
+
+        if (input.Jump || state.JumpBuffer > 0f)
+            CheckJumpButton(ref state, config, yaw, move.y, maxSpeed, dt);
+
+        if (state.IsGrounded)
         {
-            planarVelocity = Flatten(planarVelocity);
+            state.Velocity.y = 0f;
+            state.Velocity = SourceMovement.ApplyFriction(state.Velocity, config.Friction, config.StopSpeed * u, 0.1f * u, dt);
         }
 
-        // --- Combine ---
-        Vector3 finalVelocity = planarVelocity + Vector3.up * velocityY;
+        state.Velocity = SourceMovement.ClampVelocity(state.Velocity, config.MaxVelocity * u);
 
-        // --- Pre-impulse velocity scaling ---
-        finalVelocity *= preImpulseVelMult;
+        if (state.IsGrounded)
+            WalkMove(ref state, body, config, yaw, move, maxSpeed, dt);
+        else
+            AirMove(ref state, body, config, yaw, move, maxSpeed, dt);
 
-        // --- Apply external impulses ---
-        finalVelocity += impulse;
+        CategorizePosition(ref state, body, config);
 
-        if ((isGrounded && velocityY > 0f) || impulse.y > 0f)
-        {
-            jump.IsLaunched = true;
-        }
+        state.Velocity = SourceMovement.ClampVelocity(state.Velocity, config.MaxVelocity * u);
 
-        // --- Stay on the ground ---
-        snapVelocity = isGrounded && !jump.IsLaunched
-            ? SnapToGround(finalVelocity, state, config, deltaTime)
-            : Vector3.zero;
+        FinishGravity(ref state, config, dt);
 
-        Debug.DrawRay(state.Position, finalVelocity * 0.1f, Color.white);
+        if (state.IsGrounded)
+            state.Velocity.y = 0f;
 
-        return finalVelocity;
+        // FinishMove: this tick's buttons are next tick's old buttons
+        state.JumpWasHeld = input.Jump;
+        state.JumpBuffer = Mathf.Max(0f, state.JumpBuffer - dt);
+
+        float eyeUnits = Mathf.Lerp(config.StandEyeHeight, config.CrouchEyeHeight, SourceMovement.SimpleSpline(state.DuckFraction));
+        state.EyeHeight = eyeUnits * u;
     }
 
-    /// <summary>
-    /// Calculates this frame's velocity along the plane with normal <paramref name="groundNormal"/>:
-    /// the ground's slope when grounded, the XZ plane in the air.
-    /// </summary>
-    private static Vector3 CalculatePlanarVelocity(
-        in MovementState state,
-        in MovementConfig config,
-        in MovementInputData input,
-        bool isGrounded,
-        Vector3 groundNormal,
-        float deltaTime,
-        float activeMaxSpeedXZ,
-        float effectiveMaxSpeed,
-        float accelMult)
+    // Gravity is applied in two halves around the move, which integrates a constant fall exactly.
+    private static void StartGravity(ref MovementState state, in MovementConfig config, float dt)
     {
-        Vector3 previousVelocity = Vector3.ProjectOnPlane(state.Velocity, groundNormal);
+        state.Velocity.y -= config.Gravity * config.MetersPerUnit * 0.5f * dt;
+    }
 
-        Vector3 inputDirection = new(input.Move.x, 0f, input.Move.y);
-        inputDirection = Vector3.ClampMagnitude(inputDirection, 1f);
+    private static void FinishGravity(ref MovementState state, in MovementConfig config, float dt)
+    {
+        state.Velocity.y -= config.Gravity * config.MetersPerUnit * 0.5f * dt;
+    }
 
-        // Drag (grounded, no input)
-        if (inputDirection == Vector3.zero && isGrounded)
+    private static void CheckJumpButton(ref MovementState state, in MovementConfig config, Quaternion yaw, float forwardMove,
+        float maxSpeed, float dt)
+    {
+        if (!state.IsGrounded)
+            return;
+
+        // Don't pogo stick: holding jump doesn't jump again, unless the press that is held is still buffered
+        if (state.JumpWasHeld && state.JumpBuffer <= 0f)
+            return;
+
+        // Can't jump while standing up from a crouch
+        if (state.IsDucked && state.DuckFraction < 1f)
+            return;
+
+        // Jumping costs suit power, and blocks its recharge as sprinting does
+        if (config.JumpEnergyCost > 0f)
         {
-            float dragAcceleration = activeMaxSpeedXZ / config.SlowDownTime;
-            float deltaSpeedFromDrag = dragAcceleration * deltaTime;
+            if (state.SuitPower < config.JumpEnergyCost)
+                return;
+            state.SuitPower -= config.JumpEnergyCost;
+            state.SuitRechargeWait = config.SuitRechargeDelay;
+        }
 
-            if (previousVelocity.magnitude - deltaSpeedFromDrag <= deltaSpeedFromDrag)
+        state.IsGrounded = false;
+        state.GroundNormal = Vector3.up;
+        state.JumpBuffer = 0f;
+
+        // Crouched or on the way down (m_bDucking || FL_DUCKING): the jump sets the upward speed instead of adding to it
+        float jumpSpeed = config.JumpSpeed * config.MetersPerUnit;
+        if (state.IsDucked || state.DuckFraction > 0f)
+            state.Velocity.y = jumpSpeed;
+        else
+            state.Velocity.y += jumpSpeed;
+
+        if (config.JumpForwardBoost)
+            state.Velocity = SourceMovement.JumpForwardBoost(state.Velocity, yaw, forwardMove, maxSpeed, state.IsSprinting || state.IsDucked);
+
+        // The jump tick gets this extra half of gravity in Source too
+        FinishGravity(ref state, config, dt);
+    }
+
+    private static void WalkMove(ref MovementState state, IMovementBody body, in MovementConfig config, Quaternion yaw,
+        Vector2 move, float maxSpeed, float dt)
+    {
+        float u = config.MetersPerUnit;
+        SourceMovement.SplitWish(SourceMovement.WishVelocity(yaw, move), maxSpeed, out Vector3 wishDir, out float wishSpeed);
+
+        state.Velocity.y = 0f;
+        state.Velocity = SourceMovement.Accelerate(state.Velocity, wishDir, wishSpeed, config.Accelerate, dt);
+        state.Velocity.y = 0f;
+
+        if (state.Velocity.magnitude < 1f * u)
+        {
+            state.Velocity = Vector3.zero;
+            return;
+        }
+
+        // Velocity on the ground is flat. Moving along the ground's tilt by its full flat length walks slopes at full
+        // speed, as Source's step-up move does.
+        Vector3 normal = state.GroundNormal;
+        Vector3 displacement = state.Velocity * dt;
+        displacement.y = -(normal.x * displacement.x + normal.z * displacement.z) / normal.y;
+
+        Hits.Clear();
+        Vector3 moved = body.Move(displacement, Hits);
+
+        // The CharacterController climbs steps by itself; only what cut the flat move short slows the pawn
+        Vector2 wanted = new(displacement.x, displacement.z);
+        Vector2 got = new(moved.x, moved.z);
+        if ((wanted - got).magnitude > 1e-4f + wanted.magnitude * 0.01f)
+        {
+            CollectPlanes(Hits, config.MinGroundNormalY);
+            state.Velocity = SourceMovement.ClipToPlanes(state.Velocity, Planes);
+        }
+
+        body.StayOnGround(config.StepSize * u, config.MinGroundNormalY);
+    }
+
+    private static void AirMove(ref MovementState state, IMovementBody body, in MovementConfig config, Quaternion yaw,
+        Vector2 move, float maxSpeed, float dt)
+    {
+        SourceMovement.SplitWish(SourceMovement.WishVelocity(yaw, move), maxSpeed, out Vector3 wishDir, out float wishSpeed);
+        state.Velocity = SourceMovement.AirAccelerate(state.Velocity, wishDir, wishSpeed, config.AirAccelerate,
+            config.AirSpeedCap * config.MetersPerUnit, dt);
+
+        Hits.Clear();
+        body.Move(state.Velocity * dt, Hits);
+
+        if (Hits.Count > 0)
+        {
+            CollectPlanes(Hits, float.PositiveInfinity);
+            state.Velocity = SourceMovement.ClipToPlanes(state.Velocity, Planes);
+        }
+    }
+
+    /// <summary>Distinct hit normals flatter than <paramref name="maxNormalY"/> (ground is excluded on the ground,
+    /// where velocity is flat anyway) into <see cref="Planes"/>.</summary>
+    private static void CollectPlanes(List<Vector3> hits, float maxNormalY)
+    {
+        Planes.Clear();
+        foreach (Vector3 normal in hits)
+        {
+            if (normal.y >= maxNormalY)
+                continue;
+
+            bool duplicate = false;
+            foreach (Vector3 plane in Planes)
             {
-                return Vector3.zero;
+                if (Vector3.Dot(plane, normal) > 0.99f)
+                {
+                    duplicate = true;
+                    break;
+                }
             }
 
-            return Vector3.ClampMagnitude(
-                previousVelocity,
-                previousVelocity.magnitude - deltaSpeedFromDrag);
+            if (!duplicate)
+                Planes.Add(normal);
         }
+    }
 
-        // No drag (airborne, no input)
-        if (inputDirection == Vector3.zero && !isGrounded)
+    /// <summary>CategorizePosition(): on the ground if standable ground is within 2 units below, unless rising faster
+    /// than <see cref="MovementConfig.NonJumpVelocity"/>.</summary>
+    private static void CategorizePosition(ref MovementState state, IMovementBody body, in MovementConfig config)
+    {
+        float u = config.MetersPerUnit;
+        if (state.Velocity.y > config.NonJumpVelocity * u)
         {
-            return previousVelocity;
+            state.IsGrounded = false;
+            state.GroundNormal = Vector3.up;
+            return;
         }
 
-        // Acceleration (input present)
-        // Tilted onto the slope at full length, so walking up or down it is as fast as on flat ground
-        Vector3 inputDirectionWorld = state.Rotation * inputDirection;
-        inputDirectionWorld = Vector3.ProjectOnPlane(inputDirectionWorld, groundNormal).normalized * inputDirectionWorld.magnitude;
-        Vector3 inputVelocity = inputDirectionWorld * activeMaxSpeedXZ;
-        float walkAcceleration = activeMaxSpeedXZ / config.SpeedUpTime * accelMult;
-
-        if (!isGrounded)
-        {
-            walkAcceleration /= config.AirControlDivisor;
-        }
-
-        float deltaSpeedFromInput = walkAcceleration * deltaTime;
-        Vector3 deltaVelocity = Vector3.ClampMagnitude(
-            inputVelocity - previousVelocity, deltaSpeedFromInput);
-
-        // Final clamp uses base max speed (not air-boosted), matching original behaviour.
-        // Airborne, speed already above that (e.g. from knockback impulses) isn't cut off: it
-        // can only be steered or slowed by input, and carries until landing, where the grounded
-        // clamp takes over.
-        float clampSpeed = isGrounded
-            ? effectiveMaxSpeed
-            : Mathf.Max(effectiveMaxSpeed, previousVelocity.magnitude);
-        return Vector3.ClampMagnitude(previousVelocity + deltaVelocity, clampSpeed);
+        state.IsGrounded = body.ProbeGround(2f * u, config.MinGroundNormalY, out state.GroundNormal);
     }
 
     /// <summary>
-    /// Calculates vertical (Y) velocity for this frame.
+    /// HL2's crouch. On the ground the view lowers over <see cref="MovementConfig.TimeToDuck"/> and the hull shrinks
+    /// at the end; in the air it shrinks at once with the top kept in place, tucking the legs up, which is what makes
+    /// crouch-jumping reach higher. Standing up needs room for the full hull.
     /// </summary>
-    private static float CalculateYVelocity(
-        ref JumpState jump,
-        in MovementState state,
-        in MovementConfig config,
-        in MovementInputData input,
-        bool isGrounded,
-        float deltaTime,
-        float jumpMult,
-        float gravMult)
+    private static void Duck(ref MovementState state, IMovementBody body, bool crouch, in MovementConfig config, float dt)
     {
-        // Track jump press timing
-        if (input.Jump)
-        {
-            jump.TimeSinceJumpPressed = 0f;
-        }
-        else
-        {
-            jump.TimeSinceJumpPressed += deltaTime;
-            // Interrupt mario jump on release
-            jump.MarioJumpInterrupted = true;
-        }
+        float u = config.MetersPerUnit;
 
-        if (!isGrounded)
+        if (crouch)
         {
-            return GetAerialYVelocity(ref jump, state, config, deltaTime, jumpMult, gravMult);
-        }
-        else
-        {
-            return GetGroundedYVelocity(ref jump, config, deltaTime, jumpMult);
-        }
-    }
+            state.DuckFraction = Mathf.Min(1f, state.DuckFraction + dt / config.TimeToDuck);
 
-    private static float GetAerialYVelocity(
-        ref JumpState jump,
-        in MovementState state,
-        in MovementConfig config,
-        float deltaTime,
-        float jumpMult,
-        float gravMult)
-    {
-        float yVelocity = state.Velocity.y;
+            if (!state.IsDucked && (!state.IsGrounded || state.DuckFraction >= 1f))
+            {
+                if (body.TrySetHeight(config.CrouchHeight * u, keepTop: !state.IsGrounded))
+                {
+                    state.IsDucked = true;
+                    state.DuckFraction = 1f;
+                    if (!state.IsGrounded)
+                        CategorizePosition(ref state, body, config);
+                }
+            }
 
-        jump.TimeSinceJumpBegan += deltaTime;
-
-        // Continue mario jump if not interrupted and within time window and y velocity is not greater than jump y velocity
-        var jumpYVelocity = GetJumpYVelocity(config, jumpMult);
-        if (!jump.MarioJumpInterrupted && jump.TimeSinceJumpBegan <= config.MarioJumpTime && yVelocity <= jumpYVelocity)
-        {
-            yVelocity = GetJumpYVelocity(config, jumpMult);
+            return;
         }
 
-        // Apply gravity
-        yVelocity += config.Gravity * gravMult * deltaTime;
-        return yVelocity;
-    }
-
-    private static float GetGroundedYVelocity(
-        ref JumpState jump,
-        in MovementConfig config,
-        float deltaTime,
-        float jumpMult)
-    {
-        jump.TimeSinceJumpBegan += deltaTime;
-
-        bool isJumpBuffered = jump.TimeSinceJumpPressed <= config.JumpBufferWindow;
-
-        if (isJumpBuffered)
+        if (!state.IsDucked)
         {
-            jump.MarioJumpInterrupted = false;
-            jump.TimeSinceJumpBegan = 0f;
-            // Consume the buffered press so it doesn't fire again
-            jump.TimeSinceJumpPressed = JumpState.JumpTimeNotSet;
-            return GetJumpYVelocity(config, jumpMult);
+            // Let go before the hull shrank
+            state.DuckFraction = Mathf.Max(0f, state.DuckFraction - dt / config.TimeToUnduck);
+            return;
         }
 
-        return 0f;
+        float standHeight = config.StandHeight * u;
+
+        if (!state.IsGrounded)
+        {
+            if (body.TrySetHeight(standHeight, keepTop: true))
+            {
+                state.IsDucked = false;
+                state.DuckFraction = 0f;
+                CategorizePosition(ref state, body, config);
+            }
+
+            return;
+        }
+
+        if (!body.HasRoomForHeight(standHeight, keepTop: false))
+            return;
+
+        state.DuckFraction = Mathf.Max(0f, state.DuckFraction - dt / config.TimeToUnduck);
+        if (state.DuckFraction <= 0f && body.TrySetHeight(standHeight, keepTop: false))
+            state.IsDucked = false;
     }
 
     /// <summary>
-    /// Rotates a velocity onto the XZ plane, keeping its speed.
+    /// HL2's sprint: starts on a press with enough suit power, stops on release, crouching, or running out. Sprinting
+    /// while moving drains suit power; it recharges after a short wait once sprinting stops.
     /// </summary>
-    private static Vector3 Flatten(Vector3 velocity)
+    private static void UpdateSprint(ref MovementState state, in MovementInputData input, in MovementConfig config, float dt)
     {
-        return Vector3.ProjectOnPlane(velocity, Vector3.up).normalized * velocity.magnitude;
+        bool pressed = input.Sprint && !state.SprintWasHeld;
+        state.SprintWasHeld = input.Sprint;
+        bool unlimited = config.SprintDrainPerSecond <= 0f;
+
+        if (state.IsSprinting && (!input.Sprint || state.IsDucked || (!unlimited && state.SuitPower <= 0f)))
+        {
+            state.IsSprinting = false;
+            state.SuitRechargeWait = config.SuitRechargeDelay;
+        }
+        else if (!state.IsSprinting && pressed && !state.IsDucked && (unlimited || state.SuitPower >= config.SprintMinPower))
+        {
+            state.IsSprinting = true;
+        }
+
+        if (state.IsSprinting)
+        {
+            Vector3 flat = state.Velocity;
+            flat.y = 0f;
+            if (!unlimited && flat.sqrMagnitude > config.MetersPerUnit * config.MetersPerUnit)
+                state.SuitPower = Mathf.Max(0f, state.SuitPower - config.SprintDrainPerSecond * dt);
+            return;
+        }
+
+        if (state.SuitRechargeWait > 0f)
+        {
+            state.SuitRechargeWait -= dt;
+            return;
+        }
+
+        state.SuitPower = Mathf.Min(MovementConfig.MaxSuitPower, state.SuitPower + config.SuitChargePerSecond * dt);
     }
-
-    /// <summary>
-    /// Jump velocity derived from desired peak height: v = sqrt(-1 * h * g).
-    /// </summary>
-    public static float GetJumpYVelocity(in MovementConfig config, float jumpMult = 1f)
-    {
-        return Mathf.Sqrt(-1f * config.JumpHeight * config.Gravity) * jumpMult;
-    }
-
-    /// <summary>
-    /// Whether the capsule rests on walkable ground, and that ground's normal (straight up when it doesn't).
-    /// Sphere-casts the bottom of the capsule down rather than trusting CharacterController.isGrounded, which
-    /// only sees ground the capsule hit while moving down, so never while walking up a slope. The cast's normal
-    /// is the contact's: it tilts gradually as the capsule rolls over an edge, so walking follows the edge
-    /// instead of leaving it.
-    /// </summary>
-    private static bool TryGetGround(in MovementState state, in MovementConfig config, bool isLaunched, out Vector3 normal)
-    {
-        normal = Vector3.up;
-
-        // Rising from a jump or knockback: the probe can still reach the ground for a few frames
-        if (isLaunched)
-        {
-            return false;
-        }
-
-        // At rest the capsule floats SkinWidth off the ground, measured along the ground's normal.
-        float restGap = state.SkinWidth + ProbeShrink;
-        float maxSlopeCos = Mathf.Cos(state.SlopeLimit * Mathf.Deg2Rad);
-        Vector3 origin = state.Position + Vector3.up * state.Radius;
-
-        bool hasHit = Physics.SphereCast(
-            origin,
-            state.Radius - ProbeShrink,
-            Vector3.down,
-            out RaycastHit hit,
-            restGap / maxSlopeCos + MaxSnapDistance,
-            config.GroundMask,
-            QueryTriggerInteraction.Ignore
-        );
-
-        float slopeCos = hasHit ? Vector3.Dot(hit.normal, Vector3.up) : 0f;
-        bool isGrounded = hasHit
-            && slopeCos >= maxSlopeCos
-            && hit.distance <= restGap / slopeCos + MaxSnapDistance;
-
-        Debug.DrawRay(origin, Vector3.down * (state.Radius + restGap / maxSlopeCos + MaxSnapDistance),
-            isGrounded ? Color.cyan : Color.magenta);
-
-        if (isGrounded)
-        {
-            normal = hit.normal;
-            Debug.DrawRay(hit.point, hit.normal * 0.5f, Color.yellow);
-        }
-
-        return isGrounded;
-    }
-
-    /// <summary>
-    /// The velocity that lowers a grounded move so it ends resting on the ground instead of hovering over it.
-    /// Walking along the ground's tilt overshoots wherever the ground bends down, as over the top of a ramp, and a wall
-    /// that blocks a move up a slope lifts the capsule off it.
-    /// </summary>
-    private static Vector3 SnapToGround(Vector3 velocity, in MovementState state, in MovementConfig config, float deltaTime)
-    {
-        float restGap = state.SkinWidth + ProbeShrink;
-        float maxSlopeCos = Mathf.Cos(state.SlopeLimit * Mathf.Deg2Rad);
-        Vector3 endOrigin = state.Position + Vector3.up * state.Radius + velocity * deltaTime;
-
-        if (
-            !Physics.SphereCast(
-                endOrigin,
-                state.Radius - ProbeShrink,
-                Vector3.down,
-                out RaycastHit hit,
-                restGap / maxSlopeCos + MaxSnapDistance,
-                config.GroundMask,
-                QueryTriggerInteraction.Ignore
-            )
-        )
-        {
-            return Vector3.zero;
-        }
-
-        float slopeCos = Vector3.Dot(hit.normal, Vector3.up);
-        if (slopeCos < maxSlopeCos)
-        {
-            return Vector3.zero;
-        }
-
-        float hover = hit.distance - restGap / slopeCos;
-        if (hover <= 0f || hover > MaxSnapDistance)
-        {
-            return Vector3.zero;
-        }
-
-        return Vector3.down * (hover / deltaTime);
-    }
-
 }

@@ -14,4 +14,5 @@
   <Project Path="ParrelSync.csproj" />
   <Project Path="CanoeWebRTC.csproj" />
   <Project Path="Arena.LevelGen.Editor.csproj" />
+  <Project Path="Arena.Movement.Tests.csproj" />
 </Solution>

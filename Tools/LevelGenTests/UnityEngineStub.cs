@@ -8,6 +8,7 @@ namespace UnityEngine {
   public class RangeAttribute : Attribute { public RangeAttribute(float a, float b) {} }
   public class TooltipAttribute : Attribute { public TooltipAttribute(string s) {} }
   public class HeaderAttribute : Attribute { public HeaderAttribute(string s) {} }
+  public struct LayerMask { public int value; }
   public class MinAttribute : Attribute { public MinAttribute(float a) {} }
   public class SerializeField : Attribute {}
   public static class Debug { public static void Log(object o) {} public static void LogWarning(object o) {} public static void LogError(object o) {} }

@@ -69,16 +69,26 @@ public class Pawn : NetworkBehaviour
     private bool _isReceivingUserInput;
     private float _horizontalRotation = 0f;
     private float _verticalRotation = 0f;
-    private JumpState _jumpState = JumpState.Default;
     private bool _isPaused = false;
     // Server only: this life's despawn has dropped its weapons (see OnDespawnServer).
     private bool _despawnHandled;
-    // Knockback received since the last Move(), consumed by MovementProcessor as one impulse. Owner only.
+    // Knockback received since the last movement tick, consumed by MovementProcessor as one impulse. Owner only.
     private Vector3 _pendingImpulse;
-    // What MovementProcessor asked the CharacterController for last tick. Owner only.
-    private Vector3 _requestedVelocity;
-    // What MovementProcessor asked for last tick to pull the character onto the ground. Owner only.
-    private Vector3 _snapVelocity;
+    // Movement runs in fixed ticks of config.TickInterval, as HL2's does. Owner only.
+    private MovementState _movement;
+
+    /// <summary>Suit power (shown as "Energy") from 0 to 1. Only meaningful on the owner, which runs movement.</summary>
+    public float SuitPowerFraction => _movement.SuitPower / MovementConfig.MaxSuitPower;
+    private CharacterControllerBody _body;
+    private float _tickAccumulator;
+    // Jump was pressed since the last tick, so a tap between two ticks still jumps.
+    private bool _jumpLatched;
+    private bool _jumpPressedLatched;
+    // Feet and eye height before and after the last tick, to draw the camera between them.
+    private Vector3 _previousFeet;
+    private Vector3 _currentFeet;
+    private float _previousEyeHeight;
+    private float _currentEyeHeight;
     // Follow each weapon's synced hold; see Weapon.ApplyHold.
     private Weapon _primaryWeapon;
     private Weapon _secondaryWeapon;
@@ -295,6 +305,8 @@ public class Pawn : NetworkBehaviour
     {
         base.OnStartNetwork();
 
+        ResetMovement();
+
         _syncedHeldSlot.OnChange += OnSyncedHeldSlotChanged;
 
         // Weapons whose holds arrived before this pawn spawned here.
@@ -404,8 +416,7 @@ public class Pawn : NetworkBehaviour
 
         // Pawns are pooled: don't carry knockback or movement into the next life.
         _pendingImpulse = Vector3.zero;
-        _requestedVelocity = Vector3.zero;
-        _snapVelocity = Vector3.zero;
+        ResetMovement();
         _ownerHeldSlot = Weapon.Slot.Primary;
         _pendingPickup = null;
         _lastScrollAt = float.NegativeInfinity;
@@ -519,7 +530,10 @@ public class Pawn : NetworkBehaviour
         return new MovementInputData
         {
             Move = InputManager.PawnControls.Move.ReadValue<Vector2>(),
-            Jump = InputManager.PawnControls.Jump.IsPressed(),
+            Jump = InputManager.PawnControls.Jump.IsPressed() || InputManager.PawnControls.Jump.WasPressedThisFrame(),
+            JumpPressed = InputManager.PawnControls.Jump.WasPressedThisFrame(),
+            Crouch = InputManager.PawnControls.Crouch.IsPressed(),
+            Sprint = InputManager.PawnControls.Sprint.IsPressed(),
             Look = look,
         };
     }
@@ -746,39 +760,72 @@ public class Pawn : NetworkBehaviour
 
     // --------------------- MOVEMENT ---------------------
 
+    // A long frame runs at most this much movement, instead of a burst of ticks.
+    private const float MaxMovementCatchUp = 0.25f;
+
     private void Move(MovementInputData inputData)
     {
         // We're using NetworkTransform to sync Pawns' movement over the network,
         // which requires the the CharacterController to be disabled.
         if (!IsOwner)
             return;
-        
-        MovementState state = new MovementState
+
+        float tick = config.TickInterval;
+        _jumpLatched |= inputData.Jump;
+        _jumpPressedLatched |= inputData.JumpPressed;
+        _tickAccumulator = Mathf.Min(_tickAccumulator + Time.deltaTime, MaxMovementCatchUp);
+
+        while (_tickAccumulator >= tick)
         {
-            Velocity = controller.velocity,
-            RequestedVelocity = _requestedVelocity,
-            SnapVelocity = _snapVelocity,
-            Position = controller.transform.TransformPoint(controller.center) - Vector3.up * (controller.height / 2f),
-            Radius = controller.radius,
-            SkinWidth = controller.skinWidth,
-            SlopeLimit = controller.slopeLimit,
-            Rotation = transform.rotation,
-        };
+            _tickAccumulator -= tick;
 
-        _requestedVelocity = MovementProcessor.Process
-        (
-            in state,
-            in inputData,
-            in config,
-            ref _jumpState,
-            _pendingImpulse,
-            MoveSpeedMultiplier,
-            Time.deltaTime,
-            out _snapVelocity
-        );
-        _pendingImpulse = Vector3.zero;
+            MovementInputData tickInput = inputData;
+            tickInput.Jump = _jumpLatched;
+            tickInput.JumpPressed = _jumpPressedLatched;
+            _jumpLatched = inputData.Jump;
+            _jumpPressedLatched = false;
 
-        controller.Move((_requestedVelocity + _snapVelocity) * Time.deltaTime);
+            _previousFeet = _body.Feet;
+            _previousEyeHeight = _movement.EyeHeight;
+
+            MovementProcessor.Tick(ref _movement, _body, in tickInput, in config, transform.rotation,
+                MoveSpeedMultiplier, _pendingImpulse, tick);
+            _pendingImpulse = Vector3.zero;
+
+            _currentFeet = _body.Feet;
+            _currentEyeHeight = _movement.EyeHeight;
+        }
+
+        // Ticks don't line up with frames: draw the view between the last two
+        float alpha = _tickAccumulator / tick;
+        Vector3 feet = Vector3.Lerp(_previousFeet, _currentFeet, alpha);
+        float eyeHeight = Mathf.Lerp(_previousEyeHeight, _currentEyeHeight, alpha);
+        cameraTransform.position = feet + Vector3.up * eyeHeight;
+    }
+
+    // Unity forwards collisions from CharacterController.Move here; movement uses them to slide along walls.
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        _body?.OnHit(hit);
+    }
+
+    /// <summary>Sizes the CharacterController to the standing hull and starts movement afresh.</summary>
+    private void ResetMovement()
+    {
+        float u = config.MetersPerUnit;
+        controller.radius = config.HullWidth * u / 2f;
+        controller.height = config.StandHeight * u;
+        controller.center = Vector3.up * (controller.height / 2f);
+        controller.stepOffset = config.StepSize * u;
+        controller.slopeLimit = Mathf.Acos(config.MinGroundNormalY) * Mathf.Rad2Deg;
+
+        _body = new CharacterControllerBody(controller, config.GroundMask);
+        _movement = MovementState.Initial(config);
+        _tickAccumulator = 0f;
+        _jumpLatched = false;
+        _jumpPressedLatched = false;
+        _previousFeet = _currentFeet = _body.Feet;
+        _previousEyeHeight = _currentEyeHeight = _movement.EyeHeight;
     }
 
 

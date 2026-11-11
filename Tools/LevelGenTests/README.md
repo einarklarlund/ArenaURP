@@ -10,6 +10,9 @@ csprojs) against `UnityEngineStub.cs`, a managed stand-in for the UnityEngine ma
 - `Tests/Unity/`: smoke tests that need real GameObjects, materials and shaders. Run them in the Unity Test Runner.
 - Tests marked `[Category("UnityOnly")]`.
 
+It also builds the pawn's HL2 movement (`Assets/Scripts/Pawn/Movement/Core`, minus `CharacterControllerBody.cs`) and
+its tests; run only those with `-p:TestArgs=--test=SourceMovementTests`.
+
 The Unity Test Runner still runs the whole suite. The Editor needn't be open, only installed.
 
 ## Why it runs on the Editor's Mono

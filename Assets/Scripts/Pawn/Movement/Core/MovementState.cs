@@ -1,32 +1,46 @@
 using UnityEngine;
 
 /// <summary>
-/// Snapshot of the CharacterController this frame, before it moves.
+/// Everything movement carries from one tick to the next. Velocity is in m/s.
 /// </summary>
 [System.Serializable]
 public struct MovementState
 {
-    /// <summary>CharacterController velocity of the player.</summary>
     public Vector3 Velocity;
 
-    /// <summary>Velocity the processor asked the CharacterController for last tick.</summary>
-    public Vector3 RequestedVelocity;
+    public bool IsGrounded;
 
-    /// <summary>Snap velocity the processor asked for last tick, on top of <see cref="RequestedVelocity"/>.</summary>
-    public Vector3 SnapVelocity;
+    /// <summary>Normal of the ground under the pawn; straight up when airborne.</summary>
+    public Vector3 GroundNormal;
 
-    /// <summary>World position of the bottom of the capsule, where the ground probes start.</summary>
-    public Vector3 Position;
+    /// <summary>Jump was held last tick. A jump needs a fresh press (Source's "don't pogo stick").</summary>
+    public bool JumpWasHeld;
 
-    /// <summary>Radius of the capsule.</summary>
-    public float Radius;
+    /// <summary>Seconds left on a buffered jump press; see <see cref="MovementConfig.JumpBufferTime"/>.</summary>
+    public float JumpBuffer;
 
-    /// <summary>Gap the CharacterController keeps between the capsule and what it touches.</summary>
-    public float SkinWidth;
+    /// <summary>The hull is crouch-sized (Source's FL_DUCKING).</summary>
+    public bool IsDucked;
 
-    /// <summary>Steepest ground the CharacterController can walk on, in degrees.</summary>
-    public float SlopeLimit;
+    /// <summary>How far the view has gone from standing (0) to crouched (1), by time.</summary>
+    public float DuckFraction;
 
-    /// <summary>Yaw rotation of the character, used to transform local move input to world space.</summary>
-    public Quaternion Rotation;
+    public bool IsSprinting;
+    public bool SprintWasHeld;
+
+    /// <summary>HL2 suit power, 0 to <see cref="MovementConfig.MaxSuitPower"/>.</summary>
+    public float SuitPower;
+
+    /// <summary>Seconds until suit power starts recharging.</summary>
+    public float SuitRechargeWait;
+
+    /// <summary>Eye height above the feet in metres, for the camera.</summary>
+    public float EyeHeight;
+
+    public static MovementState Initial(in MovementConfig config) => new()
+    {
+        GroundNormal = Vector3.up,
+        SuitPower = MovementConfig.MaxSuitPower,
+        EyeHeight = config.StandEyeHeight * config.MetersPerUnit,
+    };
 }

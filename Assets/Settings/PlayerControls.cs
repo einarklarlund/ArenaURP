@@ -596,6 +596,17 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
+                    ""id"": ""3055335f-0c7f-4081-a2dd-5e50cff7093c"",
+                    ""path"": ""<Keyboard>/leftCtrl"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Crouch"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""c7bf9dcf-7707-4c66-97b1-1230a1b09d05"",
                     ""path"": ""<Keyboard>/p"",
                     ""interactions"": """",
