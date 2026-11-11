@@ -174,7 +174,7 @@ public static class MovementProcessor
         Vector2 got = new(moved.x, moved.z);
         if ((wanted - got).magnitude > 1e-4f + wanted.magnitude * 0.01f)
         {
-            CollectPlanes(Hits, config.MinGroundNormalY);
+            CollectPlanes(Hits, config.MinGroundNormalY, state.Velocity);
             state.Velocity = SourceMovement.ClipToPlanes(state.Velocity, Planes);
         }
 
@@ -193,19 +193,22 @@ public static class MovementProcessor
 
         if (Hits.Count > 0)
         {
-            CollectPlanes(Hits, float.PositiveInfinity);
+            CollectPlanes(Hits, float.PositiveInfinity, state.Velocity);
             state.Velocity = SourceMovement.ClipToPlanes(state.Velocity, Planes);
         }
     }
 
     /// <summary>Distinct hit normals flatter than <paramref name="maxNormalY"/> (ground is excluded on the ground,
-    /// where velocity is flat anyway) into <see cref="Planes"/>.</summary>
-    private static void CollectPlanes(List<Vector3> hits, float maxNormalY)
+    /// where velocity is flat anyway) into <see cref="Planes"/>, keeping only surfaces the velocity goes into.
+    /// The CharacterController also reports surfaces it only touches, such as a ceiling while falling away from it;
+    /// clipping against those would cancel velocity going away from them. Source's traces only hit surfaces they
+    /// move into.</summary>
+    private static void CollectPlanes(List<Vector3> hits, float maxNormalY, Vector3 velocity)
     {
         Planes.Clear();
         foreach (Vector3 normal in hits)
         {
-            if (normal.y >= maxNormalY)
+            if (normal.y >= maxNormalY || Vector3.Dot(velocity, normal) >= 0f)
                 continue;
 
             bool duplicate = false;

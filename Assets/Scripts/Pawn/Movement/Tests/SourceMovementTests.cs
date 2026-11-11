@@ -62,6 +62,50 @@ public class SourceMovementTests
         }
     }
 
+    /// <summary>Open air under a ceiling the hull stays in touch with, reporting it on every move, as the
+    /// CharacterController does while touching it.</summary>
+    private sealed class TouchingCeiling : IMovementBody
+    {
+        public Vector3 Feet = new(0f, 1000f, 0f);
+
+        public Vector3 Move(Vector3 displacement, List<Vector3> hitNormals)
+        {
+            if (displacement.y > 0f)
+                displacement.y = 0f;
+            Feet += displacement;
+            hitNormals.Add(Vector3.down);
+            return displacement;
+        }
+
+        public bool ProbeGround(float distance, float minNormalY, out Vector3 normal)
+        {
+            normal = Vector3.up;
+            return false;
+        }
+
+        public void StayOnGround(float maxDrop, float minNormalY) { }
+        public bool HasRoomForHeight(float height, bool keepTop) => true;
+        public bool TrySetHeight(float height, bool keepTop) => true;
+    }
+
+    [Test]
+    public void Ceiling_StopsTheRise_ThenFallsAtFullGravity()
+    {
+        TouchingCeiling body = new();
+        MovementState state = MovementState.Initial(Config());
+        state.Velocity = new Vector3(0f, 150f, 0f);
+
+        Tick(ref state, body, default);
+        // The bump took all the upward speed, then the tick's second half of gravity
+        Assert.AreEqual(-4.5f, state.Velocity.y, 1e-3f);
+
+        for (int i = 0; i < 66; i++)
+            Tick(ref state, body, default);
+
+        // Still touching the ceiling's report, but falling away from it is free fall
+        Assert.AreEqual(-4.5f - 600f * 66 * Dt, state.Velocity.y, 1e-2f);
+    }
+
     private static MovementState Grounded(Vector3 velocity)
     {
         MovementState state = MovementState.Initial(Config());
@@ -70,7 +114,7 @@ public class SourceMovementTests
         return state;
     }
 
-    private static void Tick(ref MovementState state, FlatFloor body, MovementInputData input, MovementConfig? config = null)
+    private static void Tick(ref MovementState state, IMovementBody body, MovementInputData input, MovementConfig? config = null)
     {
         MovementProcessor.Tick(ref state, body, input, config ?? Config(), Quaternion.identity, 1f, Vector3.zero, Dt);
     }
