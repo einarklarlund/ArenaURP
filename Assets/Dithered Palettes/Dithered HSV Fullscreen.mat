@@ -32,7 +32,7 @@ Material:
     m_Floats:
     - _DitherStrength: 1
     - _HueOffset: 0
-    - _HueSteps: 8
+    - _HueSteps: 4
     - _QuantizeInSRGB: 1
     - _SaturationSteps: 4
     - _ValueSteps: 8
