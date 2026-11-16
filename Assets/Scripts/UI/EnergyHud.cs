@@ -9,7 +9,9 @@ using UnityEngine.UI;
 public sealed class EnergyHud : MonoBehaviour
 {
     [SerializeField] private CanvasGroup group;
-    [Tooltip("A Filled, horizontal Image whose fill amount is the energy left.")]
+    // The bar is sized by its right anchor rather than Image.fillAmount: a Filled image needs a sprite to clip, and
+    // without one (the bar is a plain white rect) it draws full whatever the fill amount.
+    [Tooltip("The bar's fill, stretched across its parent: its right anchor is set to the energy left.")]
     [SerializeField] private Image fill;
 
     [Tooltip("Seconds the display stays up after the energy stops changing.")]
@@ -49,7 +51,8 @@ public sealed class EnergyHud : MonoBehaviour
             if (!Mathf.Approximately(fraction, _lastFraction))
                 _holdTimer = holdDuration;
             _lastFraction = fraction;
-            fill.fillAmount = fraction;
+            RectTransform bar = fill.rectTransform;
+            bar.anchorMax = new Vector2(Mathf.Clamp01(fraction), bar.anchorMax.y);
         }
 
         _holdTimer -= Time.deltaTime;

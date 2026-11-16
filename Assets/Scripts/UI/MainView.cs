@@ -83,7 +83,6 @@ public sealed class MainView : View
     public override void Show()
     {
         base.Show();
-        Cursor.lockState = CursorLockMode.Locked;
         damageImage.gameObject.SetActive(false);
         healImage.gameObject.SetActive(false);
         _healFlash = null; // Hide stopped it with the view

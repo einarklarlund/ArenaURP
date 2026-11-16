@@ -343,7 +343,6 @@ public class Pawn : NetworkBehaviour
         {
             InputManager.PawnControls.Enable();
 
-            Cursor.lockState = CursorLockMode.Locked;
             CameraDirector.Request(PawnCamera, CameraDirector.Priority.Pawn);
 
             // Spawned goes first: the view it brings up subscribes to health during this call.

@@ -178,21 +178,7 @@ public sealed class UIManager : MonoBehaviour
         Show<MainView>();
     }
 
-    private void Show<T>() where T : View
-    {
-        RequestMenuCamera(!ShowsPawnCamera(views.Find(view => view is T)));
-        previousView = currentView;
-        foreach(var view in views)
-        {
-            if (view is T)
-            {
-                currentView = view;
-                view.Show();
-            }
-            else
-                view.Hide();
-        }
-    }
+    private void Show<T>() where T : View => ShowView(views.Find(view => view is T));
 
     // A menu takes the screen from the pawn. Under MainView the menu camera stays claimed as the fallback, so a screen
     // camera is always live to draw the overlay UI.
@@ -206,9 +192,14 @@ public sealed class UIManager : MonoBehaviour
         target is MainView or PauseView
         || (target is SettingsView or DebugView && currentView != null && ShowsPawnCamera(currentView));
 
+    // Every view change goes through here, and this is the only place that sets the cursor lock: the pawn's view locks
+    // it, every other view frees it. On WebGL each change is a browser pointer-lock call, and since Unity 6.6 one made
+    // soon after a click runs at once, so a lock, unlock, lock within one frame (as when several scripts each set it on
+    // spawn) cancels the browser's pending request and logs a pointer-lock error.
     private void ShowView(View target)
     {
         RequestMenuCamera(!ShowsPawnCamera(target));
+        SetCursorLock(target is MainView ? CursorLockMode.Locked : CursorLockMode.None);
         previousView = currentView;
         foreach (var view in views)
         {
@@ -222,10 +213,11 @@ public sealed class UIManager : MonoBehaviour
         }
     }
 
-    private void ShowPreviousView()
+    private void ShowPreviousView() => ShowView(previousView);
+
+    // Compared with the actual state, so showing a view that wants the current state makes no browser call.
+    private static void SetCursorLock(CursorLockMode mode)
     {
-        currentView.Hide();
-        previousView.Show();
-        (previousView, currentView) = (currentView, previousView);
+        if (Cursor.lockState != mode) Cursor.lockState = mode;
     }
 }

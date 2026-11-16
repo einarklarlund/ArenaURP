@@ -4,7 +4,6 @@ public abstract class View : MonoBehaviour
 {   
     public virtual void Show()
     {
-        Cursor.lockState = CursorLockMode.None;
         gameObject.SetActive(true);
     }
 
