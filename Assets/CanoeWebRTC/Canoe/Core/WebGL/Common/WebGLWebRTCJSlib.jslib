@@ -3,7 +3,10 @@ const RemoteConnections = {};
 
 const ClientConnection = null;
 
-class Connection {
+// Anonymous on purpose: Emscripten 4 (Unity 6.6) emits a `$Connection` class symbol as "class Connection" plus the
+// source after the `class` keyword, so a named class comes out as `class Connection Connection {` and the whole
+// framework.js fails to parse. The emitted name is still Connection, so Connection.isIPv4 etc. resolve.
+const Connection = class {
    constructor() {
       this.closing = false;
       this.connectionID = -1;
@@ -268,7 +271,7 @@ class Connection {
        }).filter(server => server !== null);
    }
 
-}
+};
 
 
 

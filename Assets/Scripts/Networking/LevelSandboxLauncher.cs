@@ -42,7 +42,7 @@ public static class LevelSandboxLauncher
     private static void SwapOnlineScene()
     {
         if (!SessionState.GetBool(FlagKey, false)) return;
-        foreach (var scene in Object.FindObjectsByType<DefaultScene>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (var scene in Object.FindObjectsByType<DefaultScene>(FindObjectsInactive.Include))
             if (scene.GetOnlineScene() == DebugScene)
                 scene.SetOnlineScene(SandboxScene);
     }

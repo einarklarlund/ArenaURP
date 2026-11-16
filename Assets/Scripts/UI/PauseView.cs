@@ -9,9 +9,7 @@ public sealed class PauseView : View
     [SerializeField] private Button disconnectButton;
     [SerializeField] private SignalStatusDisplay signalStatusDisplay;
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
     [SerializeField] private Button debugButton;
-#endif
 
     public override void Show()
     {
@@ -20,10 +18,8 @@ public sealed class PauseView : View
         disconnectButton.onClick.AddListener(HandleDisconnectClicked);
         signalStatusDisplay.Initialize(SignalManager.Instance.ClientState);
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
-        debugButton.gameObject.SetActive(true);
-        debugButton.onClick.AddListener(HandleDebugClicked);
-#endif
+        debugButton.gameObject.SetActive(Debug.isDebugBuild);
+        if (Debug.isDebugBuild) debugButton.onClick.AddListener(HandleDebugClicked);
 
         base.Show();
     }
@@ -34,9 +30,7 @@ public sealed class PauseView : View
         unpauseButton.onClick.RemoveListener(HandleUnpauseButtonClicked);
         disconnectButton.onClick.RemoveListener(HandleDisconnectClicked);
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
         debugButton.onClick.RemoveListener(HandleDebugClicked);
-#endif
 
         base.Hide();
     }
@@ -56,10 +50,8 @@ public sealed class PauseView : View
         RoomManager.Instance.Leave();
     }
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
     private void HandleDebugClicked()
     {
         LocalUIEvents.OnDebugViewOpened?.Invoke();
     }
-#endif
 }

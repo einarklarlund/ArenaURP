@@ -205,7 +205,12 @@ namespace Arena.LevelGen.Editor
         {
             string path = asset != null ? AssetDatabase.GetAssetPath(asset) : "";
             hash.Append(path);
-            if (path.Length > 0) hash.Append(AssetDatabase.GetAssetDependencyHash(path).ToString());
+            if (path.Length == 0) return;
+            // A texture's dependency hash includes its compression for the active build target, so two Editors on
+            // different targets (or a build after a platform switch) would each call the other's bake stale. The bake
+            // reads textures from their source files, so their bytes are all it depends on.
+            if (asset is Texture) hash.Append(File.ReadAllBytes(path));
+            else hash.Append(AssetDatabase.GetAssetDependencyHash(path).ToString());
         }
 
         /// <summary>Rebakes a source once anything it bakes from has changed, so a layer edit shows without a Bake.</summary>

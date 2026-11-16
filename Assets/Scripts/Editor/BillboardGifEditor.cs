@@ -84,7 +84,7 @@ public static class BillboardGifScenePreviewDriver
 
         if (now - _lastScan > 0.5 || _lastScan == 0)
         {
-            _cache = Object.FindObjectsByType<BillboardGif>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            _cache = Object.FindObjectsByType<BillboardGif>(FindObjectsInactive.Exclude);
             _lastScan = now;
         }
 

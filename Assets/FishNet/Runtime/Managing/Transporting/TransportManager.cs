@@ -255,8 +255,10 @@ namespace FishNet.Managing.Transporting
                 }
 
                 _lowestMtus[i] = channelLowest;
-                _lowestMtu = Mathf.Min(allLowest, channelLowest);
+                allLowest = Mathf.Min(allLowest, channelLowest);
             }
+
+            _lowestMtu = allLowest;
         }
 
         /// <summary>
@@ -295,23 +297,37 @@ namespace FishNet.Managing.Transporting
             if (!_networkManager.ServerManager.IsAnyServerStarted())
             {
                 _dirtyToClients.Clear();
+                _disconnectingClients.Clear();
+
                 return;
             }
 
             // Only one server is stopped, remove connections for that server.
             int index = obj.TransportIndex;
 
-            List<NetworkConnection> clientsForIndex = CollectionCaches<NetworkConnection>.RetrieveList();
-            foreach (NetworkConnection conn in _dirtyToClients)
+            //Remove any disconnecting clients for the stopped transport.
+            for (int i = 0; i < _disconnectingClients.Count; i++)
             {
-                if (conn.TransportIndex == index)
-                    clientsForIndex.Add(conn);
+                DisconnectingClient dc = _disconnectingClients[i];
+
+                if (dc.Connection == null || dc.Connection.TransportIndex == index)
+                {
+                    _disconnectingClients.RemoveAt(i);
+                    i--;
+                }
             }
 
-            foreach (NetworkConnection conn in clientsForIndex)
-                _dirtyToClients.Remove(conn);
+            //Remove any dirty connection indicators for the transport.
+            for (int i = 0; i < _dirtyToClients.Count; i++)
+            {
+                NetworkConnection connection = _dirtyToClients[i];
 
-            CollectionCaches<NetworkConnection>.Store(clientsForIndex);
+                if (connection == null || connection.TransportIndex == index)
+                {
+                    _dirtyToClients.RemoveAt(i);
+                    i--;
+                }
+            }
         }
 
         /// <summary>
@@ -407,7 +423,7 @@ namespace FishNet.Managing.Transporting
         public int GetLowestMTU(byte channel)
         {
             SetLowestMTUs();
-            
+
             return GetMTUWithReserve(_lowestMtus[channel]);
         }
 
@@ -569,6 +585,12 @@ namespace FishNet.Managing.Transporting
         private byte GetFallbackChannelIdAsNeeded(byte channelId) => channelId > _toServerBundles.Count ? (byte)Channel.Reliable : channelId;
 
         /// <summary>
+        /// Returns if a client is allowed to send a split message made of this many pieces.
+        /// </summary>
+        /// <remarks>Checked by the client before sending and by the server before allocating, so the two can never disagree.</remarks>
+        internal bool IsClientSplitMessageCountAllowed(int messageCount) => messageCount >= 1 && (long)messageCount * _maximumSplitPacketSegmentLength <= _maximumClientPacketSize;
+
+        /// <summary>
         /// Splits data going to which is too large to fit within the transport MTU.
         /// </summary>
         /// <param name = "conn">Connection to send to. If null data will be sent to the server.</param>
@@ -588,7 +610,7 @@ namespace FishNet.Managing.Transporting
 
             /* If going to the server and value exceeds the
              * maximum segment size then the data cannot be sent. */
-            if (conn == null && messageCount * maximumSegmentLength > _maximumClientPacketSize)
+            if (conn == null && !IsClientSplitMessageCountAllowed(messageCount))
             {
                 _networkManager.LogError($"A packet of length {segmentCount} cannot be sent because it exceeds the maximum packet size allowed by a client of {_maximumClientPacketSize}.");
                 return SPLIT_ERROR_VALUE;
@@ -610,13 +632,19 @@ namespace FishNet.Managing.Transporting
                 int chunkSize = Mathf.Min(segment.Count - startPosition, maximumSegmentLength);
                 ArraySegment<byte> splitSegment = new(segment.Array, segment.Offset + startPosition, chunkSize);
                 splitWriter.WriteArraySegment(splitSegment);
-                
+
+                /* Each piece must start its own buffer. The receiver only checks for
+                 * PacketId.Split at the start of a datagram, so a piece appended after
+                 * other data is parsed as regular packets. A piece smaller than the
+                 * maximum, such as one for a message that exceeds the unreliable MTU
+                 * but fits a single reliable piece, can otherwise fit behind a small
+                 * message already in the buffer. */
                 // If connection is specified then it's going to a client.
                 if (conn != null)
-                    conn.SendToClient(channelId, splitWriter.GetArraySegment());
+                    conn.SendToClient(channelId, splitWriter.GetArraySegment(), forceNewBuffer: true);
                 // Otherwise it's going to the server.
                 else
-                    _toServerBundles[channelId].Write(splitWriter.GetArraySegment(), forceNewBuffer: false, orderType);
+                    _toServerBundles[channelId].Write(splitWriter.GetArraySegment(), forceNewBuffer: true, orderType);
 
                 splitWriter.Clear();
             }

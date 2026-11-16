@@ -24,4 +24,4 @@ MonoBehaviour:
   bank: {fileID: 2100000, guid: c501810146b52474ebc3227fca8a635f, type: 2}
   rampSide: {fileID: 2100000, guid: d40227528462b472dac9a432f05078e3, type: 2}
   cliff: {fileID: 2100000, guid: 92eb9bad09c1d45ed850059188d044cf, type: 2}
-  bakedHash: 1e7ab1fa9b74eabaa03d8b11f07c384b
+  bakedHash: 7da571336192c776e03a48d365cfaa65

@@ -1,8 +1,10 @@
 #!/bin/bash
 
 # Path configurations
-UNITY_PATH="/Applications/Unity/Hub/Editor/6000.3.7f1/Unity.app/Contents/MacOS/Unity"
 PROJECT_PATH="/Users/einar/Projects/ArenaURP"
+# The Editor the project is on, so an upgrade needs no edit here.
+UNITY_VERSION=$(sed -n 's/^m_EditorVersion: //p' "$PROJECT_PATH/ProjectSettings/ProjectVersion.txt")
+UNITY_PATH="/Applications/Unity/Hub/Editor/$UNITY_VERSION/Unity.app/Contents/MacOS/Unity"
 BUILD_PATH="$PROJECT_PATH/builds/webgl"
 
 # Parse flags
@@ -17,10 +19,13 @@ done
 UNITY_WAS_RUNNING=false
 
 if [ "$SKIP_BUILD" = false ]; then
-    if ps aux | grep -v grep | grep "$UNITY_PATH" | grep -q "$PROJECT_PATH"; then
+    # Match the project path as a whole argument: a bare "$PROJECT_PATH" also matches the ParrelSync clone
+    # (".../ArenaURP_clone_0") and would kill it too. The Hub passes -projectpath, `open` -projectPath: ignore case.
+    EDITOR_PATTERN="-projectpath $PROJECT_PATH( |$)"
+    if pgrep -if -- "$EDITOR_PATTERN" > /dev/null; then
         echo "--- Unity Editor detected. Closing instance to allow build ---"
         UNITY_WAS_RUNNING=true
-        pkill -f "$PROJECT_PATH"
+        pkill -if -- "$EDITOR_PATTERN"
         sleep 2 
     fi
 

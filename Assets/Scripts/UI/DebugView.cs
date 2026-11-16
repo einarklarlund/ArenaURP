@@ -54,14 +54,12 @@ public sealed class DebugView : View
             RefreshLevel();
         }
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
-        if (upgradeRowPrefab != null)
+        if (Debug.isDebugBuild && upgradeRowPrefab != null)
         {
             upgradesTabButton.onClick.AddListener(HandleUpgradesTabClicked);
             ShowTab(upgrades: false);
             ShowUpgrades();
         }
-#endif
 
         base.Show();
     }
@@ -79,13 +77,11 @@ public sealed class DebugView : View
             if (LevelSync.Instance != null) LevelSync.Instance.OnLevelBuilt -= HandleLevelBuilt;
         }
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
-        if (upgradeRowPrefab != null)
+        if (Debug.isDebugBuild && upgradeRowPrefab != null)
         {
             upgradesTabButton.onClick.RemoveListener(HandleUpgradesTabClicked);
             HideUpgrades();
         }
-#endif
 
         base.Hide();
     }
@@ -102,7 +98,6 @@ public sealed class DebugView : View
 
     // ── Upgrades ─────────────────────────────────────────────────────────
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
     private readonly List<(int id, DebugUpgradeRow row)> _upgradeRows = new();
     private NetworkPlayer _upgradesPlayer;
 
@@ -178,7 +173,6 @@ public sealed class DebugView : View
         upgradesStatusText.text = $"{_upgradesPlayer.Upgrades.Count} upgrades this life, " +
             $"{_upgradesPlayer.UpgradePicksPending.Value} picks pending.";
     }
-#endif
 
     // ── Level ────────────────────────────────────────────────────────────
 

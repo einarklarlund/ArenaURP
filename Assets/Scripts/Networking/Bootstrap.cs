@@ -69,7 +69,8 @@ public class Bootstrap : MonoBehaviour
     }
     void StartDevBootstrap()
     {
-        #if DEVELOPMENT_BUILD || UNITY_EDITOR
+        // Dev networking (the debug Tugboat manager, self-hosting) is for the Editor and development builds only.
+        if (!Debug.isDebugBuild) return;
 
         Destroy(prodNetworkManagerObject);
         Debug.Log("Start dev bootstrap");
@@ -108,8 +109,6 @@ public class Bootstrap : MonoBehaviour
         #endif
 
         uiManagerObject.SetActive(true);
-
-        #endif
     }
 
     void StartLocalBootstrap()

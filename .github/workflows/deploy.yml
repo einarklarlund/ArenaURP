@@ -38,8 +38,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: Library
-          key: Library-WebGL
-          restore-keys: Library-
+          # Keyed by Editor version: a Library from another version is a full reimport anyway, and can break the build.
+          key: Library-WebGL-${{ hashFiles('ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: Library-WebGL-${{ hashFiles('ProjectSettings/ProjectVersion.txt') }}
 
       # Build the Unity Project
       - name: Unity Builder

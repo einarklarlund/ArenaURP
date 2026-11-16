@@ -292,11 +292,13 @@ public sealed class NetworkPlayer : NetworkBehaviour
     [Server]
     public void ServerGrantPick() => UpgradePicksPending.Value++;
 
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
+    // The debug RPCs exist in every build so dev and release peers share one RPC layout; a release server ignores them.
+
     /// <summary>Debug menu: grants an upgrade outright, skipping offers and pending picks. Respects MaxStacks.</summary>
     [ServerRpc]
     public void DebugGrantUpgrade(int id)
     {
+        if (!Debug.isDebugBuild) return;
         if (id < 0 || id >= upgradeCatalogue.Count || upgradeCatalogue[id] == null) return;
         Upgrade upgrade = upgradeCatalogue[id];
         if (upgrade.MaxStacks > 0 && UpgradeCatalogue.StacksOf(id, Upgrades) >= upgrade.MaxStacks) return;
@@ -310,8 +312,10 @@ public sealed class NetworkPlayer : NetworkBehaviour
 
     /// <summary>Debug menu: one more pick, offered the normal way.</summary>
     [ServerRpc]
-    public void DebugGrantPick() => ServerAddPicks(1);
-#endif
+    public void DebugGrantPick()
+    {
+        if (Debug.isDebugBuild) ServerAddPicks(1);
+    }
 
     /// <summary>Applies every upgrade picked this life to <paramref name="pawn"/>, once per stack.</summary>
     public void ApplyUpgradesTo(Pawn pawn)

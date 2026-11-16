@@ -1,8 +1,9 @@
 ﻿<Solution>
+  <Project Path="FishNet.Runtime.csproj" />
   <Project Path="Arena.LevelGen.Core.csproj" />
   <Project Path="FishNet.Codegen.Cecil.csproj" />
+  <Project Path="SynapseSocket.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
-  <Project Path="FishNet.Runtime.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="GameKit.Dependencies.csproj" />
   <Project Path="SimpleWebTransport.csproj" />
@@ -10,7 +11,6 @@
   <Project Path="Unity.FishNet.Codegen.csproj" />
   <Project Path="Arena.Movement.Core.csproj" />
   <Project Path="Arena.LevelGen.csproj" />
-  <Project Path="FishNet.Demos.csproj" />
   <Project Path="ParrelSync.csproj" />
   <Project Path="CanoeWebRTC.csproj" />
   <Project Path="Arena.LevelGen.Editor.csproj" />

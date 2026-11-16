@@ -56,9 +56,17 @@
   <!-- `dotnet test` runs this target: NUnitLite on the Editor's Mono. Pass NUnitLite options with -p:TestArgs="...". -->
   <Target Name="VSTest" DependsOnTargets="Build">
     <Error Condition="!Exists('$(UnityMono)/bin/mono')" Text="Unity's Mono not found at $(UnityMono). Install Unity $(UnityVersion), or pass -p:UnityEditorApp=/path/to/Unity.app." />
-    <!-- DYLD_* is set in the command, not in EnvironmentVariables: macOS strips it from /bin/sh, which runs Exec. The
-         Frameworks folder has libMonoPosixHelper, which DeflateStream (the share codes) needs. -->
-    <Exec Command="DYLD_FALLBACK_LIBRARY_PATH=&quot;$(UnityEditorApp)/Contents/Frameworks&quot; &quot;$(UnityMono)/bin/mono&quot; -O=-float32 &quot;$(TargetPath)&quot; --noresult --where &quot;cat != UnityOnly&quot; $(TestArgs)"
+    <!-- DeflateStream (the share codes) needs libMonoPosixHelper from the Editor's Frameworks folder. Unity 6.6's Mono is
+         a hardened binary, so dyld ignores DYLD_FALLBACK_LIBRARY_PATH and refuses relative paths: map the library to
+         its absolute path in a copy of Mono's own config instead. -->
+    <PropertyGroup>
+      <MonoConfig>$(MSBuildThisFileDirectory)$(OutDir)mono-config.xml</MonoConfig>
+      <MonoDefaultConfig>$([System.IO.File]::ReadAllText('$(UnityMono)/etc/mono/config'))</MonoDefaultConfig>
+      <!-- dll is the name System.dll's DllImport uses, not the file name. -->
+      <MonoPosixMap>&lt;dllmap dll="MonoPosixHelper" target="$(UnityEditorApp)/Contents/Frameworks/libMonoPosixHelper.dylib" /&gt;</MonoPosixMap>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(MonoConfig)" Lines="$(MonoDefaultConfig.Replace('&lt;/configuration&gt;', '$(MonoPosixMap)&lt;/configuration&gt;'))" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <Exec Command="&quot;$(UnityMono)/bin/mono&quot; --config &quot;$(MonoConfig)&quot; -O=-float32 &quot;$(TargetPath)&quot; --noresult --where &quot;cat != UnityOnly&quot; $(TestArgs)"
           EnvironmentVariables="MONO_PATH=$(UnityProfile)" WorkingDirectory="$(OutDir)" />
   </Target>
 </Project>
