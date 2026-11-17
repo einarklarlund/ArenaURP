@@ -6,8 +6,8 @@ namespace Arena.LevelGen
 {
     /// <summary>
     /// Turns a <see cref="LevelDescription"/> into GameObjects: one combined mesh and mesh collider per owner
-    /// (each plot, transition, building, prop, the boundary and the level itself), with a submesh per material. Each
-    /// face's <see cref="SurfaceTag"/> picks its material from the theme (a building's from the profile drawn for it);
+    /// (each plot, transition, building, prop, the boundary and the level itself), with a submesh per material. A
+    /// building keeps one collider but is drawn by a child renderer per room and one for its shell. Each face's <see cref="SurfaceTag"/> picks its material from the theme (a building's from the profile drawn for it);
     /// an empty slot, or no theme, gets a placeholder colour per tag. Server and clients build identical colliders from
     /// identical descriptions, whatever their themes.
     /// <para>
@@ -238,74 +238,148 @@ namespace Arena.LevelGen
 
         /// <summary>
         /// A group's mesh and collider: each triangle goes to the submesh of its key's material, in order of the
-        /// materials' first keys, so keys that share a material share a submesh.
+        /// materials' first keys, so keys that share a material share a submesh. A building split by room
+        /// (<see cref="PlanGroup.TrianglePieces"/>) keeps the collider and draws each piece with a child renderer.
         /// </summary>
         private static void BuildGroup(PlanGroup group, Transform parent, LevelTheme theme,
             BuildingMaterialProfile profile, Material terrain)
         {
             var plan = group.Mesh;
-            var materials = new List<Material>();
-            var submeshes = new List<List<int>>();
-            var keySubmesh = new int[plan.Keys.Count];
+            var keyMaterials = new Material[plan.Keys.Count];
             for (int k = 0; k < plan.Keys.Count; k++)
             {
                 var key = plan.Keys[k];
-                var material = key.Ground ? terrain : Resolve(key.Tag, key.Role, theme, profile);
-                int index = materials.IndexOf(material);
-                if (index < 0)
-                {
-                    index = materials.Count;
-                    materials.Add(material);
-                    submeshes.Add(new List<int>());
-                }
-                keySubmesh[k] = index;
-            }
-            for (int t = 0; t < plan.TriangleCount; t++)
-            {
-                var submesh = submeshes[keySubmesh[plan.TriangleKeys[t]]];
-                submesh.Add(plan.Triangles[3 * t]);
-                submesh.Add(plan.Triangles[3 * t + 1]);
-                submesh.Add(plan.Triangles[3 * t + 2]);
+                keyMaterials[k] = key.Ground ? terrain : Resolve(key.Tag, key.Role, theme, profile);
             }
 
-            var mesh = new Mesh { name = group.Name, hideFlags = HideFlags.DontSave };
-            if (plan.Vertices.Count > ushort.MaxValue) mesh.indexFormat = IndexFormat.UInt32;
-            mesh.SetVertices(plan.Vertices);
-            mesh.SetNormals(plan.Normals);
-            mesh.SetUVs(0, plan.Uvs);
-            if (plan.LayerIds != null) SetLayers(mesh, plan);
+            var go = new GameObject(group.Name);
+            go.transform.SetParent(parent, false);
+            Mesh collision;
+            if (group.TrianglePieces == null)
+            {
+                collision = Render(go, group, plan, null, -1, keyMaterials, group.Name);
+            }
+            else
+            {
+                for (int piece = 0; piece < group.PieceNames.Count; piece++)
+                {
+                    var child = new GameObject(group.PieceNames[piece]);
+                    child.transform.SetParent(go.transform, false);
+                    Render(child, group, plan, group.TrianglePieces, piece, keyMaterials, $"{group.Name} {group.PieceNames[piece]}");
+                }
+                collision = null;
+            }
+
+            if (group.CollisionVertices != null || collision == null)
+            {
+                collision = new Mesh { name = group.Name + " collision", hideFlags = HideFlags.DontSave };
+                var vertices = group.CollisionVertices ?? plan.Vertices;
+                if (vertices.Count > ushort.MaxValue) collision.indexFormat = IndexFormat.UInt32;
+                collision.SetVertices(vertices);
+                collision.SetTriangles(group.CollisionTriangles ?? plan.Triangles, 0);
+                collision.RecalculateBounds();
+            }
+            go.AddComponent<MeshCollider>().sharedMesh = collision;
+        }
+
+        /// <summary>
+        /// Gives <paramref name="go"/> a renderer for the plan's triangles in <paramref name="piece"/> (all of them when
+        /// <paramref name="pieces"/> is null), with a submesh per material, and returns its mesh.
+        /// </summary>
+        private static Mesh Render(GameObject go, PlanGroup group, PlanMesh plan, List<int> pieces, int piece,
+            Material[] keyMaterials, string name)
+        {
+            var materials = new List<Material>();
+            var submeshes = new List<List<int>>();
+            var keySubmesh = new int[plan.Keys.Count];
+            for (int k = 0; k < plan.Keys.Count; k++) keySubmesh[k] = -1;
+            // A piece keeps only its own triangles' vertices, in order; the whole mesh keeps every vertex.
+            int[] remap = null;
+            var vertices = plan.Vertices;
+            var normals = plan.Normals;
+            var uvs = plan.Uvs;
+            List<Vector3> layerIds = plan.LayerIds;
+            List<Vector4> layerWeights = plan.LayerWeights;
+            if (pieces != null)
+            {
+                remap = new int[plan.Vertices.Count];
+                for (int v = 0; v < remap.Length; v++) remap[v] = -1;
+                vertices = new List<Vector3>();
+                normals = new List<Vector3>();
+                uvs = new List<Vector2>();
+                if (plan.LayerIds != null)
+                {
+                    layerIds = new List<Vector3>();
+                    layerWeights = new List<Vector4>();
+                }
+            }
+
+            for (int t = 0; t < plan.TriangleCount; t++)
+            {
+                if (pieces != null && pieces[t] != piece) continue;
+                int key = plan.TriangleKeys[t];
+                if (keySubmesh[key] < 0)
+                {
+                    int index = materials.IndexOf(keyMaterials[key]);
+                    if (index < 0)
+                    {
+                        index = materials.Count;
+                        materials.Add(keyMaterials[key]);
+                        submeshes.Add(new List<int>());
+                    }
+                    keySubmesh[key] = index;
+                }
+                var submesh = submeshes[keySubmesh[key]];
+                for (int c = 0; c < 3; c++)
+                {
+                    int v = plan.Triangles[3 * t + c];
+                    if (remap != null)
+                    {
+                        if (remap[v] < 0)
+                        {
+                            remap[v] = vertices.Count;
+                            vertices.Add(plan.Vertices[v]);
+                            normals.Add(plan.Normals[v]);
+                            uvs.Add(plan.Uvs[v]);
+                            if (layerIds != null)
+                            {
+                                layerIds.Add(plan.LayerIds[v]);
+                                layerWeights.Add(plan.LayerWeights[v]);
+                            }
+                        }
+                        v = remap[v];
+                    }
+                    submesh.Add(v);
+                }
+            }
+
+            var mesh = new Mesh { name = name, hideFlags = HideFlags.DontSave };
+            if (vertices.Count > ushort.MaxValue) mesh.indexFormat = IndexFormat.UInt32;
+            mesh.SetVertices(vertices);
+            mesh.SetNormals(normals);
+            mesh.SetUVs(0, uvs);
+            if (layerIds != null) SetLayers(mesh, layerIds, layerWeights);
             mesh.subMeshCount = materials.Count;
             for (int i = 0; i < materials.Count; i++) mesh.SetTriangles(submeshes[i], i);
             mesh.RecalculateTangents();
             mesh.RecalculateBounds();
 
-            var go = new GameObject(group.Name);
-            go.transform.SetParent(parent, false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = go.AddComponent<MeshRenderer>();
             renderer.sharedMaterials = materials.ToArray();
             if (!group.CastShadows) renderer.shadowCastingMode = ShadowCastingMode.Off;
-            if (group.CollisionVertices == null) go.AddComponent<MeshCollider>().sharedMesh = mesh;
-            else
-            {
-                var collision = new Mesh { name = group.Name + " collision", hideFlags = HideFlags.DontSave };
-                if (group.CollisionVertices.Count > ushort.MaxValue) collision.indexFormat = IndexFormat.UInt32;
-                collision.SetVertices(group.CollisionVertices);
-                collision.SetTriangles(group.CollisionTriangles, 0);
-                collision.RecalculateBounds();
-                go.AddComponent<MeshCollider>().sharedMesh = collision;
-            }
+            return mesh;
         }
 
         /// <summary>
         /// The blended ground's vertex data (see the Arena/Level Terrain shader): each triangle's three layers on all
         /// three of its vertices (UV3), and each vertex's weights over them as its colour.
         /// </summary>
-        private static void SetLayers(Mesh mesh, PlanMesh plan)
+        private static void SetLayers(Mesh mesh, List<Vector3> layerIds, List<Vector4> layerWeights)
         {
-            var weights = new List<Color>(plan.LayerWeights.Count);
-            foreach (var w in plan.LayerWeights) weights.Add(w);
-            mesh.SetUVs(3, plan.LayerIds);
+            var weights = new List<Color>(layerWeights.Count);
+            foreach (var w in layerWeights) weights.Add(w);
+            mesh.SetUVs(3, layerIds);
             mesh.SetColors(weights);
         }
 

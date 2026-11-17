@@ -51,6 +51,8 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: WebGL
+          # Sets the code optimization, which lives in Library rather than ProjectSettings (see BuildScripts).
+          buildMethod: BuildScripts.BuildWebGLRelease
 
       # Deploy the 'build/WebGL/WebGL' folder to the 'gh-pages' branch
       - name: Deploy to GitHub Pages

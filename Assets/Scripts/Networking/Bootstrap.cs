@@ -41,6 +41,7 @@ public class Bootstrap : MonoBehaviour
 
     void Start()
     {
+        UncapWebFrameRate();
         uiManagerObject.SetActive(false);
 
         if (EnforceBuildStage == BuildStage.Prod)
@@ -67,6 +68,25 @@ public class Bootstrap : MonoBehaviour
         StartProdBootstrap();
         #endif
     }
+    /// <summary>
+    /// On web, FishNet's frame-rate cap (500 in Boot) sets <see cref="Application.targetFrameRate"/>, which makes the
+    /// player schedule frames with timers instead of the browser's requestAnimationFrame: uneven frame pacing, and
+    /// Emscripten warns about it. A frame rate of 0 makes FishNet leave the default (-1: every display frame). Desktop
+    /// clients and the dedicated server keep their caps.
+    /// </summary>
+    void UncapWebFrameRate()
+    {
+        #if UNITY_WEBGL && !UNITY_EDITOR
+        foreach (var manager in new[] { prodNetworkManagerObject, debugNetworkManagerObject })
+        {
+            if (manager == null) continue;
+            if (manager.TryGetComponent(out ServerManager server)) server.SetFrameRate(0);
+            if (manager.TryGetComponent(out ClientManager client)) client.SetFrameRate(0);
+        }
+        Application.targetFrameRate = -1;
+        #endif
+    }
+
     void StartDevBootstrap()
     {
         // Dev networking (the debug Tugboat manager, self-hosting) is for the Editor and development builds only.

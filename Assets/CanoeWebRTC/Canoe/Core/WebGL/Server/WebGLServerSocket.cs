@@ -168,7 +168,7 @@ namespace FishNet.Transporting.CanoeWebRTC.Server
         {
             int thisValue = nextConnID;
             WebGLWebRTC._CreateRemoteConnection(thisValue);
-            nextConnID = (nextConnID + 1) & 0x7FFFFFFF; // wrap to 0 after reaching int.MaxValue
+            nextConnID = nextConnID + 1 >= FishNet.Transporting.CanoeWebRTC.CanoeWebRTC.LocalHostConnectionID ? 0 : nextConnID + 1; // wrap to 0, short of the host's own client's id
             return thisValue;
         }
 

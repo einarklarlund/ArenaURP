@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.IO.Compression;
 
 namespace Arena.LevelGen
 {
@@ -71,10 +70,7 @@ namespace Arena.LevelGen
                 settings.WriteTo(w);
             }
             var payload = raw.ToArray();
-            using var packed = new MemoryStream();
-            using (var deflate = new DeflateStream(packed, CompressionLevel.Optimal, leaveOpen: true))
-                deflate.Write(payload, 0, payload.Length);
-            return Prefix + Convert.ToBase64String(packed.ToArray()).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            return Prefix + Convert.ToBase64String(Deflate.Compress(payload)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
         }
 
         /// <summary>False, with why, for a code that isn't one or was made by another generator version.</summary>
@@ -93,11 +89,7 @@ namespace Arena.LevelGen
             {
                 string base64 = code.Substring(1).Replace('-', '+').Replace('_', '/');
                 base64 = base64.PadRight(base64.Length + (4 - base64.Length % 4) % 4, '=');
-                using var unpacked = new MemoryStream();
-                using (var deflate = new DeflateStream(new MemoryStream(Convert.FromBase64String(base64)), CompressionMode.Decompress))
-                    deflate.CopyTo(unpacked);
-                unpacked.Position = 0;
-                using var r = new BinaryReader(unpacked);
+                using var r = new BinaryReader(new MemoryStream(Deflate.Decompress(Convert.FromBase64String(base64))));
                 int version = r.ReadInt32();
                 if (version != LevelGenerator.GeneratorVersion)
                 {

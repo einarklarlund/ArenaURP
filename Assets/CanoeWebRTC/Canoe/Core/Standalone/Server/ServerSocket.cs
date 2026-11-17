@@ -81,7 +81,7 @@ namespace FishNet.Transporting.CanoeWebRTC.Server
             int connectionID = nextConnID;
             Connection newConnection = new Connection(null, this, connectionID);
             connections.Add(connectionID, newConnection);
-            nextConnID = (nextConnID + 1) & 0x7FFFFFFF; // wrap to 0 after reaching int.MaxValue
+            nextConnID = nextConnID + 1 >= FishNet.Transporting.CanoeWebRTC.CanoeWebRTC.LocalHostConnectionID ? 0 : nextConnID + 1; // wrap to 0, short of the host's own client's id
             return connectionID;
         }
 

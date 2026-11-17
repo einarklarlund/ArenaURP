@@ -49,12 +49,29 @@ namespace Arena.LevelGen.Tests
                 {
                     var group = plan.Groups[i];
                     var go = root.transform.GetChild(i);
-                    var mesh = go.GetComponent<MeshFilter>().sharedMesh;
-                    CollectionAssert.AreEqual(group.Mesh.Vertices, mesh.vertices, group.Name);
-                    int indices = 0;
-                    for (int s = 0; s < mesh.subMeshCount; s++) indices += mesh.GetTriangles(s).Length;
+                    // A building split by room draws its pieces with child renderers; the rest draw themselves.
+                    var drawers = new List<Transform>();
+                    if (group.PieceNames == null) drawers.Add(go);
+                    else
+                    {
+                        Assert.IsNull(go.GetComponent<MeshRenderer>(), group.Name);
+                        var pieces = new List<string>();
+                        foreach (Transform piece in go) { pieces.Add(piece.name); drawers.Add(piece); }
+                        CollectionAssert.AreEqual(group.PieceNames, pieces, group.Name);
+                    }
+                    int indices = 0, vertices = 0;
+                    foreach (var drawer in drawers)
+                    {
+                        var mesh = drawer.GetComponent<MeshFilter>().sharedMesh;
+                        vertices += mesh.vertexCount;
+                        for (int s = 0; s < mesh.subMeshCount; s++) indices += mesh.GetTriangles(s).Length;
+                        Assert.AreEqual(mesh.subMeshCount, drawer.GetComponent<MeshRenderer>().sharedMaterials.Length);
+                    }
                     Assert.AreEqual(group.Mesh.Triangles.Count, indices, $"{group.Name}: every triangle in a submesh");
-                    Assert.AreEqual(mesh.subMeshCount, go.GetComponent<MeshRenderer>().sharedMaterials.Length);
+                    // Pieces share the vertices on the triangles they split between them.
+                    Assert.GreaterOrEqual(vertices, group.PieceNames == null ? group.Mesh.Vertices.Count : 1, group.Name);
+                    if (group.PieceNames == null)
+                        CollectionAssert.AreEqual(group.Mesh.Vertices, drawers[0].GetComponent<MeshFilter>().sharedMesh.vertices, group.Name);
                     var collider = go.GetComponent<MeshCollider>();
                     CollectionAssert.AreEqual(group.CollisionVertices ?? group.Mesh.Vertices, collider.sharedMesh.vertices, group.Name);
                 }

@@ -181,9 +181,20 @@ public class RoomManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// The host's own client joins without the signal server: the transport connects a client
+    /// started next to its running server in memory. Joining over WebRTC like a remote player needed
+    /// the page to reach itself over the network, which failed when Chrome couldn't resolve its own
+    /// mDNS name and the router didn't hairpin.
+    /// </summary>
     private void HandleRoomCreated(string roomCode)
     {
-        JoinRoom(roomCode);
+        LocalUIEvents.OnJoinInitiated?.Invoke();
+        joinInFlight = true;
+        InstanceFinder.ClientManager.OnClientConnectionState -= HandleClientConnectionState;
+        InstanceFinder.ClientManager.OnClientConnectionState += HandleClientConnectionState;
+        SetCurrentRoom(roomCode);
+        InstanceFinder.ClientManager.StartConnection();
     }
 
     private void HandleRoomJoined(bool succeeded)

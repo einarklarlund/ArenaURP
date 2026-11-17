@@ -89,6 +89,13 @@ namespace Arena.LevelGen
         /// </summary>
         public List<Vector3> CollisionVertices;
         public List<int> CollisionTriangles;
+        /// <summary>
+        /// A building's renderers (see <see cref="BuildPlan.SplitByRoom"/>): per triangle, the index of the piece in
+        /// <see cref="PieceNames"/> it is drawn in. Null when the group is one renderer.
+        /// </summary>
+        public List<int> TrianglePieces;
+        /// <summary>Each piece's name, in the order the builder makes them; every piece has a triangle.</summary>
+        public List<string> PieceNames;
     }
 
     /// <summary>A light fixture: its prefab without colliders, or a glowing placeholder box in its light's slot.</summary>
@@ -158,6 +165,7 @@ namespace Arena.LevelGen
                 // The boundary walls are 50 tall: their shadows would fall across the whole level.
                 group.CastShadows = kind != OwnerKind.Boundary;
                 MeshGroup(group, primitives, description, split);
+                if (kind == OwnerKind.Building) SplitByRoom(group, description);
                 plan.Groups.Add(group);
             }
 
@@ -259,6 +267,77 @@ namespace Arena.LevelGen
             foreach (int i in primitives)
                 PrimitiveMesher.Append(description.Primitives[i], description, group.CollisionVertices, collisionNormals,
                     group.CollisionTriangles);
+        }
+
+        /// <summary>
+        /// How far a face is probed past itself, along its normal, to find the room it faces: under the half
+        /// thickness of an interior wall, so the probe neither stays on the face nor reaches the next room.
+        /// </summary>
+        public const float RoomProbe = 0.05f;
+
+        /// <summary>
+        /// Splits a building's renderer by room: each room's floor, ceiling and the wall faces looking into it are
+        /// drawn by a renderer of its own, and every other face (outside walls, roof, balconies, stilts) by the
+        /// building's "Shell". With forward rendering each renderer is lit by only its few most important lights,
+        /// so one renderer per building lost most rooms' ceiling lights; a room's renderer takes its own first. The
+        /// collider stays whole. A face belongs to the room under the point just in front of it: the room whose
+        /// polygon holds it and whose slab is the highest at or below it, up to a storey above that slab.
+        /// </summary>
+        private static void SplitByRoom(PlanGroup group, LevelDescription description)
+        {
+            var building = description.Buildings.Find(b => b.Id == group.Id);
+            if (building == null || building.Rooms.Count == 0) return;
+
+            var mesh = group.Mesh;
+            var roomPiece = new int[building.Rooms.Count];
+            for (int r = 0; r < roomPiece.Length; r++) roomPiece[r] = -1;
+            int shell = -1;
+            group.PieceNames = new List<string>();
+            group.TrianglePieces = new List<int>(mesh.TriangleCount);
+            for (int t = 0; t < mesh.TriangleCount; t++)
+            {
+                var a = mesh.Vertices[mesh.Triangles[3 * t]];
+                var probe = (a + mesh.Vertices[mesh.Triangles[3 * t + 1]] + mesh.Vertices[mesh.Triangles[3 * t + 2]]) / 3f
+                    + mesh.Normals[mesh.Triangles[3 * t]] * RoomProbe;
+                int room = RoomAt(building, description, probe);
+                int piece;
+                if (room < 0)
+                {
+                    if (shell < 0)
+                    {
+                        shell = group.PieceNames.Count;
+                        group.PieceNames.Add("Shell");
+                    }
+                    piece = shell;
+                }
+                else
+                {
+                    if (roomPiece[room] < 0)
+                    {
+                        roomPiece[room] = group.PieceNames.Count;
+                        group.PieceNames.Add($"Room {room} (floor {building.Rooms[room].Floor})");
+                    }
+                    piece = roomPiece[room];
+                }
+                group.TrianglePieces.Add(piece);
+            }
+            if (group.PieceNames.Count > 1) return;
+            group.PieceNames = null;
+            group.TrianglePieces = null;
+        }
+
+        /// <summary>The index of the building's room <paramref name="p"/> is in, or -1 (see <see cref="SplitByRoom"/>).</summary>
+        public static int RoomAt(BuildingDescription building, LevelDescription description, Vector3 p)
+        {
+            int best = -1;
+            for (int r = 0; r < building.Rooms.Count; r++)
+            {
+                var room = building.Rooms[r];
+                if (room.Height > p.y || p.y >= room.Height + building.FloorHeight) continue;
+                if (best >= 0 && building.Rooms[best].Height >= room.Height) continue;
+                if (Polygon.Contains(description.Polygons[room.Polygon], p.x, p.z)) best = r;
+            }
+            return best;
         }
 
         private void PlanFixtures(LevelDescription description, BuildOptions options)

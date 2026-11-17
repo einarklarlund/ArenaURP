@@ -29,6 +29,43 @@ public class BuildScripts
         BuildPipeline.BuildPlayer(buildPlayerOptions);
     }
 
+    /// <summary>
+    /// The release web build CI deploys (game-ci's <c>buildMethod</c>). Code optimization is an Editor user setting,
+    /// kept in Library rather than ProjectSettings, so a CI Library would otherwise build with whatever it last had
+    /// (this machine had "Shorter Build Time", the least optimized): set it here. game-ci passes the output folder as
+    /// <c>-customBuildPath</c>.
+    /// </summary>
+    // Measured 2026-11-16 in Chrome, generating and planning 5 levels with WebAssembly 2023 on: Runtime Speed with LTO
+    // took ~405 ms and Disk Size with LTO ~465 ms (Shorter Build Time without Wasm 2023: ~650 ms). Speed costs ~2.7 MB
+    // more gzipped wasm (11.9 vs 9.2 MB), downloaded once and cached; a shooter's frame time matters more.
+    private const UnityEditor.WebGL.WasmCodeOptimization ReleaseCodeOptimization = UnityEditor.WebGL.WasmCodeOptimization.RuntimeSpeedLTO;
+
+    public static void BuildWebGLRelease()
+    {
+        string path = GetArgValue(Environment.GetCommandLineArgs(), "-customBuildPath") ?? "builds/webgl_release";
+        var previous = UnityEditor.WebGL.UserBuildSettings.codeOptimization;
+        UnityEditor.WebGL.UserBuildSettings.codeOptimization = ReleaseCodeOptimization;
+        try
+        {
+            BuildReport report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            {
+                scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
+                locationPathName = path,
+                target = BuildTarget.WebGL,
+                options = BuildOptions.None,
+            });
+            if (report.summary.result != BuildResult.Succeeded)
+            {
+                Debug.LogError($"Build Failed: {report.summary.result}");
+                if (Application.isBatchMode) EditorApplication.Exit(1);
+            }
+        }
+        finally
+        {
+            UnityEditor.WebGL.UserBuildSettings.codeOptimization = previous;
+        }
+    }
+
     public static void BuildProject()
     {
         string[] args = Environment.GetCommandLineArgs();

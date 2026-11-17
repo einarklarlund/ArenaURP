@@ -66,6 +66,7 @@ namespace FishNet.Transporting.CanoeWebRTC
 
         public override bool StartConnection(bool server)
         {
+            _instance = this;
             _iceServers = iceServers;
             _filterLocalConnections = filterLocalConnections;
             _onlyAllowRelay = onlyAllowRelay;
@@ -77,6 +78,11 @@ namespace FishNet.Transporting.CanoeWebRTC
             {
                 InstanceFinder.NetworkManager.Log($"<color=#FFA500>[Server]</color> Starting");
                 return _server.StartServer(this, GetMTU(0));
+            }
+            else if (_server.GetLocalConnectionState() == LocalConnectionState.Started)
+            {
+                InstanceFinder.NetworkManager.Log($"<color=#77DD77>[Client]</color> Starting as the host's own client, in memory");
+                return StartLocalHostClient();
             }
             else
             {
@@ -92,7 +98,14 @@ namespace FishNet.Transporting.CanoeWebRTC
             if (server)
             {
                 InstanceFinder.NetworkManager.Log($"<color=#FFA500>[Server]</color> Stopping");
+                //The host's own client cannot outlive the server it lives in.
+                StopLocalHostClient();
                 return _server.StopServer();
+            }
+            else if (_localClientState != LocalConnectionState.Stopped)
+            {
+                InstanceFinder.NetworkManager.Log($"<color=#77DD77>[Client]</color> Stopping the host's own client");
+                return StopLocalHostClient();
             }
             else
             {
@@ -104,6 +117,8 @@ namespace FishNet.Transporting.CanoeWebRTC
         public override bool StopConnection(int connectionId, bool immediately)
         {
             InstanceFinder.NetworkManager.Log($"<color=#FFA500>[Server]</color> Stopping client <b><i><color=#DDA0DD>{connectionId}</color></i></b>");
+            if (connectionId == LocalHostConnectionID)
+                return StopLocalHostClient();
             return _server.CloseConnection(connectionId);
 
 
@@ -118,6 +133,10 @@ namespace FishNet.Transporting.CanoeWebRTC
             {
                 return _server.GetLocalConnectionState();
             }
+            else if (_localClientState != LocalConnectionState.Stopped)
+            {
+                return _localClientState;
+            }
             else
             {
                 return _client.GetLocalConnectionState();
@@ -126,7 +145,110 @@ namespace FishNet.Transporting.CanoeWebRTC
 
         public override RemoteConnectionState GetConnectionState(int connectionId)
         {
+            if (connectionId == LocalHostConnectionID)
+                return _localClientState == LocalConnectionState.Started ? RemoteConnectionState.Started : RemoteConnectionState.Stopped;
             return _server.GetConnectionState(connectionId);
+        }
+
+
+        //The host's own client
+        //
+        //A host's client used to join its own room like any remote player: a full WebRTC handshake
+        //through the signal server between two halves of the same page. That can only connect over a
+        //LAN or loopback path, so it failed whenever Chrome could not resolve the page's own mDNS
+        //(.local) name and the router did not hairpin the public address - the host's loading screen
+        //then ended in "Could not connect". Now a client started while this transport's server runs
+        //is the host's own and is wired to the server in memory, as Tugboat's host client is over
+        //loopback; it never touches the signal server or WebRTC.
+
+        /// <summary>
+        /// The server-side connection id of the host's own client. Remote connections count up from 0
+        /// and skip it; FishNet reserves <c>int.MaxValue</c> for its simulated client.
+        /// </summary>
+        public const int LocalHostConnectionID = int.MaxValue - 1;
+
+        private static CanoeWebRTC _instance;
+        private static LocalConnectionState _localClientState = LocalConnectionState.Stopped;
+        //Starting is announced at once; Started on the next incoming iteration of each side, server
+        //first, so the server knows the connection before the client sends on it.
+        private static bool _localStartPendingOnServer, _localStartPendingOnClient;
+        private static readonly Queue<(Channel channel, byte[] data)> _toLocalServer = new Queue<(Channel, byte[])>();
+        private static readonly Queue<(Channel channel, byte[] data)> _toLocalClient = new Queue<(Channel, byte[])>();
+
+        /// <summary>True while this peer's client is the host's own, connected in memory.</summary>
+        public static bool IsLocalHostClient => _localClientState != LocalConnectionState.Stopped;
+
+        private bool StartLocalHostClient()
+        {
+            if (_localClientState != LocalConnectionState.Stopped)
+                return false;
+            _toLocalServer.Clear();
+            _toLocalClient.Clear();
+            _localStartPendingOnServer = _localStartPendingOnClient = true;
+            SetLocalClientState(LocalConnectionState.Starting);
+            return true;
+        }
+
+        private bool StopLocalHostClient()
+        {
+            if (_localClientState == LocalConnectionState.Stopped)
+                return false;
+            bool serverKnewIt = !_localStartPendingOnServer;
+            _localStartPendingOnServer = _localStartPendingOnClient = false;
+            _toLocalServer.Clear();
+            _toLocalClient.Clear();
+            SetLocalClientState(LocalConnectionState.Stopping);
+            SetLocalClientState(LocalConnectionState.Stopped);
+            if (serverKnewIt && _server.GetLocalConnectionState() == LocalConnectionState.Started)
+                HandleRemoteConnectionState(new RemoteConnectionStateArgs(RemoteConnectionState.Stopped, LocalHostConnectionID, Index));
+            return true;
+        }
+
+        private void SetLocalClientState(LocalConnectionState state)
+        {
+            _localClientState = state;
+            InstanceFinder.NetworkManager.Log($"<color=#77DD77>[Client]</color> Local connection state set to <b><i><color=#DDA0DD>{state}</color></i></b> (host's own client)");
+            HandleClientConnectionState(new ClientConnectionStateArgs(state, Index));
+        }
+
+        private static ArraySegment<byte> Copy(ArraySegment<byte> segment, out byte[] bytes)
+        {
+            bytes = new byte[segment.Count];
+            Buffer.BlockCopy(segment.Array, segment.Offset, bytes, 0, segment.Count);
+            return new ArraySegment<byte>(bytes);
+        }
+
+        private void IterateLocalHostClient(bool server)
+        {
+            if (_localClientState == LocalConnectionState.Stopped)
+                return;
+
+            if (server)
+            {
+                if (_localStartPendingOnServer)
+                {
+                    _localStartPendingOnServer = false;
+                    HandleRemoteConnectionState(new RemoteConnectionStateArgs(RemoteConnectionState.Started, LocalHostConnectionID, Index));
+                }
+                while (_localClientState != LocalConnectionState.Stopped && _toLocalServer.Count > 0)
+                {
+                    var (channel, data) = _toLocalServer.Dequeue();
+                    HandleServerReceivedDataArgs(new ServerReceivedDataArgs(new ArraySegment<byte>(data), channel, LocalHostConnectionID, Index));
+                }
+            }
+            else
+            {
+                if (_localStartPendingOnClient && !_localStartPendingOnServer)
+                {
+                    _localStartPendingOnClient = false;
+                    SetLocalClientState(LocalConnectionState.Started);
+                }
+                while (_localClientState == LocalConnectionState.Started && _toLocalClient.Count > 0)
+                {
+                    var (channel, data) = _toLocalClient.Dequeue();
+                    HandleClientReceivedDataArgs(new ClientReceivedDataArgs(new ArraySegment<byte>(data), channel, Index));
+                }
+            }
         }
 
 
@@ -138,6 +260,15 @@ namespace FishNet.Transporting.CanoeWebRTC
 
         public override void SendToServer(byte channelId, ArraySegment<byte> segment)
         {
+            if (_localClientState != LocalConnectionState.Stopped)
+            {
+                if (_localClientState == LocalConnectionState.Started)
+                {
+                    Copy(segment, out byte[] bytes);
+                    _toLocalServer.Enqueue(((Channel)channelId, bytes));
+                }
+                return;
+            }
 
             _client.Send(0, channelId, segment);
         }
@@ -151,6 +282,16 @@ namespace FishNet.Transporting.CanoeWebRTC
 
         public override void SendToClient(byte channelId, ArraySegment<byte> segment, int connectionId)
         {
+            if (connectionId == LocalHostConnectionID)
+            {
+                if (_localClientState == LocalConnectionState.Started || _localStartPendingOnClient)
+                {
+                    Copy(segment, out byte[] bytes);
+                    _toLocalClient.Enqueue(((Channel)channelId, bytes));
+                }
+                return;
+            }
+
             _server.Send(connectionId, channelId, segment);
         }
 
@@ -197,10 +338,11 @@ namespace FishNet.Transporting.CanoeWebRTC
             {
                 _server.IterateIncoming();
             }
-            else
+            else if (_localClientState == LocalConnectionState.Stopped)
             {
                 _client.IterateIncoming();
             }
+            IterateLocalHostClient(server);
         }
 
         public override void IterateOutgoing(bool server)
@@ -222,7 +364,7 @@ namespace FishNet.Transporting.CanoeWebRTC
             InstanceFinder.NetworkManager.Log("Shutting Down");
             if (_server.GetLocalConnectionState() != LocalConnectionState.Stopped)
                 StopConnection(true);
-            if (_client.GetLocalConnectionState() != LocalConnectionState.Stopped)
+            if (GetConnectionState(false) != LocalConnectionState.Stopped)
                 StopConnection(false);
         }
 
@@ -315,6 +457,8 @@ namespace FishNet.Transporting.CanoeWebRTC
 
         public static void SignalShutdown()
         {
+            //The signal socket going down ends hosting, and the host's own client with it.
+            _instance?.StopLocalHostClient();
             if (_server.GetLocalConnectionState() != LocalConnectionState.Stopped)
                 _server.StopServer();
             if (_client.GetLocalConnectionState() != LocalConnectionState.Stopped)

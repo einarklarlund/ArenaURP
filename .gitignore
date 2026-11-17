@@ -125,3 +125,6 @@ Tools/LevelGenTests/obj/
 !Tools/LevelGenProfile/*.csproj
 Tools/LevelGenProfile/bin/
 Tools/LevelGenProfile/obj/
+
+# Burst intermediates that Unity 6.6 web builds leave in the project root
+/Data/

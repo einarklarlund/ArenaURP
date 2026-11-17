@@ -110,5 +110,60 @@ namespace Arena.LevelGen.Tests
             Assert.Greater(building, 0);
             Assert.IsNull(BuildPlan.Create(level, new BuildOptions { BuildDecals = false }).Decals);
         }
+
+        [Test]
+        public void Buildings_AreDrawnPerRoom_WithTheShellApart([Values(false, true)] bool tall)
+        {
+            var s = LevelGenSettings.Default;
+            if (tall)
+            {
+                s.MaxHeight = 20f;
+                s.Buildings.MinFloors = s.Buildings.MaxFloors = 3;
+                s.Width = s.Depth = 100f;
+                s.PlotCount = 8;
+            }
+            int split = 0, upperRooms = 0;
+            for (ulong seed = 0; seed < 3; seed++)
+            {
+                var result = LevelGenerator.Generate(s, seed);
+                Assert.IsTrue(result.Success, result.Reason);
+                var level = result.Level;
+                foreach (var g in BuildPlan.Create(level, new BuildOptions()).Groups)
+                {
+                    if (g.Kind != OwnerKind.Building) continue;
+                    if (g.PieceNames == null) continue;
+                    split++;
+                    var building = level.Buildings.Find(b => b.Id == g.Id);
+                    Assert.AreEqual(g.Mesh.TriangleCount, g.TrianglePieces.Count, g.Name);
+                    var used = new bool[g.PieceNames.Count];
+                    for (int t = 0; t < g.Mesh.TriangleCount; t++)
+                    {
+                        var piece = g.PieceNames[g.TrianglePieces[t]];
+                        used[g.TrianglePieces[t]] = true;
+                        var tag = g.Mesh.Keys[g.Mesh.TriangleKeys[t]].Tag;
+                        var normal = g.Mesh.Normals[g.Mesh.Triangles[3 * t]];
+                        // Not a wall's bottom, which sits buried in the slab under it.
+                        if (tag == SurfaceTag.Roof || tag == SurfaceTag.OuterWallOutside && Mathf.Abs(normal.y) < 0.99f)
+                            Assert.AreEqual("Shell", piece, $"{g.Name}: {tag} faces out");
+                        // A room's floor: a slab top inside a room at its height. Upper floors are smaller, so a lower
+                        // slab's top outside them is an open terrace, drawn by the shell.
+                        if (tag == SurfaceTag.BuildingFloor && normal.y > 0.99f)
+                        {
+                            var a = g.Mesh.Vertices[g.Mesh.Triangles[3 * t]];
+                            var c = (a + g.Mesh.Vertices[g.Mesh.Triangles[3 * t + 1]] + g.Mesh.Vertices[g.Mesh.Triangles[3 * t + 2]]) / 3f;
+                            bool roomFloor = building.Rooms.Exists(r => Mathf.Abs(r.Height - c.y) < 0.01f
+                                && Polygon.Contains(level.Polygons[r.Polygon], c.x, c.z));
+                            Assert.AreEqual(roomFloor, piece.StartsWith("Room "), $"{g.Name}: floor top at {c} in {piece}");
+                        }
+                    }
+                    CollectionAssert.DoesNotContain(used, false, $"{g.Name}: every piece has a triangle");
+                    foreach (var name in g.PieceNames)
+                        if (name.StartsWith("Room ") && !name.EndsWith("(floor 0)")) upperRooms++;
+                    Assert.GreaterOrEqual(g.PieceNames.Count, building.Rooms.Count, $"{g.Name}: a piece per room");
+                }
+            }
+            Assert.Greater(split, 0);
+            if (tall) Assert.Greater(upperRooms, 0, "upper floors' rooms are drawn apart");
+        }
     }
 }
