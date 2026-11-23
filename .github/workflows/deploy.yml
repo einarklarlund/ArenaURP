@@ -25,7 +25,21 @@ jobs:
           dotnet: true
           haskell: true
           large-packages: true
-          swap-storage: true
+          # Keep the runner's swap: the release build's link-time optimization needs it (see the next step).
+          swap-storage: false
+
+      # The release build links WebAssembly with link-time optimization (BuildScripts.BuildWebGLRelease), and
+      # wasm-ld needs more than the runner's 16 GB of RAM for it: without swap the kernel kills it (SIGKILL) and
+      # Unity reports only "Build failed with exit code 1". A large swap file lets it finish, more slowly.
+      - name: Add swap for the WebAssembly link
+        run: |
+          sudo swapoff -a || true
+          sudo rm -f /mnt/swapfile /swapfile
+          sudo fallocate -l 24G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
 
       # Checkout the code (including LFS files)
       - name: Checkout Repository
