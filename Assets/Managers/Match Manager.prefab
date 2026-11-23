@@ -41,7 +41,6 @@ GameObject:
   m_Component:
   - component: {fileID: 844217296461668172}
   - component: {fileID: 8273908882509083322}
-  - component: {fileID: 2775174301024091756}
   - component: {fileID: 7810952112853308401}
   - component: {fileID: 6568500469211825346}
   - component: {fileID: 8141144086800092800}
@@ -99,22 +98,6 @@ MonoBehaviour:
   matchDuration: 600
   killsToWin: 5
   skipToMatch: 0
---- !u!114 &2775174301024091756
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 711997956381162585}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f5825587be764454abb7951c0b68f027, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PowerUps
-  _componentIndexCache: 1
-  _addedNetworkObject: {fileID: 7810952112853308401}
-  _networkObjectCache: {fileID: 7810952112853308401}
-  fryingPanPrefab: {fileID: 8779760786770532154, guid: 24be7704e769348f8aaad013fefe583b, type: 3}
 --- !u!114 &7810952112853308401
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -127,26 +110,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26b716c41e9b56b4baafaf13a523ba2e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FishNet.Runtime::FishNet.Object.NetworkObject
-  <IsNested>k__BackingField: 0
-  WasActiveDuringEdit: 0
-  WasActiveDuringEdit_Set1: 1
-  <ComponentIndex>k__BackingField: 0
-  <PredictedSpawn>k__BackingField: {fileID: 0}
-  <PredictedOwner>k__BackingField: {fileID: 0}
-  NetworkBehaviours:
-  - {fileID: 8273908882509083322}
-  - {fileID: 2775174301024091756}
-  InitializedParentNetworkBehaviour: {fileID: 0}
-  InitializedNestedNetworkObjects: []
-  RuntimeParentNetworkBehaviour: {fileID: 0}
-  RuntimeChildNetworkBehaviours: []
-  _isNetworked: 1
-  _isSpawnable: 1
-  _isGlobal: 0
-  _initializeOrder: 0
-  _preventDespawnOnDisconnect: 0
-  _defaultDespawnType: 0
-  _initializedTimestamp: -8584090168505967428
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
@@ -174,6 +137,26 @@ MonoBehaviour:
     Rotation: {x: 0, y: 0, z: 0, w: 1}
     Scale: {x: 1, y: 1, z: 1}
     IsValid: 1
+  <IsNested>k__BackingField: 0
+  WasActiveDuringEdit: 0
+  WasActiveDuringEdit_Set1: 1
+  <ComponentIndex>k__BackingField: 0
+  <PredictedSpawn>k__BackingField: {fileID: 0}
+  <PredictedOwner>k__BackingField: {fileID: 0}
+  NetworkBehaviours:
+  - {fileID: 8273908882509083322}
+  - {fileID: 0}
+  InitializedParentNetworkBehaviour: {fileID: 0}
+  InitializedNestedNetworkObjects: []
+  RuntimeParentNetworkBehaviour: {fileID: 0}
+  RuntimeChildNetworkBehaviours: []
+  _isNetworked: 1
+  _isSpawnable: 1
+  _isGlobal: 0
+  _initializeOrder: 0
+  _preventDespawnOnDisconnect: 0
+  _defaultDespawnType: 0
+  _initializedTimestamp: -8584090168505967428
 --- !u!114 &6568500469211825346
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -216,6 +199,19 @@ MonoBehaviour:
   weaponChestsPerPlayer: 1
   lifetime: 20
   respawnDelay: {x: 1, y: 4}
+  siteWeights:
+    near:
+    - 1
+    - 0.5
+    - 0.2
+    raceTied: 0.4
+    raceBehind: 0.15
+    isolation:
+    - 0.05
+    - 0.3
+    - 1
+    fullStrengthGap: 5
+    minStrength: 0.25
 --- !u!114 &3041985307591424551
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -234,6 +230,19 @@ MonoBehaviour:
   experienceCapsule: {fileID: 8510675762870702266, guid: e0231f7297dec46a5963069ab5ad18fe, type: 3}
   capsulesPerPlayer: 1
   retryDelay: {x: 1, y: 4}
+  siteWeights:
+    near:
+    - 1
+    - 0.5
+    - 0.2
+    raceTied: 0.4
+    raceBehind: 0.15
+    isolation:
+    - 0.05
+    - 0.3
+    - 1
+    fullStrengthGap: 5
+    minStrength: 0.25
 --- !u!114 &9062784185417845322
 MonoBehaviour:
   m_ObjectHideFlags: 0

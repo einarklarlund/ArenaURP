@@ -25,17 +25,17 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _Pattern:
-        m_Texture: {fileID: 2800000, guid: d0b63dfa3e7ff4543bd97f7ed95f091a, type: 3}
+        m_Texture: {fileID: 2800000, guid: 543fea203fa7f4ea785fd5a308ef6488, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
     - _DitherStrength: 1
     - _HueOffset: 0
-    - _HueSteps: 4
+    - _HueSteps: 16
     - _QuantizeInSRGB: 1
-    - _SaturationSteps: 4
-    - _ValueSteps: 8
+    - _SaturationSteps: 16
+    - _ValueSteps: 16
     m_Colors: []
   m_BuildTextureStacks: []
   m_AllowLocking: 1
